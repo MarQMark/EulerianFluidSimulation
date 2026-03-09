@@ -1,5 +1,6 @@
 #ifndef EULERIANFLUIDSIMULATION_SIMULATOR_H
 #define EULERIANFLUIDSIMULATION_SIMULATOR_H
+
 #include "renderer/Window.h"
 
 
