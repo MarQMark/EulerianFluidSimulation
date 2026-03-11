@@ -2,6 +2,7 @@
 #define EULERIANFLUIDSIMULATION_SIMULATOR_H
 
 #include "renderer/Window.h"
+#include "views/Views.h"
 
 
 class Simulator {
@@ -13,6 +14,7 @@ public:
 
 private:
     Window* _window{};
+    Views* _views{};
 };
 
 

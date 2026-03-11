@@ -2,6 +2,7 @@
 #define EULERIANFLUIDSIMULATION_WINDOW_H
 #include <string>
 
+#include "GL/glew.h"
 #include <GLFW/glfw3.h>
 
 class Window {
@@ -11,6 +12,8 @@ public:
 
     void update() const;
     bool shouldClose() const;
+
+    GLFWwindow* getWindow() const;
 
 private:
     int _width;

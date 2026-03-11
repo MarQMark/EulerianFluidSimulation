@@ -10,7 +10,7 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     option(GIT_SUBMODULE "Check submodules during build" ON)
     if(GIT_SUBMODULE)
         message(STATUS "Submodule update")
-        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive --remote
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                 RESULT_VARIABLE GIT_SUBMOD_RESULT)
         if(NOT GIT_SUBMOD_RESULT EQUAL "0")
@@ -25,7 +25,30 @@ add_executable(EulerianFluidSimulation
         src/Simulator.cpp
 
         src/renderer/Window.cpp
+
+        src/views/Views.cpp
 )
+
+
+# DearImGUI
+set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
+
+add_library(imgui
+        ${IMGUI_DIR}/imgui.cpp
+        ${IMGUI_DIR}/imgui_draw.cpp
+        ${IMGUI_DIR}/imgui_tables.cpp
+        ${IMGUI_DIR}/imgui_widgets.cpp
+        ${IMGUI_DIR}/imgui_demo.cpp
+        ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+        ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+)
+target_include_directories(imgui PUBLIC
+        ${IMGUI_DIR}
+        ${IMGUI_DIR}/backends
+)
+
+target_include_directories(imgui PUBLIC ${IMGUI_DIR})
+
 
 target_include_directories(EulerianFluidSimulation
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -33,7 +56,9 @@ target_include_directories(EulerianFluidSimulation
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external
 )
 
+add_compile_definitions(GLEW_STATIC)
+
 if (UNIX)
     find_package(OpenGL REQUIRED)
-    target_link_libraries(EulerianFluidSimulation glut glfw dl X11 pthread)
+    target_link_libraries(EulerianFluidSimulation GLEW imgui glut glfw dl X11 pthread)
 endif(UNIX)

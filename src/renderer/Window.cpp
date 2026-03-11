@@ -8,6 +8,11 @@ Window::Window(const int width, const int height, std::string title) : _width(wi
         throw std::runtime_error("Failed to initialize GLFW");
 
     _win = glfwCreateWindow(_width, _height, _title.c_str(), nullptr, nullptr);
+
+    glfwMakeContextCurrent(_win);
+
+    if (glewInit() != GLEW_OK)
+        throw std::runtime_error("Failed to initialize GLEW");
 }
 
 Window::~Window() {
@@ -21,4 +26,8 @@ void Window::update() const {
 
 bool Window::shouldClose() const {
     return glfwWindowShouldClose(_win);
+}
+
+GLFWwindow * Window::getWindow() const {
+    return _win;
 }
