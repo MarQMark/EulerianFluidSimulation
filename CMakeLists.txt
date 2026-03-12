@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.20)
 project(EulerianFluidSimulation)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -25,8 +25,13 @@ add_executable(EulerianFluidSimulation
         src/Simulator.cpp
 
         src/renderer/Window.cpp
+        src/renderer/Renderer.cpp
+        src/renderer/Texture2D.cpp
 
         src/views/Views.cpp
+        src/views/SimulationView.cpp
+
+        src/simulation/Grid.cpp
 )
 
 

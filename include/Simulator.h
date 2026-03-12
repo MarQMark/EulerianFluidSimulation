@@ -1,7 +1,10 @@
 #ifndef EULERIANFLUIDSIMULATION_SIMULATOR_H
 #define EULERIANFLUIDSIMULATION_SIMULATOR_H
 
+#include <renderer/Renderer.h>
+
 #include "renderer/Window.h"
+#include "simulation/Grid.h"
 #include "views/Views.h"
 
 
@@ -14,7 +17,11 @@ public:
 
 private:
     Window* _window{};
+    Renderer* _renderer{};
+
     Views* _views{};
+
+    Grid* _grid;
 };
 
 

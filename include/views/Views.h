@@ -14,6 +14,9 @@ public:
 
     void render();
 
+    void addView(const std::string& name, Viewable* view);
+    Viewable* getView(const std::string& name);
+
 private:
     std::map<std::string, Viewable*> _views;
 };

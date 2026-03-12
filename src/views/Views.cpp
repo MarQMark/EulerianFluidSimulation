@@ -1,4 +1,7 @@
 #include "views/Views.h"
+
+#include <iostream>
+
 #include "imgui/imgui.h"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
@@ -74,4 +77,20 @@ void Views::render() {
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void Views::addView(const std::string &name, Viewable *view) {
+    if(_views.contains(name))
+        std::cout << "[Warning] View with name " << name << " overrides existing view \n";
+
+    _views[name] = view;
+}
+
+Viewable* Views::getView(const std::string &name) {
+    if(!_views.contains(name)) {
+        std::cout << "[Warning] View with name " << name << " not in views map\n";
+        return nullptr;
+    }
+
+    return _views[name];
 }
