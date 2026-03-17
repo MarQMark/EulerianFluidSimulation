@@ -13,6 +13,8 @@ Window::Window(const int width, const int height, std::string title) : _width(wi
 
     if (glewInit() != GLEW_OK)
         throw std::runtime_error("Failed to initialize GLEW");
+
+    glfwSwapInterval(0);
 }
 
 Window::~Window() {

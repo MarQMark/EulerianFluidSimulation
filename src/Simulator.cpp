@@ -1,6 +1,5 @@
 #include "Simulator.h"
 
-#include <iostream>
 #include <views/SimulationView.h>
 
 #define RES_X 128
@@ -35,7 +34,11 @@ void Simulator::update() {
 void Simulator::simulate() {
     v_step();
     s_step();
-    _grid->swap();
+    //_grid->swap();
+
+    auto& vel = _grid->getVel();
+    for(int i = 0; i < vel.size(); i++)
+        vel[i] = dynamic_cast<SimulationView*>(_views->getView("Simulation"))->getForces()[i];
 }
 
 void Simulator::v_step() {

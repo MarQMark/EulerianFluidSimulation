@@ -20,8 +20,8 @@ void Renderer::render( Grid *grid) {
     }
 
     for (int i = 0; i < _width * _height; i++) {
-        data[i * 4 + 0] = vel[i].x / max.x;
-        data[i * 4 + 1] = vel[i].y / max.y;
+        data[i * 4 + 0] = std::abs(vel[i].x) / max.x;
+        data[i * 4 + 1] = std::abs(vel[i].y) / max.y;
         data[i * 4 + 2] = 1.f;
         data[i * 4 + 3] = 1.f;
     }
