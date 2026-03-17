@@ -8,13 +8,15 @@
 
 class SimulationView : public Viewable {
 public:
-    explicit SimulationView(ImTextureID textureID);
+    explicit SimulationView(ImTextureID textureID, int width, int height);
     ~SimulationView() = default;
 
     void render() override;
 
 private:
     ImTextureID _texture_id;
+    int _width;
+    int _height;
 };
 
 

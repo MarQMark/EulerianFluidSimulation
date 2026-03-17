@@ -7,12 +7,17 @@
 
 class Renderer {
 public:
-    Renderer() = default;
-    ~Renderer() = default;
+    Renderer(int width, int height);
+    ~Renderer();
 
-    void render(const Grid* grid);
+    void render(Grid* grid);
+
+    Texture2D* getTexture2D() const;
 
 private:
+    Texture2D* _txt;
+    int _width;
+    int _height;
 };
 
 

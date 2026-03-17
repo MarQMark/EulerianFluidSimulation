@@ -22,6 +22,10 @@ private:
     Views* _views{};
 
     Grid* _grid;
+
+    void simulate();
+    void v_step();
+    void s_step();
 };
 
 

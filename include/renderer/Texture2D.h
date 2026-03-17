@@ -10,7 +10,7 @@ public:
         GLint level = 0;
         GLint internalformat = GL_RGBA;
         GLenum format = GL_RGBA;
-        GLenum type = GL_UNSIGNED_BYTE;
+        GLenum type = GL_FLOAT;
 
         GLint minFilter = GL_NEAREST;
         GLint maxFilter = GL_NEAREST;
@@ -23,6 +23,8 @@ public:
 
     GLuint get() const;
 
+    void update(uint8_t* data);
+
     void bind(GLuint slot = 0) const;
     static void unbind();
 
@@ -32,6 +34,8 @@ private:
     GLuint _id;
     GLsizei _width;
     GLsizei _height;
+
+    Options* _opt{};
 };
 
 #endif //EULERIANFLUIDSIMULATION_TEXTURE2D_H

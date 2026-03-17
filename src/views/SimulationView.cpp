@@ -1,7 +1,8 @@
 #include "views/SimulationView.h"
 #include "imgui/imgui.h"
 
-SimulationView::SimulationView(ImTextureID textureID) : _texture_id(textureID) {
+SimulationView::SimulationView(const ImTextureID textureID, const int width, const int height)
+    : _texture_id(textureID), _width(width), _height(height) {
 }
 
 #define TOP_SPACING 10;
@@ -14,7 +15,7 @@ void SimulationView::render() {
     const float win_y = ImGui::GetWindowPos().y + TOP_SPACING;
     const float win_w = ImGui::GetWindowWidth();
     const float win_h = ImGui::GetWindowHeight() - TOP_SPACING;
-    constexpr float txtAspect = 1280.f / 720.f;
+    const float txtAspect = (float)_width / (float)_height;
     const float winAspect = win_w / win_h;
 
     if(winAspect > txtAspect){

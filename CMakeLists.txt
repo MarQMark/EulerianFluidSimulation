@@ -65,5 +65,5 @@ add_compile_definitions(GLEW_STATIC)
 
 if (UNIX)
     find_package(OpenGL REQUIRED)
-    target_link_libraries(EulerianFluidSimulation GLEW imgui glut glfw dl X11 pthread)
+    target_link_libraries(EulerianFluidSimulation GL GLEW imgui glut glfw dl X11 pthread)
 endif(UNIX)
