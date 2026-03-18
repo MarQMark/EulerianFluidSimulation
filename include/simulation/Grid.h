@@ -10,6 +10,7 @@ public:
     ~Grid() = default;
 
     std::vector<glm::vec2>& getVel();
+    std::vector<glm::vec2>& getNewVel();
 
     void swap();
 

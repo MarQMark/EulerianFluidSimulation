@@ -17,6 +17,13 @@ std::vector<glm::vec2> & Grid::getVel() {
     return _v1;
 }
 
+std::vector<glm::vec2> & Grid::getNewVel() {
+    if(_field == 1)
+        return _v0;
+
+    return _v1;
+}
+
 void Grid::swap() {
     _field = (_field + 1) % 2;
 }

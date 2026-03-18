@@ -2,8 +2,7 @@
 #define EULERIANFLUIDSIMULATION_WINDOW_H
 #include <string>
 
-#include "GL/glew.h"
-#include <GLFW/glfw3.h>
+#include "Texture2D.h"
 
 class Window {
 public:

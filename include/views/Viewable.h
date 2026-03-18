@@ -11,7 +11,7 @@ public:
     virtual void setVisible(const bool visible) {_visible = visible;}
     virtual bool isVisible() {return _visible;}
 
-private:
+protected:
     bool _visible = true;
 };
 

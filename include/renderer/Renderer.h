@@ -1,8 +1,8 @@
 #ifndef RENDERER_H
 #define RENDERER_H
-#include <simulation/Grid.h>
 
 #include "Texture2D.h"
+#include "simulation/Grid.h"
 
 
 class Renderer {

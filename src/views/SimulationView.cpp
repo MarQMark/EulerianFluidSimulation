@@ -1,4 +1,7 @@
 #include "views/SimulationView.h"
+
+#include <algorithm>
+
 #include "imgui/imgui.h"
 
 SimulationView::SimulationView(const ImTextureID textureID, const int width, const int height)
@@ -10,6 +13,9 @@ SimulationView::SimulationView(const ImTextureID textureID, const int width, con
 
 #define TOP_SPACING 10;
 void SimulationView::render() {
+    if (!_visible)
+        return;
+
     ImGui::Begin("View");
 
     constexpr float view_padding = 10;
@@ -92,14 +98,18 @@ void SimulationView::render() {
 
                     if (dx*dx + dy*dy <= r2)
                     {
-                        _forces[(_height - 1 - y) * _width + x] += force;
+                        _forces[(_height - 1 - y) * _width + x] += force * 1.f;
                     }
                 }
             }
         }
+        else {
+            for (auto& f : _forces)
+                f = glm::vec2(0);
+        }
     }
 
-    constexpr float decay = -0.1;
+    /*constexpr float decay = -0.1;
     for(auto& f : _forces) {
         if(f.x > 0) f.x += decay;
         else if(f.x < 0) f.x -= decay;
@@ -109,7 +119,7 @@ void SimulationView::render() {
 
         if(std::abs(f.x) < 0.2) f.x = 0;
         if(std::abs(f.y) < 0.2) f.y = 0;
-    }
+    }*/
 
     ImGui::End();
 }
