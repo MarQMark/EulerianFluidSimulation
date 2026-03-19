@@ -12,18 +12,39 @@ Renderer::~Renderer() {
 
 void Renderer::render( Grid *grid) {
     std::vector<float> data(_width * _height * 4);
-    glm::vec2 max(0);
     auto vel = grid->getVel();
+    /*glm::vec2 max(0);
     for(auto v : vel) {
         max.x = std::max(max.x, std::abs(v.x));
         max.y = std::max(max.y, std::abs(v.y));
     }
 
     for (int i = 0; i < _width * _height; i++) {
-        data[i * 4 + 0] = std::abs(vel[i].x) / max.x;
-        data[i * 4 + 1] = std::abs(vel[i].y) / max.y;
+        data[i * 4 + 0] = vel[i].x / max.x;
+        data[i * 4 + 1] = vel[i].y / max.y;
         data[i * 4 + 2] = 1.f;
         data[i * 4 + 3] = 1.f;
+    }*/
+
+    float max = 0;
+    for(auto v : vel) {
+        max = std::max(max, glm::length(v));
+    }
+    for (int i = 0; i < _width * _height; i++) {
+        float len = glm::length(vel[i]);
+        if(glm::length(vel[i]) > 0.01f) {
+            data[i * 4 + 0] = len / max;
+            data[i * 4 + 1] = std::atan2(vel[i].y, vel[i].x) / 6.28f + 0.5f;
+            data[i * 4 + 2] = 1;
+            data[i * 4 + 3] = 1.f;
+        }
+        else {
+            data[i * 4 + 0] = 0;
+            data[i * 4 + 1] = 0;
+            data[i * 4 + 2] = 0;
+            data[i * 4 + 3] = 1.f;
+        }
+
     }
 
     _txt->update(reinterpret_cast<uint8_t *>(data.data()));

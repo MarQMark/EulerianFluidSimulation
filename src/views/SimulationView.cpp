@@ -46,6 +46,8 @@ void SimulationView::render() {
                  ImVec2(0, 1),
                  ImVec2(1, 0));
 
+    for (auto& f : _forces)
+        f = glm::vec2(0);
     if (ImGui::IsItemHovered())
     {
         const ImVec2 mouse = ImGui::GetIO().MousePos;
@@ -102,10 +104,6 @@ void SimulationView::render() {
                     }
                 }
             }
-        }
-        else {
-            for (auto& f : _forces)
-                f = glm::vec2(0);
         }
     }
 
