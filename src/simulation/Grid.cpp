@@ -24,6 +24,10 @@ std::vector<glm::vec2> & Grid::getNewVel() {
     return _v1;
 }
 
+std::vector<float> & Grid::getPres() {
+    return _s0;
+}
+
 void Grid::swap() {
     _field = (_field + 1) % 2;
 }

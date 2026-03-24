@@ -3,12 +3,14 @@
 #include <algorithm>
 
 #include "imgui/imgui.h"
+#include "simulation/Properties.h"
 
 SimulationView::SimulationView(const ImTextureID textureID, const int width, const int height)
     : _texture_id(textureID), _width(width), _height(height) {
     _forces.resize(_width * _height);
     for(auto& f : _forces)
         f = glm::vec2(0);
+
 }
 
 #define TOP_SPACING 10;
@@ -54,7 +56,7 @@ void SimulationView::render() {
 
         constexpr ImU32 color = IM_COL32(255, 0, 0, 255);
         ImDrawList* drawList = ImGui::GetWindowDrawList();
-        drawList->AddCircle(mouse, _size, color, 32, 2.0f);
+        drawList->AddCircle(mouse, Properties::Get()->BRUSH_SIZE, color, 32, 2.0f);
 
 
         if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
@@ -74,8 +76,8 @@ void SimulationView::render() {
             int cy = (int)(v * (_height - 1));
 
             // Convert radius to texture space
-            float radius_tex_x = _size * (_width  / (x_max - x_min));
-            float radius_tex_y = _size * (_height / (y_max - y_min));
+            float radius_tex_x = Properties::Get()->BRUSH_SIZE * (_width  / (x_max - x_min));
+            float radius_tex_y = Properties::Get()->BRUSH_SIZE * (_height / (y_max - y_min));
 
             float r2 = radius_tex_x * radius_tex_x; // use x scale (aspect already preserved)
 

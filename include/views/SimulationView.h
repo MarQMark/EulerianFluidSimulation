@@ -23,7 +23,6 @@ private:
     int _width;
     int _height;
 
-    float _size = 70.f;
     ImVec2 _mouse_pos = ImVec2(-1, -1);
     std::vector<glm::vec2> _forces;
 };

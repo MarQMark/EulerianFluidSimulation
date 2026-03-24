@@ -23,6 +23,8 @@ private:
 
     Grid* _grid;
 
+    bool _paused = false;
+
     void simulate();
     void v_step();
     void s_step();

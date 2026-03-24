@@ -12,6 +12,8 @@ public:
     std::vector<glm::vec2>& getVel();
     std::vector<glm::vec2>& getNewVel();
 
+    std::vector<float>& getPres();
+
     void swap();
 
 private:
