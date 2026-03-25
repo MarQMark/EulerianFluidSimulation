@@ -11,26 +11,41 @@ Grid::Grid(const unsigned int nWidth, const unsigned int nHeight) : _n_width(nWi
 }
 
 std::vector<glm::vec2> & Grid::getVel() {
-    if(_field == 0)
+    if(_vel == 0)
         return _v0;
 
     return _v1;
 }
 
 std::vector<glm::vec2> & Grid::getNewVel() {
-    if(_field == 1)
+    if(_vel == 1)
         return _v0;
 
     return _v1;
 }
 
 std::vector<float> & Grid::getPres() {
-    return _s0;
+    if(_pres == 0)
+        return _s0;
+
+    return _s1;
 }
 
-void Grid::swap() {
-    _field = (_field + 1) % 2;
+std::vector<float> & Grid::getNewPres() {
+    if(_pres == 1)
+        return _s0;
+
+    return _s1;
 }
+
+void Grid::swapVel() {
+    _vel = (_vel + 1) % 2;
+}
+
+void Grid::swapPres() {
+    _pres = (_pres + 1) % 2;
+}
+
 
 void Grid::init() {
     for(auto & i : _v0)

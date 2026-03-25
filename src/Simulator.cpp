@@ -49,30 +49,16 @@ void Simulator::update() {
 void Simulator::simulate() {
     if (_paused)
         return;
-    //v_step();
-    //s_step();
-    //_grid->swap();
-
-    /*auto& vel = _grid->getVel();
-    for(int i = 0; i < vel.size(); i++)
-        vel[i] = dynamic_cast<SimulationView*>(_views->getView("Simulation"))->getForces()[i];*/
 
     advect(_grid->getNewVel(), _grid->getVel());
-    _grid->swap();
-    diffuse(_grid->getNewVel(), _grid->getVel());
-    _grid->swap();
-    add_force(_grid->getNewVel(), _grid->getVel());
-    _grid->swap();
-    compute_pres(_grid->getPres(), _grid->getNewVel());
-    sub_pres(_grid->getNewVel(), _grid->getPres(), _grid->getVel());
+    _grid->swapVel();
+    add_force(_grid->getVel());
 
-    _grid->swap();
-}
+    diffuse(_grid->getVel());
+    project(_grid->getNewVel(), _grid->getVel(), _grid->getNewPres(), _grid->getPres());
 
-void Simulator::v_step() {
-}
-
-void Simulator::s_step() {
+    //_grid->swapPres();
+    //_grid->swapVel();
 }
 
 glm::vec2 bilinearInterpol(glm::vec2 pos, const std::vector<glm::vec2> &field) {
@@ -157,138 +143,50 @@ glm::vec2 bilinearInterpol2(const glm::vec2 pos, const std::vector<glm::vec2> &f
     return ret;
 }
 
-void Simulator::advect(std::vector<glm::vec2> &field, std::vector<glm::vec2> &vel) {
+VEC sample(const VEC_FIELD& field, int x, int y) {
+    x = std::clamp(0, x, RES_X);
+    y = std::clamp(0, x, RES_Y);
+    return field[y * RES_X + x];
+}
+
+void Simulator::add_force(VEC_FIELD &vel) {
+    for (int y = 1; y < RES_Y - 1; y++) {
+        for (int x = 1; x < RES_X - 1; x++)
+        {
+            const int i = y * RES_X + x;
+            vel[i] += dynamic_cast<SimulationView*>(_views->getView("Simulation"))->getForces()[i] * DT;
+        }
+    }
+}
+
+void Simulator::advect(VEC_FIELD& velNew, VEC_FIELD& vel) {
     glm::vec2 rdx(RES_X, RES_Y);
     for (int y = 1; y < RES_Y - 1; y++) {
         for (int x = 1; x < RES_X - 1; x++)
         {
             const int i = y * RES_X + x;
             const glm::vec2 pos = glm::vec2(x, y) - DT * rdx * vel[i];
-            field[i] = bilinearInterpol(pos, vel);
+            velNew[i] = bilinearInterpol(pos, vel);
         }
     }
 }
 
-glm::vec2 jacobi(const int idx, const std::vector<glm::vec2> &oField, const std::vector<glm::vec2> &nField, float alpha, float rBeta) {
-    glm::vec2 vel[4] = {
-        nField[std::clamp(idx + 1, 0, (int)nField.size() - 1)],
-        nField[std::clamp(idx - 1, 0, (int)nField.size() - 1)],
-        nField[std::clamp(idx + RES_X, 0, (int)nField.size() - 1)],
-        nField[std::clamp(idx - RES_X, 0, (int)nField.size() - 1)]
-    };
-
-    glm::vec2 velC = oField[idx];
-    return (vel[0] + vel[1] + vel[2] + vel[3] + alpha * velC) * rBeta;
-}
-
-void Simulator::diffuse(std::vector<glm::vec2> &field, std::vector<glm::vec2> &vel) {
-    const float alpha = Properties::Get()->a * DT * RES_X * RES_X;
-    const float rBeta = 1.0f / (1.0f + 4.0f * alpha);
-
-    std::vector<glm::vec2> b = field;
-    std::vector<glm::vec2> tmp = field;
-
-    for (int it = 0; it < 30; it++) {
-        for (int y = 1; y < RES_Y - 1; y++) {
-            for (int x = 1; x < RES_X - 1; x++)
-            {
-                const int i = y * RES_X + x;
-                tmp[i] = jacobi(i, field, b, alpha, rBeta);
-            }
-        }
-        std::swap(field, tmp);
-    }
-}
-
-void Simulator::add_force(std::vector<glm::vec2> &field, std::vector<glm::vec2> &vel) {
+void Simulator::diffuse(VEC_FIELD& vel) {
+    SCAL_FIELD curl(vel.size());
     for (int y = 1; y < RES_Y - 1; y++) {
         for (int x = 1; x < RES_X - 1; x++)
         {
-            const int i = y * RES_X + x;
-            field[i] = vel[i] + dynamic_cast<SimulationView*>(_views->getView("Simulation"))->getForces()[i] * DT;
-            //std::cout << field[i].x << "\n";
+            const SCAL vt = sample(vel, x, y + 1).y;
+            const SCAL vb = sample(vel, x, y - 1).y;
+            const SCAL vl = sample(vel, x, y - 1).x;
+            const SCAL vr = sample(vel, x, y + 1).x;
+            curl[y * RES_X + x] = vr - vt - vl + vb;
         }
     }
+
+
 }
 
-float jacobi(const int idx, const std::vector<float> &oField, const std::vector<float> &nField, float alpha, float rBeta) {
-    float pres[4] = {
-        nField[std::clamp(idx + 1, 0, (int)nField.size() - 1)],
-        nField[std::clamp(idx - 1, 0, (int)nField.size() - 1)],
-        nField[std::clamp(idx + RES_X, 0, (int)nField.size() - 1)],
-        nField[std::clamp(idx - RES_X, 0, (int)nField.size() - 1)]
-    };
+void Simulator::project(VEC_FIELD& velNew, VEC_FIELD& vel, SCAL_FIELD& presNew, SCAL_FIELD& pres) {
 
-    float presC = oField[idx];
-    return (pres[0] + pres[1] + pres[2] + pres[3] + alpha * presC) * rBeta;
-}
-
-void Simulator::compute_pres(std::vector<float> &pres, std::vector<glm::vec2> &vel) {
-    const int size = RES_X * RES_Y;
-
-    std::vector<float> div(size, 0.0f);
-    std::vector<float> tmp(size, 0.0f);
-
-    // Step 1: compute divergence
-    for (int y = 1; y < RES_Y - 1; y++)
-    {
-        for (int x = 1; x < RES_X - 1; x++)
-        {
-            int i = y * RES_X + x;
-
-            float vxL = vel[i - 1].x;
-            float vxR = vel[i + 1].x;
-            float vyB = vel[i - RES_X].y;
-            float vyT = vel[i + RES_X].y;
-
-            div[i] = -0.5f * (
-                (vxR - vxL) * RES_X +
-                (vyT - vyB) * RES_Y
-            );
-
-            pres[i] = 0.0f;
-        }
-    }
-
-    // Step 2: solve Laplacian(p) = div using Jacobi
-    constexpr float alpha = -1.0f;
-    constexpr float rBeta = 0.25f;
-
-    for (int it = 0; it < 40; it++)
-    {
-        for (int y = 1; y < RES_Y - 1; y++)
-        {
-            for (int x = 1; x < RES_X - 1; x++)
-            {
-                int i = y * RES_X + x;
-
-                tmp[i] =
-                    (pres[i - 1] +
-                     pres[i + 1] +
-                     pres[i - RES_X] +
-                     pres[i + RES_X] +
-                     alpha * div[i]) * rBeta;
-            }
-        }
-
-        std::swap(pres, tmp);
-    }
-}
-
-void Simulator::sub_pres(std::vector<glm::vec2> &field, std::vector<float> &pres, std::vector<glm::vec2> &vel) {
-    for (int y = 1; y < RES_Y - 1; y++)
-    {
-        for (int x = 1; x < RES_X - 1; x++)
-        {
-            int i = y * RES_X + x;
-
-            float pL = pres[i - 1];
-            float pR = pres[i + 1];
-            float pB = pres[i - RES_X];
-            float pT = pres[i + RES_X];
-
-            field[i].x = vel[i].x - 0.5f * (pR - pL) * RES_X;
-            field[i].y = vel[i].y - 0.5f * (pT - pB) * RES_Y;
-        }
-    }
 }

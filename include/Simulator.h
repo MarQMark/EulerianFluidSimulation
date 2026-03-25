@@ -7,6 +7,10 @@
 #include "simulation/Grid.h"
 #include "views/Views.h"
 
+#define SCAL_FIELD std::vector<float>
+#define SCAL float
+#define VEC_FIELD std::vector<glm::vec2>
+#define VEC glm::vec2
 
 class Simulator {
 public:
@@ -26,14 +30,11 @@ private:
     bool _paused = false;
 
     void simulate();
-    void v_step();
-    void s_step();
 
-    static void advect(std::vector<glm::vec2>& field, std::vector<glm::vec2>& vel);
-    void diffuse(std::vector<glm::vec2>& field, std::vector<glm::vec2>& vel);
-    void add_force(std::vector<glm::vec2>& field, std::vector<glm::vec2>& vel);
-    void compute_pres(std::vector<float>& pres, std::vector<glm::vec2>& vel);
-    void sub_pres(std::vector<glm::vec2>& field, std::vector<float>& pres, std::vector<glm::vec2>& vel);
+    void add_force(VEC_FIELD& vel);
+    void advect(VEC_FIELD& velNew, VEC_FIELD& vel);
+    void diffuse(VEC_FIELD& vel);
+    void project(VEC_FIELD& velNew, VEC_FIELD& vel, SCAL_FIELD& presNew, SCAL_FIELD& pres);
 };
 
 

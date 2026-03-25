@@ -102,7 +102,7 @@ void SimulationView::render() {
 
                     if (dx*dx + dy*dy <= r2)
                     {
-                        _forces[(_height - 1 - y) * _width + x] += force * 1.f;
+                        _forces[(_height - 1 - y) * _width + x] += force * glm::vec2(1.f, -1);
                     }
                 }
             }

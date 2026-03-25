@@ -13,14 +13,17 @@ public:
     std::vector<glm::vec2>& getNewVel();
 
     std::vector<float>& getPres();
+    std::vector<float>& getNewPres();
 
-    void swap();
+    void swapVel();
+    void swapPres();
 
 private:
     unsigned int _n_width;
     unsigned int _n_height;
 
-    uint8_t _field = 0;
+    uint8_t _vel = 0;
+    uint8_t _pres = 0;
 
     std::vector<glm::vec2> _v0;
     std::vector<glm::vec2> _v1;
