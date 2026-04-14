@@ -54,8 +54,6 @@ void Simulator::simulate() {
     _grid->swapVel();
     add_force(_grid->getVel());
 
-    diffuse(_grid->getVel());
-    project(_grid->getNewVel(), _grid->getVel(), _grid->getNewPres(), _grid->getPres());
 
     //_grid->swapPres();
     //_grid->swapVel();
@@ -143,50 +141,19 @@ glm::vec2 bilinearInterpol2(const glm::vec2 pos, const std::vector<glm::vec2> &f
     return ret;
 }
 
-VEC sample(const VEC_FIELD& field, int x, int y) {
-    x = std::clamp(0, x, RES_X);
-    y = std::clamp(0, x, RES_Y);
-    return field[y * RES_X + x];
-}
-
-void Simulator::add_force(VEC_FIELD &vel) {
-    for (int y = 1; y < RES_Y - 1; y++) {
+void Simulator::add_force(VecField &vel) {
+    for (int y = 1; y < RES_Y - 1; y++)
         for (int x = 1; x < RES_X - 1; x++)
-        {
-            const int i = y * RES_X + x;
-            vel[i] += dynamic_cast<SimulationView*>(_views->getView("Simulation"))->getForces()[i] * DT;
-        }
-    }
+            vel(x, y) += dynamic_cast<SimulationView*>(_views->getView("Simulation"))->getForces()(x, y) * DT;
 }
 
-void Simulator::advect(VEC_FIELD& velNew, VEC_FIELD& vel) {
+void Simulator::advect(VecField& velNew, VecField& vel) {
     glm::vec2 rdx(RES_X, RES_Y);
     for (int y = 1; y < RES_Y - 1; y++) {
         for (int x = 1; x < RES_X - 1; x++)
         {
-            const int i = y * RES_X + x;
-            const glm::vec2 pos = glm::vec2(x, y) - DT * rdx * vel[i];
-            velNew[i] = bilinearInterpol(pos, vel);
+            const glm::vec2 pos = glm::vec2(x, y) - DT * rdx * vel(x, y);
+            velNew(x, y) = vel.interpolate(pos);
         }
     }
-}
-
-void Simulator::diffuse(VEC_FIELD& vel) {
-    SCAL_FIELD curl(vel.size());
-    for (int y = 1; y < RES_Y - 1; y++) {
-        for (int x = 1; x < RES_X - 1; x++)
-        {
-            const SCAL vt = sample(vel, x, y + 1).y;
-            const SCAL vb = sample(vel, x, y - 1).y;
-            const SCAL vl = sample(vel, x, y - 1).x;
-            const SCAL vr = sample(vel, x, y + 1).x;
-            curl[y * RES_X + x] = vr - vt - vl + vb;
-        }
-    }
-
-
-}
-
-void Simulator::project(VEC_FIELD& velNew, VEC_FIELD& vel, SCAL_FIELD& presNew, SCAL_FIELD& pres) {
-
 }

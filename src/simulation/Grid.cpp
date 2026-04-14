@@ -2,26 +2,26 @@
 
 Grid::Grid(const unsigned int nWidth, const unsigned int nHeight) : _n_width(nWidth), _n_height(nHeight) {
     const unsigned int nCells = nWidth * nHeight;
-    _v0.resize(nCells);
-    _v1.resize(nCells);
+    _v0 = new VecField(nWidth, nHeight);
+    _v1 = new VecField(nWidth, nHeight);
     _s0.resize(nCells);
     _s1.resize(nCells);
 
     init();
 }
 
-std::vector<glm::vec2> & Grid::getVel() {
+VecField& Grid::getVel() const {
     if(_vel == 0)
-        return _v0;
+        return *_v0;
 
-    return _v1;
+    return *_v1;
 }
 
-std::vector<glm::vec2> & Grid::getNewVel() {
+VecField& Grid::getNewVel() const {
     if(_vel == 1)
-        return _v0;
+        return *_v0;
 
-    return _v1;
+    return *_v1;
 }
 
 std::vector<float> & Grid::getPres() {
@@ -48,10 +48,8 @@ void Grid::swapPres() {
 
 
 void Grid::init() {
-    for(auto & i : _v0)
-        i = glm::vec2(0);
-    for(auto & i : _v1)
-        i = glm::vec2(0);
+    _v0->clear();
+    _v1->clear();
     for(auto & i : _s0)
         i = 0;
     for(auto & i : _s1)

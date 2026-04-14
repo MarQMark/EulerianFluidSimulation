@@ -5,12 +5,11 @@
 
 #include "renderer/Window.h"
 #include "simulation/Grid.h"
+#include "simulation/VecField.h"
 #include "views/Views.h"
 
 #define SCAL_FIELD std::vector<float>
 #define SCAL float
-#define VEC_FIELD std::vector<glm::vec2>
-#define VEC glm::vec2
 
 class Simulator {
 public:
@@ -31,10 +30,8 @@ private:
 
     void simulate();
 
-    void add_force(VEC_FIELD& vel);
-    void advect(VEC_FIELD& velNew, VEC_FIELD& vel);
-    void diffuse(VEC_FIELD& vel);
-    void project(VEC_FIELD& velNew, VEC_FIELD& vel, SCAL_FIELD& presNew, SCAL_FIELD& pres);
+    void add_force(VecField& vel);
+    void advect(VecField& velNew, VecField& vel);
 };
 
 

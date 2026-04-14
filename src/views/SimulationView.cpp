@@ -4,13 +4,15 @@
 
 #include "imgui/imgui.h"
 #include "simulation/Properties.h"
+#include "simulation/VecField.h"
 
 SimulationView::SimulationView(const ImTextureID textureID, const int width, const int height)
     : _texture_id(textureID), _width(width), _height(height) {
-    _forces.resize(_width * _height);
-    for(auto& f : _forces)
-        f = glm::vec2(0);
+    _forces = new VecField(_width,  _height);
+}
 
+SimulationView::~SimulationView() {
+    delete _forces;
 }
 
 #define TOP_SPACING 10;
@@ -48,8 +50,8 @@ void SimulationView::render() {
                  ImVec2(0, 1),
                  ImVec2(1, 0));
 
-    for (auto& f : _forces)
-        f = glm::vec2(0);
+
+    _forces->clear();
     if (ImGui::IsItemHovered())
     {
         const ImVec2 mouse = ImGui::GetIO().MousePos;
@@ -102,7 +104,7 @@ void SimulationView::render() {
 
                     if (dx*dx + dy*dy <= r2)
                     {
-                        _forces[(_height - 1 - y) * _width + x] += force * glm::vec2(1.f, -1);
+                        (*_forces)(x, (_height - 1 - y)) += force * glm::vec2(1.f, -1);
                     }
                 }
             }
@@ -124,7 +126,7 @@ void SimulationView::render() {
     ImGui::End();
 }
 
-std::vector<glm::vec2> & SimulationView::getForces() {
-    return _forces;
+VecField& SimulationView::getForces() const {
+    return *_forces;
 }
 

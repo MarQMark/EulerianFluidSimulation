@@ -7,16 +7,17 @@
 #include "imgui/imgui.h"
 
 #include "Viewable.h"
+#include "simulation/VecField.h"
 
 
 class SimulationView : public Viewable {
 public:
     explicit SimulationView(ImTextureID textureID, int width, int height);
-    ~SimulationView() = default;
+    ~SimulationView();
 
     void render() override;
 
-    std::vector<glm::vec2>& getForces();
+    VecField& getForces() const;
 
 private:
     ImTextureID _texture_id;
@@ -24,7 +25,7 @@ private:
     int _height;
 
     ImVec2 _mouse_pos = ImVec2(-1, -1);
-    std::vector<glm::vec2> _forces;
+    VecField* _forces{};
 };
 
 
