@@ -18,6 +18,7 @@ public:
     void render() override;
 
     VecField& getForces() const;
+    void setVelField(VecField* velField);
 
 private:
     ImTextureID _texture_id;
@@ -26,6 +27,8 @@ private:
 
     ImVec2 _mouse_pos = ImVec2(-1, -1);
     VecField* _forces{};
+
+    VecField* _vel_field{};
 };
 
 

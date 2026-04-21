@@ -35,6 +35,9 @@ add_executable(EulerianFluidSimulation
         src/simulation/Grid.cpp
         src/simulation/Properties.cpp
         src/simulation/VecField.cpp
+        src/simulation/ScalField.cpp
+
+        src/solver/LinearSolver.cpp
 )
 
 

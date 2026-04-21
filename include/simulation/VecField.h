@@ -32,12 +32,21 @@ public:
     glm::vec2 interpolate(glm::vec2 pos);
 
     void clear();
+    unsigned int size() const;
+    unsigned int width() const;
+    unsigned int height() const;
 
+    float BilinearInterpolation(const glm::vec2 &pos,
+                                          int low_x,
+                                          int low_y,
+                                          int comp) ;
 private:
     unsigned int _width = 0;
     unsigned int _height = 0;
 
     std::vector<glm::vec2> _field;
+
+
 };
 
 

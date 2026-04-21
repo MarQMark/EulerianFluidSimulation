@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "glm/geometric.hpp"
 #include "imgui/imgui.h"
 #include "simulation/Properties.h"
 #include "simulation/VecField.h"
@@ -111,22 +112,43 @@ void SimulationView::render() {
         }
     }
 
-    /*constexpr float decay = -0.1;
-    for(auto& f : _forces) {
-        if(f.x > 0) f.x += decay;
-        else if(f.x < 0) f.x -= decay;
+    if (_vel_field) {
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        glm::vec2 gridSpacing((x_max - x_min) / _vel_field->width(), (y_max - y_min) / _vel_field->height());
 
-        if(f.y > 0) f.y += decay;
-        else if(f.y < 0) f.y -= decay;
+        float max = 0;
+        for(auto v : *_vel_field) {
+            max = std::max(max, glm::length(v));
+        }
 
-        if(std::abs(f.x) < 0.2) f.x = 0;
-        if(std::abs(f.y) < 0.2) f.y = 0;
-    }*/
+        for (int y = 0; y < _vel_field->height(); y++) {
+            for (int x = 0; x < _vel_field->width(); x++) {
+                glm::vec2 vel = (*_vel_field)(x, y);
+
+                const int y_flip = _vel_field->width() - y - 1;
+                vel = vel / max;
+                draw_list->AddLine(
+                    ImVec2(
+                        x_min + (x + .5f) * gridSpacing.x,
+                        y_min + (y_flip + .5f) * gridSpacing.y),
+                    ImVec2(
+                        x_min + (x + .5f) * gridSpacing.x + vel.x * 10,
+                        y_min + (y_flip + .5f) * gridSpacing.y + vel.y * 10),
+                    IM_COL32(0, 255, 0, 255),
+                    1.5f
+                );
+            }
+        }
+    }
 
     ImGui::End();
 }
 
 VecField& SimulationView::getForces() const {
     return *_forces;
+}
+
+void SimulationView::setVelField(VecField *velField) {
+    _vel_field = velField;
 }
 

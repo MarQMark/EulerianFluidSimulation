@@ -1,12 +1,16 @@
 #include "simulation/VecField.h"
 
 #include <algorithm>
+#include <cmath>
+
+#include "glm/common.hpp"
 
 VecField::VecField(const unsigned int width, const unsigned int height) : _width(width), _height(height){
     _field.resize(width * height);
     clear();
 }
 
+#if 0
 glm::vec2 VecField::interpolate(glm::vec2 pos) {
     pos += glm::vec2(.5);
     const int x = (int)pos.x;
@@ -57,10 +61,96 @@ glm::vec2 VecField::interpolate(glm::vec2 pos) {
 
     return fxy;
 }
+#elif 0
+glm::vec2 VecField::interpolate(glm::vec2 pos) {
+    // pos is in cell-center space: cell (i,j) has center at (i+0.5, j+0.5)
+    // Find the left/bottom neighbor index
+    float px = pos.x - 0.5f;
+    float py = pos.y - 0.5f;
+
+    int x0 = (int)std::floor(px);
+    int y0 = (int)std::floor(py);
+    int x1 = x0 + 1;
+    int y1 = y0 + 1;
+
+    // Fractional part [0,1) — no branching needed
+    float tx = px - (float)x0;
+    float ty = py - (float)y0;
+
+    // Clamp indices to valid range
+    x0 = std::clamp(x0, 0, (int)_width  - 1);
+    x1 = std::clamp(x1, 0, (int)_width  - 1);
+    y0 = std::clamp(y0, 0, (int)_height - 1);
+    y1 = std::clamp(y1, 0, (int)_height - 1);
+
+    // Bilinear interpolation
+    glm::vec2 v00 = (*this)(x0, y0);
+    glm::vec2 v10 = (*this)(x1, y0);
+    glm::vec2 v01 = (*this)(x0, y1);
+    glm::vec2 v11 = (*this)(x1, y1);
+
+    glm::vec2 row0 = glm::mix(v00, v10, tx);
+    glm::vec2 row1 = glm::mix(v01, v11, tx);
+    return glm::mix(row0, row1, ty);
+}
+#else
+float VecField::BilinearInterpolation(const glm::vec2 &pos,
+                                          int low_x,
+                                          int low_y,
+                                          int comp)
+{
+    float x_low_inter, x_high_inter;
+
+    // Interpolate between y values at the lower x positions
+    x_low_inter = (((low_y + 0.5 * (1 - comp)) - pos[1])
+                    * (*this)(low_x, low_y)[comp])
+                + ((pos[1] - (low_y - 0.5 - 0.5 * comp))
+                    * (*this)(low_x, low_y + 1)[comp]);
+    // Interpolate between y values at the higher x positions
+    x_high_inter = (((low_y + 0.5 * (1 - comp)) - pos[1])
+                    * (*this)(low_x + 1, low_y)[comp])
+                 + ((pos[1] - (low_y - 0.5 - 0.5 * comp))
+                    * (*this)(low_x + 1, low_y + 1)[comp]);
+
+    // Interpolate between the averaged values at the low and high x positions
+    return ((low_x + 0.5 * comp - pos[0]) * x_low_inter)
+        + ((pos[0] - (low_x - 0.5 - 0.5 * (1 - comp))) * x_high_inter);
+}
+
+#define EPSILON 1.0e-10
+glm::vec2 VecField::interpolate(glm::vec2 pos) {
+    //pos -= glm::vec2(.5);
+    float Vx, Vy;
+
+    // Interpolate the x component
+    int low_x = static_cast<int>(std::floor(pos[0] + 1) + EPSILON);
+    int low_y = static_cast<int>(pos[1] + 0.5 + EPSILON);
+    Vx = BilinearInterpolation(pos, low_x, low_y, 0);
+
+    // Interpolate the y component
+    low_x = static_cast<int>(pos[0] + 0.5);
+    low_y = static_cast<int>(floor(pos[1] + 1) + EPSILON);
+    Vy = BilinearInterpolation(pos, low_x, low_y, 1);
+
+    return glm::vec2(Vx, Vy);
+}
+#endif
 
 void VecField::clear() {
     for (int i = 0; i < _field.size(); i++)
         _field[i] = glm::vec2(0);
+}
+
+unsigned int VecField::size() const {
+    return _width * _height;
+}
+
+unsigned int VecField::width() const {
+    return _width;
+}
+
+unsigned int VecField::height() const {
+    return _height;
 }
 
 

@@ -32,9 +32,12 @@ void Renderer::render( Grid *grid) {
     }
     for (int i = 0; i < _width * _height; i++) {
         float len = glm::length(vel[i]);
-        if(glm::length(vel[i]) > 0.01f) {
+        if(glm::length(vel[i]) > .001f){
+            float angle = atan2(vel[i].y, vel[i].x);
+            float value = 0.5f * (1.0f - cos(angle));
+
             data[i * 4 + 0] = len / max;
-            data[i * 4 + 1] = std::atan2(vel[i].y, vel[i].x) / 6.28f + 0.5f;
+            //data[i * 4 + 1] = value;//std::atan2(vel[i].y, vel[i].x) / 6.28f + 0.5f;
             data[i * 4 + 2] = 1;
             data[i * 4 + 3] = 1.f;
         }
@@ -44,7 +47,6 @@ void Renderer::render( Grid *grid) {
             data[i * 4 + 2] = 0;
             data[i * 4 + 3] = 1.f;
         }
-
     }
 
     _txt->update(reinterpret_cast<uint8_t *>(data.data()));
