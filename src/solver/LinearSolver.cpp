@@ -3,39 +3,31 @@
 
 #include "LinearSolver.hpp"
 
+#include "simulation/ScalField.h"
+#include "simulation/VecField.h"
+
 
 /** Vector helper functions */
-void VecAddEqual(int n, float r[], const float v[])
-{
+void VecAddEqual(int n, float r[], const float v[]){
 	for (int i = 0; i < n; i++)
-	{
 		r[i] = r[i] + v[i];
-	}
 }
 
-void VecDiffEqual(int n, float r[], const float v[])
-{
+void VecDiffEqual(int n, float r[], const float v[]){
 	for (int i = 0; i < n; i++)
-	{
 		r[i] = r[i] - v[i];
-	}
 }
 
-void VecAssign(int n, float v1[], const float v2[])
-{
+void VecAssign(int n, float v1[], const float v2[]){
 	memcpy(v1, v2, n * sizeof(float));
 }
 
-void VecTimesScalar(int n, float v[], double s)
-{
+void VecTimesScalar(int n, float v[], double s) {
 	for (int i = 0; i < n; i++)
-	{
 		v[i] *= s;
-	}
 }
 
-double VecDot(int n, const float v1[], const float v2[])
-{
+double VecDot(int n, const float v1[], const float v2[]) {
 	double dot = 0;
 	for (int i = 0; i < n; i++)
 	{
@@ -44,8 +36,7 @@ double VecDot(int n, const float v1[], const float v2[])
 	return dot;
 }
 
-double VecSqrLen(int n, const float v[])
-{
+double VecSqrLen(int n, const float v[]) {
 	return VecDot(n, v, v);
 }
 
@@ -134,14 +125,14 @@ double ConjGrad(int n,
 	//printf("test %f\n", rSqrLen);
 
 	VecAssign(n, d, r);
-	
+
 	if (steps && *steps > 0)
 	{
 		iMax = *steps;
 	}
 	else
 	{
-		iMax = MAX_STEPS;
+		iMax = 100000;
 	}
 
 	if (rSqrLen > epsilon)

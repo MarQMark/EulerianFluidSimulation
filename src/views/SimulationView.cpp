@@ -125,7 +125,7 @@ void SimulationView::render() {
             for (int x = 0; x < _vel_field->width(); x++) {
                 glm::vec2 vel = (*_vel_field)(x, y);
 
-                const int y_flip = _vel_field->width() - y - 1;
+                const int y_flip = _vel_field->height() - y - 1;
                 vel = vel / max;
                 draw_list->AddLine(
                     ImVec2(
@@ -142,6 +142,14 @@ void SimulationView::render() {
     }
 
     ImGui::End();
+}
+
+void SimulationView::recreate(const ImTextureID textureID, const int width, const int height) {
+    delete _vel_field;
+    _texture_id = textureID;
+    _width = width;
+    _height = height;
+    _forces = new VecField(_width,  _height);
 }
 
 VecField& SimulationView::getForces() const {

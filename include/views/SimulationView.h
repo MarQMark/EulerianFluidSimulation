@@ -17,6 +17,8 @@ public:
 
     void render() override;
 
+    void recreate(ImTextureID textureID, int width, int height);
+
     VecField& getForces() const;
     void setVelField(VecField* velField);
 

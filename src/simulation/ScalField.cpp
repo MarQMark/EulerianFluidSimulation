@@ -1,10 +1,16 @@
 #include "simulation/ScalField.h"
 
 #include <algorithm>
+#include <cstring>
 
 ScalField::ScalField(const unsigned int width, const unsigned int height) : _width(width), _height(height){
-    _field.resize(width * height);
+    _field.resize(_width * _height);
     clear();
+}
+
+ScalField::ScalField(const ScalField &field) : _width(field.width()), _height(field.height()){
+    _field.resize(_width * _height);
+    memcpy(_field.data(), field._field.data(), field.size() * sizeof(float));
 }
 
 float ScalField::interpolate(glm::vec2 pos) {
@@ -59,8 +65,7 @@ float ScalField::interpolate(glm::vec2 pos) {
 }
 
 void ScalField::clear() {
-    for (int i = 0; i < _field.size(); i++)
-        _field[i] = 0.f;
+    memset(_field.data(), 0, size() * sizeof(float));
 }
 
 unsigned int ScalField::size() const {

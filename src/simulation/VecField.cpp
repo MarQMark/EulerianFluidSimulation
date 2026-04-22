@@ -2,12 +2,18 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 #include "glm/common.hpp"
 
 VecField::VecField(const unsigned int width, const unsigned int height) : _width(width), _height(height){
     _field.resize(width * height);
     clear();
+}
+
+VecField::VecField(const VecField &field) {
+    _field.resize(field.width() * field.height());
+    memcpy(_field.data(), field._field.data(), field.size() * sizeof(glm::vec2));
 }
 
 #if 0
@@ -119,17 +125,16 @@ float VecField::BilinearInterpolation(const glm::vec2 &pos,
 
 #define EPSILON 1.0e-10
 glm::vec2 VecField::interpolate(glm::vec2 pos) {
-    //pos -= glm::vec2(.5);
     float Vx, Vy;
 
     // Interpolate the x component
-    int low_x = static_cast<int>(std::floor(pos[0] + 1) + EPSILON);
-    int low_y = static_cast<int>(pos[1] + 0.5 + EPSILON);
+    int low_x = (int)(std::floor(pos[0] + 1) + EPSILON);
+    int low_y = (int)(pos[1] + 0.5 + EPSILON);
     Vx = BilinearInterpolation(pos, low_x, low_y, 0);
 
     // Interpolate the y component
-    low_x = static_cast<int>(pos[0] + 0.5);
-    low_y = static_cast<int>(floor(pos[1] + 1) + EPSILON);
+    low_x = (int)(pos[0] + 0.5);
+    low_y = (int)(floor(pos[1] + 1) + EPSILON);
     Vy = BilinearInterpolation(pos, low_x, low_y, 1);
 
     return glm::vec2(Vx, Vy);
@@ -137,8 +142,7 @@ glm::vec2 VecField::interpolate(glm::vec2 pos) {
 #endif
 
 void VecField::clear() {
-    for (int i = 0; i < _field.size(); i++)
-        _field[i] = glm::vec2(0);
+    memset(_field.data(), 0, size() * sizeof(glm::vec2));
 }
 
 unsigned int VecField::size() const {

@@ -28,6 +28,10 @@ private:
 
     bool _paused = false;
 
+    void create();
+    void destroy() const;
+    void recreate();
+
     void simulate();
 
     void add_force(VecField& vel);

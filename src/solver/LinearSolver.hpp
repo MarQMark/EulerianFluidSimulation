@@ -1,6 +1,6 @@
 // Karen's CGD
 
-#define MAX_STEPS 100000
+#include "simulation/ScalField.h"
 
 
 /*****************************************************************************
@@ -71,3 +71,5 @@ double ConjGrad(int n,
 				const float b[],
 				double epsilon,
 				int *steps);
+
+float ConjugateGradient(ScalField& pressure, const ScalField& divergence, const int steps);

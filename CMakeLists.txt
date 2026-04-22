@@ -38,6 +38,8 @@ add_executable(EulerianFluidSimulation
         src/simulation/ScalField.cpp
 
         src/solver/LinearSolver.cpp
+        src/solver/ConjugateGradient.cpp
+        src/solver/ConjugateGradient.h
 )
 
 

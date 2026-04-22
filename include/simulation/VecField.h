@@ -7,6 +7,7 @@
 class VecField {
 public:
     VecField(unsigned int width, unsigned int height);
+    VecField(const VecField& field);
 
     glm::vec2& operator[](const std::size_t index) {
         return _field[index];
@@ -14,6 +15,47 @@ public:
 
     glm::vec2& operator()(const std::size_t x, const std::size_t y) {
         return _field[y * _width + x];
+    }
+
+    VecField& operator=(const VecField& field2) {
+        if (this == &field2)
+            return *this;
+
+        _field = field2._field;
+        return *this;
+    }
+
+    VecField& operator*=(const float scalar) {
+        for (auto& v : _field)
+            v *= scalar;
+        return *this;
+    }
+    VecField operator*(const float scalar) const {
+        VecField result = *this;
+        result *= scalar;
+        return result;
+    }
+
+    VecField& operator+=(VecField& field2) {
+        for (int i = 0; i < _field.size(); i++)
+            _field[i] += field2[i];
+        return *this;
+    }
+    VecField operator+(VecField& field2) const {
+        VecField result = *this;
+        result += field2;
+        return result;
+    }
+
+    VecField& operator-=(VecField& field2) {
+        for (int i = 0; i < _field.size(); i++)
+            _field[i] -= field2[i];
+        return *this;
+    }
+    VecField operator-(VecField& field2) const {
+        VecField result = *this;
+        result -= field2;
+        return result;
     }
 
     auto begin() {
