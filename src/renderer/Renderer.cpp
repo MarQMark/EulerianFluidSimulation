@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "simulation/ScalField.h"
+
 Renderer::Renderer(const int width, const int height) : _width(width), _height(height){
     _txt = new Texture2D(_width, _height, nullptr);
 }
@@ -10,7 +12,7 @@ Renderer::~Renderer() {
     delete _txt;
 }
 
-void Renderer::render( Grid *grid) {
+void Renderer::render( Grid *grid, ScalField& boundary) {
     std::vector<float> data(_width * _height * 4);
     auto vel = grid->getVel();
     /*glm::vec2 max(0);
@@ -32,19 +34,28 @@ void Renderer::render( Grid *grid) {
     }
     for (int i = 0; i < _width * _height; i++) {
         float len = glm::length(vel[i]);
-        if(glm::length(vel[i]) > .001f){
+        if (boundary[i] == 1) {
+            data[i * 4 + 0] = .3f;
+            data[i * 4 + 1] = .3f;
+            data[i * 4 + 2] = .3f;
+            data[i * 4 + 3] = .3f;
+        }
+        else if(glm::length(vel[i]) > .0001f){
             float angle = atan2(vel[i].y, vel[i].x);
             float value = 0.5f * (1.0f - cos(angle));
 
             data[i * 4 + 0] = len / max;
             //data[i * 4 + 1] = value;//std::atan2(vel[i].y, vel[i].x) / 6.28f + 0.5f;
-            data[i * 4 + 2] = 1;
+            data[i * 4 + 1] = 0.f;
+            //data[i * 4 + 2] = 1;
+            data[i * 4 + 2] = grid->getPres()[i];
             data[i * 4 + 3] = 1.f;
         }
         else {
             data[i * 4 + 0] = 0;
             data[i * 4 + 1] = 0;
-            data[i * 4 + 2] = 0;
+            //data[i * 4 + 2] = 0;
+            data[i * 4 + 2] = grid->getPres()[i];
             data[i * 4 + 3] = 1.f;
         }
     }

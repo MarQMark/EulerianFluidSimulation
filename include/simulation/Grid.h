@@ -3,19 +3,20 @@
 
 #include <vector>
 
+#include "ScalField.h"
 #include "VecField.h"
 #include "glm/glm.hpp"
 
 class Grid {
 public:
     explicit Grid(unsigned int nWidth, unsigned int nHeight);
-    ~Grid() = default;
+    ~Grid();
 
     VecField& getVel() const;
     VecField& getNewVel() const;
 
-    std::vector<float>& getPres();
-    std::vector<float>& getNewPres();
+    ScalField& getPres();
+    ScalField& getNewPres();
 
     void swapVel();
     void swapPres();
@@ -29,8 +30,8 @@ private:
 
     VecField* _v0{};
     VecField* _v1{};
-    std::vector<float> _s0;
-    std::vector<float> _s1;
+    ScalField* _s0;
+    ScalField* _s1;
 
     void init();
 };

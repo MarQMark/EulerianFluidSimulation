@@ -6,14 +6,15 @@
 
 #include "simulation/Properties.h"
 #include "simulation/ScalField.h"
+#include "solver/ConjugateGradient.h"
 #include "solver/LinearSolver.hpp"
 #include "views/PropertiesView.h"
 
 
 Simulator::Simulator() {
-    _window = new Window(1280, 720, "StableFluids");
+	_window = new Window(1280, 720, "StableFluids");
 	_views = new Views(_window);
-    create();
+	create();
 	_views->addView("Simulation",
 		new SimulationView(
 			_renderer->getTexture2D()->get(),
@@ -45,13 +46,20 @@ void Simulator::recreate() {
 		_renderer->getTexture2D()->get(),
 		Properties::Get()->WIDTH,
 		Properties::Get()->HEIGHT);
+
+	for (int y = 40; y < 50; y++)
+		for (int x = 40; x < 50; x++)
+			_grid->getPres()(x, y) = 1;
 }
 
 void Simulator::update() {
     while (!_window->shouldClose()) {
         simulate();
         _views->render();
-        _renderer->render(_grid);
+        _renderer->render(
+        	_grid,
+        	dynamic_cast<SimulationView*>(_views->getView("Simulation"))->getBoundary()
+        	);
         _window->update();
 
         if(ImGui::IsKeyPressed(ImGuiKey_R)) {
@@ -69,9 +77,17 @@ void Simulator::simulate() {
 
     advect(_grid->getNewVel(), _grid->getVel());
     //_grid->swapVel();
+	//VorticityConfinement();
+
+    //projection(_grid->getVel());
+	advectVOF(_grid->getVel(), _grid->getPres());
     add_force(_grid->getVel());
-	VorticityConfinement();
-    projection(_grid->getVel());
+	applyGravity(_grid->getVel(), _grid->getPres());
+	projection(_grid->getVel(), _grid->getPres());
+	for (int i = 0; i < _grid->getVel().size(); i++) {
+		if (dynamic_cast<SimulationView*>(_views->getView("Simulation"))->getBoundary()[i] == 1)
+			_grid->getVel()[i] = glm::vec2(0);
+	}
 
     dynamic_cast<SimulationView*>(_views->getView("Simulation"))->setVelField(&_grid->getVel());
 
@@ -167,25 +183,25 @@ void Simulator::advect(VecField& velNew, VecField& field) {
         }
     }
 
-    //return;
     for(int y = 1; y < field.height() - 1; y++) {
         for(int x = 1; x < field.width() - 1; x++) {
             // Interpolate the new grid centered velocities to the grid edges
             if (x == 1)
-                field(x, y)[0] = 0;
+                field(x, y).x = 0;
             else
-                field(x, y)[0] = 0.5 * (newField(x, y)[0] + newField(x - 1, y)[0]);
+                field(x, y).x = 0.5f * (newField(x, y).x + newField(x - 1, y).x);
 
             if (y == 1)
-                field(x, y)[1] = 0;
+                field(x, y).y = 0;
             else
-                field(x, y)[1] = 0.5 * (newField(x, y)[1] + newField(x, y - 1)[1]);
+                field(x, y).y = 0.5f * (newField(x, y).y + newField(x, y - 1).y);
 
         }
     }
 
 }
 
+#if 0
 void Simulator::projection(VecField& field) {
     auto pressure = ScalField(field.width(), field.height());
     auto divergence = ScalField(field.width(), field.height());
@@ -245,6 +261,116 @@ void Simulator::projection(VecField& field) {
         }
     }
 }
+#else
+void Simulator::applyGravity(VecField& field, ScalField& vof) {
+	const float dt = Properties::Get()->DT;
+	for (int y = 1; y < field.height() - 1; y++) {
+		for (int x = 1; x < field.width() - 1; x++) {
+			if (vof(x, y) > 0.01f)
+				field(x, y).y -= .0098f * dt;  // downward gravity on v-component
+		}
+	}
+}
+
+void Simulator::advectVOF(VecField& field, ScalField& vof) {
+	ScalField vofNew(vof.width(), vof.height());
+	const float dt = Properties::Get()->DT;
+
+	for (int y = 1; y < vof.height() - 1; y++) {
+		for (int x = 1; x < vof.width() - 1; x++) {
+
+			// MAC grid: field(x,y).x is the u-velocity on the LEFT face of cell (x,y)
+			//           field(x,y).y is the v-velocity on the BOTTOM face of cell (x,y)
+			// Right face of (x,y) = field(x+1, y).x
+			// Top  face of (x,y) = field(x, y+1).y
+
+			float u_left  = field(x,   y).x;   // left face
+			float u_right = field(x+1, y).x;   // right face
+			float v_bot   = field(x, y  ).y;   // bottom face
+			float v_top   = field(x, y+1).y;   // top face
+
+			// Donor-acceptor: flux = velocity * F of upstream cell
+			// X fluxes (positive = flowing right)
+			float fx_left  = u_left  > 0 ? u_left  * vof(x-1, y) : u_left  * vof(x,   y);
+			float fx_right = u_right > 0 ? u_right * vof(x,   y) : u_right * vof(x+1, y);
+
+			// Y fluxes (positive = flowing up)
+			float fy_bot = v_bot > 0 ? v_bot * vof(x, y-1) : v_bot * vof(x,   y);
+			float fy_top = v_top > 0 ? v_top * vof(x,   y) : v_top * vof(x, y+1);
+
+			// Net outflow = right - left + top - bottom (all scaled by dt)
+			vofNew(x, y) = vof(x, y) - dt * ((fx_right - fx_left) + (fy_top - fy_bot));
+			vofNew(x, y) = glm::clamp(vofNew(x, y), 0.0f, 1.0f);
+		}
+	}
+
+	vof = vofNew;
+}
+
+void Simulator::projection(VecField& field, ScalField& vof) {
+    auto pressure   = ScalField(field.width(), field.height());
+    auto divergence = ScalField(field.width(), field.height());
+
+    const float SURFACE_THRESH = 0.01f;  // below this = empty/air
+    const float FULL_THRESH    = 0.99f;  // above this = fully fluid
+
+    // --- Divergence (only in fluid cells) ---
+    for (int y = 1; y < field.height() - 1; y++) {
+        for (int x = 1; x < field.width() - 1; x++) {
+            if (vof(x, y) < SURFACE_THRESH) {
+                divergence(x, y) = 0.0f;   // air cell — no constraint
+                continue;
+            }
+            if (vof(x, y) < FULL_THRESH) {
+                divergence(x, y) = 0.0f;   // surface cell — p=0 Dirichlet, skip divergence
+                continue;
+            }
+            // Full fluid cell — standard divergence
+            divergence(x, y) = field(x+1, y).x - field(x, y).x
+                              + field(x, y+1).y - field(x, y).y;
+        }
+    }
+
+    const float err = ConjugateGradient2(pressure, divergence, vof, Properties::Get()->MAX_STEPS);
+    if (err > Properties::Get()->THRESHOLD) {
+        fprintf(stderr, "projection did not converge! error: %f\n", err);
+        exit(1);
+    }
+
+	for (int y = 0; y < pressure.height(); y++)
+		for (int x = 0; x < pressure.width(); x++)
+			if (vof(x, y) < FULL_THRESH)
+				pressure(x, y) = 0.0f;
+
+    // --- Velocity correction (only in fluid, zero in air) ---
+    for (int y = 1; y < field.height() - 1; y++) {
+        for (int x = 1; x < field.width() - 1; x++) {
+
+            if (vof(x, y) < SURFACE_THRESH) {
+                field(x, y) = glm::vec2(0.0f);  // air — kill velocity
+                continue;
+            }
+
+            // Same boundary logic as before, unchanged
+            if (x == 1) {
+                if (y == 1) {
+                    field(x, y) = glm::vec2(0, 0);
+                } else {
+                    field(x, y) -= glm::vec2(0, pressure(x,y) - pressure(x, y-1));
+                }
+            } else {
+                if (y == 1) {
+                    field(x, y) -= glm::vec2(pressure(x,y) - pressure(x-1, y), 0);
+                } else {
+                    field(x, y) -= glm::vec2(pressure(x,y) - pressure(x-1, y),
+                                             pressure(x,y) - pressure(x, y-1));
+                }
+            }
+        }
+    }
+}
+#endif
+
 
 void Simulator::VorticityConfinement() {
 	VecField& velField = _grid->getVel();
@@ -259,7 +385,7 @@ void Simulator::VorticityConfinement() {
 	// Calculate the magnitude of the curl of v at grid centers
 	for(int y = 1; y < velField.height() - 1; y++) {
 		for(int x = 1; x < velField.width() - 1; x++) {
-			double bottom, right, top, left;
+			float bottom, right, top, left;
 
 			// Check for boundaries
 			if (x == 1)

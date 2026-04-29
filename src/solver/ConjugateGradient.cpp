@@ -2,6 +2,7 @@
 
 #include "simulation/Properties.h"
 
+#if 0
 void MatVecMult(ScalField& result, const ScalField& x) {
 
 	const unsigned int w = x.width();
@@ -64,14 +65,55 @@ void MatVecMult(ScalField& result, const ScalField& x) {
 		}
 	}
 }
+#else
+void MatVecMult(ScalField& result, const ScalField& x, const ScalField& vof) {
+	const int w = x.width();
+	const int h = x.height();
+	const float FULL = 0.99f;
+	const float SURF = 0.01f;
 
-float ConjugateGradient(ScalField& pressure, const ScalField& divergence, const int steps) {
+	for (int y = 0; y < h; y++) {
+		for (int x_ = 0; x_ < w; x_++) {
+
+			// Air or surface cell: Dirichlet p = 0 → identity row
+			if (vof(x_, y) < FULL) {
+				result(x_, y) = x(x_, y);
+				continue;
+			}
+
+			// Full fluid cell: count active neighbors
+			float sum = 0.0f;
+			int   nCount = 0;
+
+			auto sampleNeighbor = [&](int nx, int ny) {
+				if (nx < 0 || nx >= w || ny < 0 || ny >= h) return; // solid wall
+				if (vof(nx, ny) < SURF) return;  // air neighbor — skip coupling
+				// Surface neighbor: Dirichlet p=0, contributes 0 to sum but still
+				// counts toward diagonal so the row stays consistent
+				nCount++;
+				if (vof(nx, ny) >= FULL)
+					sum += x(nx, ny);
+				// if surface neighbor: x(nx,ny) is 0 by identity row, so += 0
+			};
+
+			sampleNeighbor(x_ - 1, y);
+			sampleNeighbor(x_ + 1, y);
+			sampleNeighbor(x_, y - 1);
+			sampleNeighbor(x_, y + 1);
+
+			result(x_, y) = sum - (float)nCount * x(x_, y);
+		}
+	}
+}
+#endif
+
+float ConjugateGradient2(ScalField& pressure, const ScalField& divergence, const ScalField& vof, const int steps) {
 	ScalField t(pressure.width(), pressure.height());
 	ScalField tmp(pressure.width(), pressure.height());
 	ScalField r(divergence);
 
 	pressure = divergence;
-	MatVecMult(t, pressure);
+	MatVecMult(t, pressure, vof);
 	r -= t;
 	ScalField d(r);
 
@@ -80,7 +122,7 @@ float ConjugateGradient(ScalField& pressure, const ScalField& divergence, const 
 		return sqrtLen;
 
 	for (int i = 0; i < steps; i++) {
-		MatVecMult(t, d);
+		MatVecMult(t, d, vof);
 		const float alpha = sqrtLen / d.dot(t);
 		//tmp = d;
 		//tmp *= alpha;
@@ -96,7 +138,7 @@ float ConjugateGradient(ScalField& pressure, const ScalField& divergence, const 
 			r.addScaled(t, -alpha);
 		}
 		else {
-			MatVecMult(t, pressure);
+			MatVecMult(t, pressure, vof);
 			r = divergence;
 			r -= t;
 			//r = divergence - t;

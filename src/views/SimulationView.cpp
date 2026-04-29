@@ -10,10 +10,12 @@
 SimulationView::SimulationView(const ImTextureID textureID, const int width, const int height)
     : _texture_id(textureID), _width(width), _height(height) {
     _forces = new VecField(_width,  _height);
+    _boundary = new ScalField(_width,  _height);
 }
 
 SimulationView::~SimulationView() {
     delete _forces;
+    delete _boundary;
 }
 
 #define TOP_SPACING 10;
@@ -22,6 +24,10 @@ void SimulationView::render() {
         return;
 
     ImGui::Begin("View");
+
+    if(ImGui::IsKeyPressed(ImGuiKey_M)) {
+        _mode = (Mode)((_mode + 1) % END);
+    }
 
     constexpr float view_padding = 10;
     float x_min, x_max, y_min, y_max;
@@ -45,6 +51,7 @@ void SimulationView::render() {
         y_max = win_y + (win_h + (x_max - x_min) / txtAspect) / 2.f;
     }
 
+    ImVec2 topCorner = ImGui::GetCursorPos();
     ImGui::SetCursorScreenPos(ImVec2(x_min, y_min));
     ImGui::Image(_texture_id,
                  ImVec2(x_max - x_min, y_max - y_min),
@@ -105,7 +112,19 @@ void SimulationView::render() {
 
                     if (dx*dx + dy*dy <= r2)
                     {
-                        (*_forces)(x, (_height - 1 - y)) += force * glm::vec2(1.f, -1);
+                        switch (_mode) {
+                            case FORCE:
+                                (*_forces)(x, (_height - 1 - y)) += force * glm::vec2(1.f, -1);
+                                break;
+                            case BOUNDARY_ADD:
+                                (*_boundary)(x, (_height - 1 - y)) = 1;
+                                break;
+                            case BOUNDARY_REMOVE:
+                                (*_boundary)(x, (_height - 1 - y)) = 0;
+                                break;\
+                            default:
+                                break;
+                        }
                     }
                 }
             }
@@ -141,15 +160,33 @@ void SimulationView::render() {
         }
     }
 
+    ImGui::SetCursorScreenPos(ImVec2(topCorner));
+    switch (_mode) {
+        case FORCE:
+            ImGui::Text("Mode: Force");
+            break;
+        case BOUNDARY_ADD:
+            ImGui::Text("Mode: Boundary Add");
+            break;
+        case BOUNDARY_REMOVE:
+            ImGui::Text("Mode: Boundary Remove");
+            break;
+        default:
+            ImGui::Text("Mode: Invalid");
+            break;
+    }
+
     ImGui::End();
 }
 
 void SimulationView::recreate(const ImTextureID textureID, const int width, const int height) {
-    delete _vel_field;
+    delete _forces;
+    delete _boundary;
     _texture_id = textureID;
     _width = width;
     _height = height;
     _forces = new VecField(_width,  _height);
+    _boundary = new ScalField(_width,  _height);
 }
 
 VecField& SimulationView::getForces() const {
@@ -158,5 +195,9 @@ VecField& SimulationView::getForces() const {
 
 void SimulationView::setVelField(VecField *velField) {
     _vel_field = velField;
+}
+
+ScalField & SimulationView::getBoundary() const {
+    return *_boundary;
 }
 

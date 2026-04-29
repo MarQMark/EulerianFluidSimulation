@@ -36,8 +36,12 @@ private:
 
     void add_force(VecField& vel);
     void advect(VecField& velNew, VecField& vel);
-    void projection(VecField& field);
+    //void projection(VecField& field);
     void VorticityConfinement();
+
+    void advectVOF(VecField& field, ScalField& vof);
+    void applyGravity(VecField& field, ScalField& vof);
+    void projection(VecField& field, ScalField& vof);
 
     void advect2(VecField& velNew, VecField& vel);
 };
