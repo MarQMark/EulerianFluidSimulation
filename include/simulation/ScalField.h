@@ -34,6 +34,12 @@ public:
         _height = field2._height;
         return *this;
     }
+    ScalField& operator=(const float val) {
+        //_field = field2._field;
+        for(auto& v : _field)
+            v = val;
+        return *this;
+    }
     ScalField& operator*=(const float scalar) {
         for (auto& v : _field)
             v *= scalar;

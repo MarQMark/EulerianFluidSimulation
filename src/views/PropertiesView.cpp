@@ -94,6 +94,9 @@ void PropertiesView::render() {
     add_field("Width", Properties::Get()->WIDTH);
     add_field("Height", Properties::Get()->HEIGHT);
 
+    ImGui::Checkbox("Gravity", &Properties::Get()->GRAVITY);
+    add_field("Gravity F", Properties::Get()->GRAVITY_FORCE);
+
     ImGui::PopItemWidth();
     ImGui::End();
 }

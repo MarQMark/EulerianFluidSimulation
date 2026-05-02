@@ -50,6 +50,9 @@ void Simulator::recreate() {
 	for (int y = 40; y < 50; y++)
 		for (int x = 40; x < 50; x++)
 			_grid->getPres()(x, y) = 1;
+
+	_grid->getPres() = 1.f;
+	//_grid->getPres().set(1.f);
 }
 
 void Simulator::update() {
@@ -82,7 +85,8 @@ void Simulator::simulate() {
     //projection(_grid->getVel());
 	advectVOF(_grid->getVel(), _grid->getPres());
     add_force(_grid->getVel());
-	applyGravity(_grid->getVel(), _grid->getPres());
+	if(Properties::Get()->GRAVITY)
+		applyGravity(_grid->getVel(), _grid->getPres());
 	projection(_grid->getVel(), _grid->getPres());
 	for (int i = 0; i < _grid->getVel().size(); i++) {
 		if (dynamic_cast<SimulationView*>(_views->getView("Simulation"))->getBoundary()[i] == 1)
@@ -216,7 +220,7 @@ void Simulator::projection(VecField& field) {
         }
     }
 
-	/*
+
     // Initialize Laplacian matrix
     ImplicitMatrixLap laplacian(field.width());
 
@@ -227,8 +231,8 @@ void Simulator::projection(VecField& field) {
                           pressure.data(),
                           divergence.data(),
                           Properties::Get()->THRESHOLD,
-                          &steps);*/
-	const float err = ConjugateGradient(pressure, divergence, Properties::Get()->MAX_STEPS);
+                          &steps);
+	//const float err = ConjugateGradient(pressure, divergence, Properties::Get()->MAX_STEPS);
     if (err > Properties::Get()->THRESHOLD) {
         fprintf(stderr, "solution for projection did not converge! error: %f\n", err);
         exit(1);
@@ -267,7 +271,7 @@ void Simulator::applyGravity(VecField& field, ScalField& vof) {
 	for (int y = 1; y < field.height() - 1; y++) {
 		for (int x = 1; x < field.width() - 1; x++) {
 			if (vof(x, y) > 0.01f)
-				field(x, y).y -= .0098f * dt;  // downward gravity on v-component
+				field(x, y).y -= Properties::Get()->GRAVITY_FORCE * dt;
 		}
 	}
 }

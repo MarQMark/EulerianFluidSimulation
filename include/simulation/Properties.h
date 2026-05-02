@@ -25,6 +25,9 @@ public:
     int HEIGHT = 72;
 
     float DT = 1.67f;
+
+    bool GRAVITY = false;
+    float GRAVITY_FORCE = .0098f;
 private:
 };
 
