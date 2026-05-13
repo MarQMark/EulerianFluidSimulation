@@ -97,6 +97,9 @@ void PropertiesView::render() {
     ImGui::Checkbox("Gravity", &Properties::Get()->GRAVITY);
     add_field("Gravity F", Properties::Get()->GRAVITY_FORCE);
 
+    ImGui::Checkbox("Push", &Properties::Get()->PUSH);
+    add_field("Push F", Properties::Get()->PUSH_FORCE);
+
     ImGui::PopItemWidth();
     ImGui::End();
 }

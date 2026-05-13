@@ -28,6 +28,9 @@ public:
 
     bool GRAVITY = false;
     float GRAVITY_FORCE = .0098f;
+
+    bool PUSH = false;
+    float PUSH_FORCE = .1f;
 private:
 };
 

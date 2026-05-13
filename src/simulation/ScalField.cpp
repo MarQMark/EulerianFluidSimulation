@@ -1,6 +1,7 @@
 #include "simulation/ScalField.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 ScalField::ScalField(const unsigned int width, const unsigned int height) : _width(width), _height(height){
@@ -13,8 +14,9 @@ ScalField::ScalField(const ScalField &field) : _width(field.width()), _height(fi
     memcpy(_field.data(), field._field.data(), field.size() * sizeof(float));
 }
 
-float ScalField::interpolate(glm::vec2 pos) {
-    pos += glm::vec2(.5);
+#if 1
+float ScalField::interpolate(glm::vec2 pos) const {
+    pos += glm::vec2(1.f);
     const int x = (int)pos.x;
     const int y = (int)pos.y;
 
@@ -63,6 +65,47 @@ float ScalField::interpolate(glm::vec2 pos) {
 
     return fxy;
 }
+#else
+float ScalField::BilinearInterpolation(const glm::vec2 &pos,
+                                          int low_x,
+                                          int low_y,
+                                          int comp) const
+{
+    float x_low_inter, x_high_inter;
+
+    // Interpolate between y values at the lower x positions
+    x_low_inter = (((low_y + 0.5 * (1 - comp)) - pos[1])
+                    * (*this)(low_x, low_y))
+                + ((pos[1] - (low_y - 0.5 - 0.5 * comp))
+                    * (*this)(low_x, low_y + 1));
+    // Interpolate between y values at the higher x positions
+    x_high_inter = (((low_y + 0.5 * (1 - comp)) - pos[1])
+                    * (*this)(low_x + 1, low_y))
+                 + ((pos[1] - (low_y - 0.5 - 0.5 * comp))
+                    * (*this)(low_x + 1, low_y + 1));
+
+    // Interpolate between the averaged values at the low and high x positions
+    return ((low_x + 0.5 * comp - pos[0]) * x_low_inter)
+        + ((pos[0] - (low_x - 0.5 - 0.5 * (1 - comp))) * x_high_inter);
+}
+
+#define EPSILON 1.0e-10
+float ScalField::interpolate(glm::vec2 pos) const {
+    float Vx, Vy;
+
+    // Interpolate the x component
+    int low_x = (int)(std::floor(pos[0] + 1) + EPSILON);
+    int low_y = (int)(pos[1] + 0.5 + EPSILON);
+    Vx = BilinearInterpolation(pos, low_x, low_y, 0);
+
+    // Interpolate the y component
+    //low_x = (int)(pos[0] + 0.5);
+    //low_y = (int)(floor(pos[1] + 1) + EPSILON);
+    //Vy = BilinearInterpolation(pos, low_x, low_y, 1);
+
+    return Vx;//glm::vec2(Vx, Vy);
+}
+#endif
 
 void ScalField::clear() {
     memset(_field.data(), 0, size() * sizeof(float));

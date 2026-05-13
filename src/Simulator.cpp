@@ -47,12 +47,16 @@ void Simulator::recreate() {
 		Properties::Get()->WIDTH,
 		Properties::Get()->HEIGHT);
 
-	for (int y = 40; y < 50; y++)
-		for (int x = 40; x < 50; x++)
-			_grid->getPres()(x, y) = 1;
-
+	//for (int y = 40; y < 50; y++)
+	//	for (int x = 40; x < 50; x++)
+	//		_grid->getPres()(x, y) = 1;
+//
 	_grid->getPres() = 1.f;
 	//_grid->getPres().set(1.f);
+
+	for (int y = 0; y < _grid->getVel().height() / 2; y++)
+		for (int x = 0; x < _grid->getVel().width(); x++)
+			_grid->getPres()(x, y) = 1;
 }
 
 void Simulator::update() {
@@ -78,13 +82,21 @@ void Simulator::simulate() {
     if (_paused)
         return;
 
+	extrapolateVelocity(_grid->getVel(), _grid->getPres());
+
+	// 2. Advect rho
+	ScalField rhoNew(_grid->getPres().width(), _grid->getPres().height());
+	advectScalar(rhoNew, _grid->getPres(), _grid->getVel());
+	_grid->getPres() = rhoNew;
+
+	// 3. Sharpen rho
+	sharpenDensity(_grid->getPres());
+
     advect(_grid->getNewVel(), _grid->getVel());
     //_grid->swapVel();
 	//VorticityConfinement();
 
-    //projection(_grid->getVel());
-	advectVOF(_grid->getVel(), _grid->getPres());
-    add_force(_grid->getVel());
+    add_force(_grid->getVel(), _grid->getPres());
 	if(Properties::Get()->GRAVITY)
 		applyGravity(_grid->getVel(), _grid->getPres());
 	projection(_grid->getVel(), _grid->getPres());
@@ -99,13 +111,24 @@ void Simulator::simulate() {
     //_grid->swapVel();
 }
 
-void Simulator::add_force(VecField &vel) {
+void Simulator::add_force(VecField &vel, ScalField &rho) {
     for (int y = 2; y < vel.height() - 2; y++)
         for (int x = 2; x < vel.width() - 2; x++) {
+
+        	bool fluidHere  = rho(x, y)   > 0.5f;
+        	bool fluidBelow = rho(x, y-1) > 0.5f;
+        	bool fluidLeft  = rho(x-1, y) > 0.5f;
+
+        	// Y-face: between (x,y) and (x,y-1)
+        	if (!(fluidHere || fluidBelow))   // 'or' is more stable than 'and'
+        		continue;
+
             vel(x, y) += dynamic_cast<SimulationView*>(_views->getView("Simulation"))->getForces()(x, y) *  Properties::Get()->DT;
 
-            if (x >= 30 && x < 42 && y > 50 && y < 60)
-                vel(x, y) += glm::vec2(0, -.1);
+
+        	if (Properties::Get()->PUSH)
+				if (x >= 30 && x < 42 && y > 50 && y < 60)
+					vel(x, y) += glm::vec2(0, -Properties::Get()->PUSH_FORCE);
         }
 }
 
@@ -266,94 +289,239 @@ void Simulator::projection(VecField& field) {
     }
 }
 #else
-void Simulator::applyGravity(VecField& field, ScalField& vof) {
+void Simulator::applyGravity(VecField& field, ScalField& rho) {
 	const float dt = Properties::Get()->DT;
 	for (int y = 1; y < field.height() - 1; y++) {
 		for (int x = 1; x < field.width() - 1; x++) {
-			if (vof(x, y) > 0.01f)
+			if (rho(x,y) > 0.5f)
 				field(x, y).y -= Properties::Get()->GRAVITY_FORCE * dt;
 		}
 	}
 }
 
-void Simulator::advectVOF(VecField& field, ScalField& vof) {
-	ScalField vofNew(vof.width(), vof.height());
-	const float dt = Properties::Get()->DT;
+void Simulator::extrapolateVelocity(VecField& vel, const ScalField& rho) {
+	// We need velocity in air cells near the surface so that
+	// backtracing from those cells finds valid fluid density.
+	// Simple approach: BFS outward from fluid cells for N layers.
 
-	for (int y = 1; y < vof.height() - 1; y++) {
-		for (int x = 1; x < vof.width() - 1; x++) {
+	const int LAYERS = 4;  // how many cells deep into air to fill
+	const int w = vel.width();
+	const int h = vel.height();
 
-			// MAC grid: field(x,y).x is the u-velocity on the LEFT face of cell (x,y)
-			//           field(x,y).y is the v-velocity on the BOTTOM face of cell (x,y)
-			// Right face of (x,y) = field(x+1, y).x
-			// Top  face of (x,y) = field(x, y+1).y
+	// Mark which cells have valid velocity: fluid cells do, air cells don't
+	ScalField valid(w, h);
+	for (int y = 0; y < h; y++)
+		for (int x = 0; x < w; x++)
+			valid(x, y) = (rho(x, y) > 0.5f) ? 1.0f : 0.0f;
 
-			float u_left  = field(x,   y).x;   // left face
-			float u_right = field(x+1, y).x;   // right face
-			float v_bot   = field(x, y  ).y;   // bottom face
-			float v_top   = field(x, y+1).y;   // top face
+	ScalField validNew(w, h);
+	VecField  velNew(w, h);
 
-			// Donor-acceptor: flux = velocity * F of upstream cell
-			// X fluxes (positive = flowing right)
-			float fx_left  = u_left  > 0 ? u_left  * vof(x-1, y) : u_left  * vof(x,   y);
-			float fx_right = u_right > 0 ? u_right * vof(x,   y) : u_right * vof(x+1, y);
+	for (int layer = 0; layer < LAYERS; layer++) {
+		validNew = valid;
+		velNew   = vel;
 
-			// Y fluxes (positive = flowing up)
-			float fy_bot = v_bot > 0 ? v_bot * vof(x, y-1) : v_bot * vof(x,   y);
-			float fy_top = v_top > 0 ? v_top * vof(x,   y) : v_top * vof(x, y+1);
+		for (int y = 1; y < h - 1; y++) {
+			for (int x = 1; x < w - 1; x++) {
+				if (valid(x, y) > 0.5f) continue;  // already valid
 
-			// Net outflow = right - left + top - bottom (all scaled by dt)
-			vofNew(x, y) = vof(x, y) - dt * ((fx_right - fx_left) + (fy_top - fy_bot));
-			vofNew(x, y) = glm::clamp(vofNew(x, y), 0.0f, 1.0f);
+				// Average all valid neighbors
+				glm::vec2 sum(0.0f);
+				int count = 0;
+
+				auto check = [&](int nx, int ny) {
+					if (valid(nx, ny) > 0.5f) {
+						sum += vel(nx, ny);
+						count++;
+					}
+				};
+
+				check(x - 1, y);
+				check(x + 1, y);
+				check(x, y - 1);
+				check(x, y + 1);
+
+				if (count > 0) {
+					velNew(x, y)   = sum / (float)count;
+					validNew(x, y) = 1.0f;
+				}
+			}
 		}
-	}
 
-	vof = vofNew;
+		valid = validNew;
+		vel   = velNew;
+	}
 }
 
-void Simulator::projection(VecField& field, ScalField& vof) {
-    auto pressure   = ScalField(field.width(), field.height());
-    auto divergence = ScalField(field.width(), field.height());
+void Simulator::advectScalar(ScalField& rhoNew, const ScalField& rho, VecField& vel) {
+	const float dt = Properties::Get()->DT;
 
-    const float SURFACE_THRESH = 0.01f;  // below this = empty/air
-    const float FULL_THRESH    = 0.99f;  // above this = fully fluid
+	for (int y = 1; y < rho.height() - 1; y++) {
+		for (int x = 1; x < rho.width() - 1; x++) {
+			// Cell center position
+			glm::vec2 pos(x - 0.5f, y - 0.5f);
 
-    // --- Divergence (only in fluid cells) ---
-    for (int y = 1; y < field.height() - 1; y++) {
-        for (int x = 1; x < field.width() - 1; x++) {
-            if (vof(x, y) < SURFACE_THRESH) {
-                divergence(x, y) = 0.0f;   // air cell — no constraint
-                continue;
-            }
-            if (vof(x, y) < FULL_THRESH) {
-                divergence(x, y) = 0.0f;   // surface cell — p=0 Dirichlet, skip divergence
-                continue;
-            }
-            // Full fluid cell — standard divergence
-            divergence(x, y) = field(x+1, y).x - field(x, y).x
-                              + field(x, y+1).y - field(x, y).y;
+			// Interpolate velocity at cell center from staggered field
+			// vel(x,y).x is LEFT face, vel(x,y).y is BOTTOM face
+			glm::vec2 u;
+			u.x = 0.5f * (vel(x, y).x + vel(x + 1, y).x);
+			u.y = 0.5f * (vel(x, y).y + vel(x, y + 1).y);
+
+			// Backtrack
+			glm::vec2 prev = pos - u * dt;
+
+			// Clamp to interior
+			prev.x = glm::clamp(prev.x, 0.5f, rho.width()  - 1.5f);
+			prev.y = glm::clamp(prev.y, 0.5f, rho.height() - 1.5f);
+
+			//rhoNew(x, y) = rho.interpolate(prev);
+			rhoNew(x, y) = interpolateScalar(rho, prev);
+		}
+	}
+}
+
+// Bilinear interpolation for scalar field (cell-centered, so offset by -0.5)
+float Simulator::interpolateScalar(const ScalField& f, glm::vec2 pos) {
+	// pos is in cell-center coords, shift to index space
+	float px = pos.x + 0.5f;
+	float py = pos.y + 0.5f;
+
+	int x0 = (int)px;  int y0 = (int)py;
+	int x1 = x0 + 1;   int y1 = y0 + 1;
+
+	x0 = glm::clamp(x0, 0, (int)f.width()  - 1);
+	x1 = glm::clamp(x1, 0, (int)f.width()  - 1);
+	y0 = glm::clamp(y0, 0, (int)f.height() - 1);
+	y1 = glm::clamp(y1, 0, (int)f.height() - 1);
+
+	float tx = px - x0;
+	float ty = py - y0;
+
+	return (1-tx)*(1-ty)*f(x0,y0) + tx*(1-ty)*f(x1,y0)
+		 + (1-tx)*ty   *f(x0,y1) + tx*ty    *f(x1,y1);
+}
+
+void Simulator::sharpenDensity(ScalField& rho) {
+    const float dt  = Properties::Get()->DT;
+    const float dT  = 3.0f * dt;   // fictitious timestep, paper uses 3x
+    const float tau = 0.4f;        // max density diff between neighbors
+
+    ScalField delta(rho.width(), rho.height());
+
+    for (int y = 1; y < rho.height() - 1; y++) {
+        for (int x = 1; x < rho.width() - 1; x++) {
+            float r  = rho(x, y);
+            float rR = rho(x+1, y), rL = rho(x-1, y);
+            float rU = rho(x, y+1), rD = rho(x, y-1);
+
+            // Upwind gradient magnitude (paper eq. 6-13)
+            // δx+ = -(ρ_i - ρ_{i-1}) * dT
+            // δx- = -(ρ_{i+1} - ρ_i) * dT
+            float dxP = -(r  - rL) * dT;
+            float dxM = -(rR - r)  * dT;
+            float dyP = -(r  - rD) * dT;
+            float dyM = -(rU - r)  * dT;
+
+            // Max gradient magnitude for increase vs decrease (eq. 8-13)
+            float gradPos = sqrtf(
+                std::max({powf(std::max(dxP,0.f),2.f), powf(std::min(dxM,0.f),2.f)}) +
+                std::max({powf(std::max(dyP,0.f),2.f), powf(std::min(dyM,0.f),2.f)})
+            );
+            float gradNeg = sqrtf(
+                std::max({powf(std::min(dxP,0.f),2.f), powf(std::max(dxM,0.f),2.f)}) +
+                std::max({powf(std::min(dyP,0.f),2.f), powf(std::max(dyM,0.f),2.f)})
+            );
+
+            // Sharpening weight w (eq. 14)
+            // Drives ρ away from 0.5: positive above, negative below
+            float maxNeighborDiff = std::max({fabsf(r-rR), fabsf(r-rL),
+                                              fabsf(r-rU), fabsf(r-rD)});
+            float w = powf(r - 0.5f, 3.0f)
+                    * (1.0f - std::min(1.0f, maxNeighborDiff / tau));
+
+            // Density correction (eq. 15)
+            float dr = w * (w >= 0 ? gradPos : gradNeg);
+
+            // Local mass conservation (eq. 17):
+            // Don't modify cells already on the fluid side (ρ > 0.5)
+            // Don't let ρ go negative
+            if (r > 0.5f)
+                dr = 0.0f;
+            else if (r + dr < 0.0f)
+                dr = -r;
+
+            delta(x, y) = dr;
         }
     }
 
-    const float err = ConjugateGradient2(pressure, divergence, vof, Properties::Get()->MAX_STEPS);
+    // Apply correction + scatter lost mass back toward the 0.5 iso-contour
+    for (int y = 1; y < rho.height() - 1; y++) {
+        for (int x = 1; x < rho.width() - 1; x++) {
+            rho(x, y) += delta(x, y);
+
+            // Scatter -delta (recovered mass) toward gradient direction
+            // Simple version: distribute to steepest neighbor toward surface
+            float dr = -delta(x, y);
+            if (fabsf(dr) < 1e-6f) continue;
+
+            // Follow density gradient toward 0.5 iso-contour (paper Algorithm 2)
+            // In 2D, just deposit to the neighbor with rho closest to 0.5
+            float best = 1e9f;
+            int bx = x, by = y;
+            for (auto [nx, ny] : {std::pair{x+1,y},{x-1,y},{x,y+1},{x,y-1}}) {
+                float d = fabsf(rho(nx, ny) - 0.5f);
+                if (d < best) { best = d; bx = nx; by = ny; }
+            }
+            rho(bx, by) += dr;
+            rho(bx, by)  = glm::clamp(rho(bx, by), 0.0f, 1.0f);
+        }
+    }
+
+    // Final clamp
+    for (int y = 0; y < rho.height(); y++)
+        for (int x = 0; x < rho.width(); x++)
+            rho(x, y) = glm::clamp(rho(x, y), 0.0f, 1.0f);
+}
+
+void Simulator::projection(VecField& field, ScalField& rho) {
+    auto pressure   = ScalField(field.width(), field.height());
+    auto divergence = ScalField(field.width(), field.height());
+
+	const float lambda = 0.5f;  // paper uses 0.5
+	const float eta    = 1.0f;  // paper uses 1.0
+
+	for (int y = 1; y < field.height() - 1; y++) {
+		for (int x = 1; x < field.width() - 1; x++) {
+			if (rho(x, y) <= 0.5f) {
+				divergence(x, y) = 0.0f;
+				continue;
+			}
+
+			divergence(x, y) = field(x+1,y).x - field(x,y).x
+							  + field(x,y+1).y - field(x,y).y;
+
+			// Artificial divergence to correct rho > 1 (paper sec 3.7)
+			// Pushes excess density out of overfull cells
+			if (rho(x, y) > 1.0f) {
+				float excess = rho(x, y) - 1.0f;
+				divergence(x, y) += std::min(lambda * excess, eta);
+			}
+		}
+	}
+
+    const float err = ConjugateGradient2(pressure, divergence, rho, Properties::Get()->MAX_STEPS);
     if (err > Properties::Get()->THRESHOLD) {
         fprintf(stderr, "projection did not converge! error: %f\n", err);
         exit(1);
     }
 
-	for (int y = 0; y < pressure.height(); y++)
-		for (int x = 0; x < pressure.width(); x++)
-			if (vof(x, y) < FULL_THRESH)
-				pressure(x, y) = 0.0f;
-
-    // --- Velocity correction (only in fluid, zero in air) ---
     for (int y = 1; y < field.height() - 1; y++) {
         for (int x = 1; x < field.width() - 1; x++) {
 
-            if (vof(x, y) < SURFACE_THRESH) {
-                field(x, y) = glm::vec2(0.0f);  // air — kill velocity
-                continue;
-            }
+        	if (rho(x, y) <= 0.5f) {
+        		field(x, y) = glm::vec2(0.0f);
+        		continue;
+        	}
 
             // Same boundary logic as before, unchanged
             if (x == 1) {

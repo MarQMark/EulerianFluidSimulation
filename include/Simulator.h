@@ -1,15 +1,12 @@
 #ifndef EULERIANFLUIDSIMULATION_SIMULATOR_H
 #define EULERIANFLUIDSIMULATION_SIMULATOR_H
 
-#include <renderer/Renderer.h>
+ #include <renderer/Renderer.h>
 
 #include "renderer/Window.h"
 #include "simulation/Grid.h"
 #include "simulation/VecField.h"
 #include "views/Views.h"
-
-#define SCAL_FIELD std::vector<float>
-#define SCAL float
 
 class Simulator {
 public:
@@ -34,12 +31,15 @@ private:
 
     void simulate();
 
-    void add_force(VecField& vel);
+    void add_force(VecField& vel, ScalField &rho);
     void advect(VecField& velNew, VecField& vel);
     //void projection(VecField& field);
     void VorticityConfinement();
 
-    void advectVOF(VecField& field, ScalField& vof);
+    void extrapolateVelocity(VecField& vel, const ScalField& rho);
+    void advectScalar(ScalField& rhoNew, const ScalField& rho, VecField& vel);
+    float interpolateScalar(const ScalField& f, glm::vec2 pos);
+    void sharpenDensity(ScalField& rho);
     void applyGravity(VecField& field, ScalField& vof);
     void projection(VecField& field, ScalField& vof);
 
