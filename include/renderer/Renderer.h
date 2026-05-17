@@ -11,7 +11,7 @@ public:
     Renderer(int width, int height);
     ~Renderer();
 
-    void render(Grid* grid, ScalField& boundary);
+    void render(const Grid* grid);
 
     Texture2D* getTexture2D() const;
 

@@ -7,6 +7,7 @@
 #include "imgui/imgui.h"
 
 #include "Viewable.h"
+#include "simulation/Grid.h"
 #include "simulation/ScalField.h"
 #include "simulation/VecField.h"
 
@@ -20,19 +21,17 @@ private:
         END
     };
 public:
-    explicit SimulationView(ImTextureID textureID, int width, int height);
-    ~SimulationView();
+    explicit SimulationView() = default;
 
     void render() override;
 
-    void recreate(ImTextureID textureID, int width, int height);
+    void recreate(ImTextureID textureID, const Grid* grid);
 
-    VecField& getForces() const;
     void setVelField(VecField* velField);
 
-    ScalField& getBoundary() const;
-
 private:
+    bool _initialized = false;
+
     ImTextureID _texture_id;
     int _width;
     int _height;

@@ -8,104 +8,530 @@
 #include "simulation/ScalField.h"
 #include "solver/ConjugateGradient.h"
 #include "solver/LinearSolver.hpp"
+#include "util/Time.h"
+#include "views/FPSView.h"
 #include "views/PropertiesView.h"
-
 
 Simulator::Simulator() {
 	_window = new Window(1280, 720, "StableFluids");
 	_views = new Views(_window);
-	create();
-	_views->addView("Simulation",
-		new SimulationView(
-			_renderer->getTexture2D()->get(),
-			Properties::Get()->WIDTH,
-			Properties::Get()->HEIGHT));
+	_views->addView("Simulation", new SimulationView());
 	_views->addView("Properties", new PropertiesView());
+	_views->addView("Performance", new FPSView());
+
+	recreate();
+
+	Time::Get()->targetFps = 600;
 }
 
 Simulator::~Simulator() {
-	destroy();
+	delete _grid;
+	delete _renderer;
 	delete _views;
 	delete _window;
 }
 
-void Simulator::create() {
+void Simulator::recreate() {
+	if (_grid) delete _grid;
+	if (_renderer) delete _renderer;
+
 	_renderer = new Renderer(Properties::Get()->WIDTH, Properties::Get()->HEIGHT);
 	_grid = new Grid(Properties::Get()->WIDTH, Properties::Get()->HEIGHT);
-}
 
-void Simulator::destroy() const {
-	delete _grid;
-	delete _renderer;
-}
+	_views->getView<SimulationView>("Simulation")->recreate(
+		_renderer->getTexture2D()->get(), _grid);
 
-void Simulator::recreate() {
-	destroy();
-	create();
-	dynamic_cast<SimulationView*>(_views->getView("Simulation"))->recreate(
-		_renderer->getTexture2D()->get(),
-		Properties::Get()->WIDTH,
-		Properties::Get()->HEIGHT);
-
-	//for (int y = 40; y < 50; y++)
-	//	for (int x = 40; x < 50; x++)
-	//		_grid->getPres()(x, y) = 1;
-//
-	_grid->getPres() = 1.f;
-	//_grid->getPres().set(1.f);
-
-	for (int y = 0; y < _grid->getVel().height() / 2; y++)
-		for (int x = 0; x < _grid->getVel().width(); x++)
-			_grid->getPres()(x, y) = 1;
+	switch (Properties::Get()->INIT_SHAPE) {
+		case Properties::FULL:
+			_grid->rho() = 1.f;
+			break;
+		case Properties::HALF:
+			for (int y = 0; y < _grid->height() / 2; y++)
+			for (int x = 0; x < _grid->width(); x++)
+				_grid->rho()(x, y) = 1.f;
+			break;
+		case Properties::SQUARE:
+			if (_grid->width() < 50 || _grid->height() < 50)
+				break;
+			for (int y = 40; y < 50; y++)
+			for (int x = 40; x < 50; x++)
+				_grid->rho()(x, y) = 1.f;
+			break;
+		case Properties::EMPTY:
+			_grid->rho() = 0.f;
+			break;
+	}
 }
 
 void Simulator::update() {
     while (!_window->shouldClose()) {
-        simulate();
+    	Time::Get()->update();
+
+    	if (!Properties::Get()->PAUSED)
+			simulate();
+
+    	_views->getView<SimulationView>("Simulation")->setVelField(&_grid->vel());
+
         _views->render();
-        _renderer->render(
-        	_grid,
-        	dynamic_cast<SimulationView*>(_views->getView("Simulation"))->getBoundary()
-        	);
+        _renderer->render(_grid);
         _window->update();
 
-        if(ImGui::IsKeyPressed(ImGuiKey_R)) {
-        	recreate();
-        }
+        if(ImGui::IsKeyPressed(ImGuiKey_R))
+        	_reset = true;
         if (ImGui::IsKeyPressed(ImGuiKey_P))
-            _paused = !_paused;
+            Properties::Get()->PAUSED = !Properties::Get()->PAUSED;
+
+    	if (_reset) {
+    		_reset = false;
+        	recreate();
+    	}
+
+    	Time::Get()->limitFPS();
+    }
+}
+
+void Simulator::simulate() {
+	vel_extrapolate();
+	rho_advect();
+	diffuse();
+	rho_sharpen();
+	vel_advect();
+	add_force();
+	project();
+}
+
+#define LOOP_2D_GRID(x, y, offset) for (int y = offset; y < _grid->height() - offset; y++) \
+					               for (int x = offset; x < _grid->width() - offset; x++)
+
+void Simulator::vel_extrapolate() {
+	return;
+	auto& vel = _grid->vel();
+	auto& rho = _grid->rho();
+
+	// A few passes is enough to push velocity a few cells into the air
+	const int PASSES = 10;
+
+	for (int pass = 0; pass < PASSES; pass++) {
+		auto& tmp = _grid->tmpVec();
+
+		LOOP_2D_GRID(x, y, 1) {
+			// Only fill air cells (rho < 0.5) that have at least one liquid neighbor
+			if (rho(x, y) >= 0.5f) {
+				tmp(x, y) = vel(x, y); // liquid cells stay unchanged
+				continue;
+			}
+
+			glm::vec2 sum(0.f);
+			int count = 0;
+
+			// Average over neighbors that are inside the liquid
+			auto sample = [&](int nx, int ny) {
+				if (rho(nx, ny) >= 0.5f) { sum += vel(nx, ny); count++; }
+			};
+			sample(x-1, y); sample(x+1, y);
+			sample(x, y-1); sample(x, y+1);
+
+			tmp(x, y) = (count > 0) ? sum / float(count) : vel(x, y);
+		}
+
+		LOOP_2D_GRID(x, y, 1) {
+			vel(x, y) = tmp(x, y);
+		}
+	}
+}
+
+void Simulator::rho_advect() {
+	/*auto& vel   = _grid->vel();
+	auto& rho   = _grid->rho();
+	auto& tmp   = _grid->tmpScal();
+	float dt    = Properties::Get()->DT;
+
+	LOOP_2D_GRID(x, y, 1) {
+		// Cell center position
+		auto pos = glm::vec2(x, y)  - glm::vec2(0.5f);
+
+		// Sample velocity at cell center (rho lives at cell centers)
+		auto v = vel.interpolate(pos);
+
+		// Backtrace
+		auto prevPos = pos - v * dt;
+		prevPos.x = std::clamp(prevPos.x, 1.f, (float)_grid->width()  - 2.f);
+		prevPos.y = std::clamp(prevPos.y, 1.f, (float)_grid->height() - 2.f);
+
+		tmp(x, y) = rho.interpolate(prevPos);
+	}
+
+	_grid->swapRho();*/
+	auto& vel = _grid->vel();
+    auto& rho = _grid->rho();
+    int w = _grid->width(), h = _grid->height();
+    float dt = Properties::Get()->DT;
+
+    // gamma persists between timesteps — it lives on the grid
+    // and is initialized to 1.0 on the first step.
+    auto& gamma = _grid->gamma();  // ScalField, persistent
+
+    auto beta    = ScalField(w, h);  // reset each step
+    auto rhoNew  = ScalField(w, h);
+    auto gammaNew = ScalField(w, h);
+
+    // --- Step 1: compute beta ---
+    // For each cell i, backtrace and accumulate into beta at
+    // the landing cell l: beta_l += w_li * gamma_i
+    LOOP_2D_GRID(x, y, 1) {
+        auto pos = glm::vec2(x, y);
+        auto v = vel.interpolate(pos - glm::vec2(0.5f));
+        auto prevPos = pos - v * dt;
+        prevPos.x = std::clamp(prevPos.x, 1.f, (float)w - 2.f);
+        prevPos.y = std::clamp(prevPos.y, 1.f, (float)h - 2.f);
+
+        // Bilinear weights to the 4 surrounding cells
+        int x0 = (int)prevPos.x, y0 = (int)prevPos.y;
+        int x1 = x0+1, y1 = y0+1;
+        float fx = prevPos.x - x0, fy = prevPos.y - y0;
+
+        float w00 = (1-fx)*(1-fy), w10 = fx*(1-fy);
+        float w01 = (1-fx)*fy,     w11 = fx*fy;
+
+        float g = gamma(x, y);
+        beta(x0, y0) += w00 * g;
+        beta(x1, y0) += w10 * g;
+        beta(x0, y1) += w01 * g;
+        beta(x1, y1) += w11 * g;
+    }
+
+    // --- Steps 4+5: advect rho and gamma using scaled weights ---
+    // rho_i_new += (gamma_i / max(1, beta_l)) * w_li * rho_l
+    LOOP_2D_GRID(x, y, 1) {
+        auto pos = glm::vec2(x, y);
+        auto v = vel.interpolate(pos - glm::vec2(0.5f));
+        auto prevPos = pos - v * dt;
+        prevPos.x = std::clamp(prevPos.x, 1.f, (float)w - 2.f);
+        prevPos.y = std::clamp(prevPos.y, 1.f, (float)h - 2.f);
+
+        int x0 = (int)prevPos.x, y0 = (int)prevPos.y;
+        int x1 = x0+1, y1 = y0+1;
+        float fx = prevPos.x - x0, fy = prevPos.y - y0;
+
+        // For each of the 4 source cells l, scale by gamma_i / max(1, beta_l)
+        auto contrib = [&](int lx, int ly, float w_li) {
+            float scale = gamma(x, y) / std::max(1.f, beta(lx, ly));
+            rhoNew(x, y)   += scale * w_li * rho(lx, ly);
+            gammaNew(x, y) += scale * w_li * gamma(lx, ly);
+        };
+        contrib(x0, y0, (1-fx)*(1-fy));
+        contrib(x1, y0,    fx *(1-fy));
+        contrib(x0, y1, (1-fx)*   fy );
+        contrib(x1, y1,    fx *   fy );
+    }
+    // gamma <- gamma'
+    LOOP_2D_GRID(x, y, 1) gamma(x, y) = gammaNew(x, y);
+
+    // --- Steps 6+7: forward scatter residual mass for beta < 1 ---
+    // Cells that lost less than all their mass (beta < 1) forward-scatter
+    // the remainder so nothing is destroyed.
+    LOOP_2D_GRID(x, y, 1) {
+        float b = beta(x, y);
+        if (b >= 1.f) continue;
+
+        float residual = 1.f - b;
+        auto pos = glm::vec2(x, y);
+        auto v = vel.interpolate(pos - glm::vec2(0.5f));
+        // Forward trace: follow velocity forward
+        auto nextPos = pos + v * dt;
+        nextPos.x = std::clamp(nextPos.x, 1.f, (float)w - 2.f);
+        nextPos.y = std::clamp(nextPos.y, 1.f, (float)h - 2.f);
+
+        int x0 = (int)nextPos.x, y0 = (int)nextPos.y;
+        int x1 = x0+1, y1 = y0+1;
+        float fx = nextPos.x - x0, fy = nextPos.y - y0;
+
+        auto scatter = [&](int tx, int ty, float w_jk) {
+            rhoNew(tx, ty)   += rho(x, y)   * residual * w_jk;
+            gamma(tx, ty)    += gamma(x, y) * residual * w_jk;
+        };
+        scatter(x0, y0, (1-fx)*(1-fy));
+        scatter(x1, y0,    fx *(1-fy));
+        scatter(x0, y1, (1-fx)*   fy );
+        scatter(x1, y1,    fx *   fy );
+    }
+
+    // Swap in new values
+    LOOP_2D_GRID(x, y, 1) rho(x, y) = rhoNew(x, y);
+}
+
+void Simulator::rho_sharpen() {
+	return;
+	auto& rho = _grid->rho();
+    int w = _grid->width();
+    int h = _grid->height();
+
+    float dx    = 1.0f;
+    float dt    = Properties::Get()->DT;
+    float dT    = 3.0f * dt;   // fictitious timestep, paper uses 3x sim timestep
+    float tau   = 0.4f;        // max density difference threshold (paper's value)
+    float eps   = 1e-5f;
+
+    auto deltaRho = ScalField(w, h);
+
+    LOOP_2D_GRID(x, y, 1) {
+        float ri = rho(x, y);
+
+        // Upwind differences for +/- x and y directions (Eq. 6-7 in 2D)
+        float dxp = -(ri          - rho(x-1, y)) * dx * dT;
+        float dxm = -(rho(x+1, y) - ri         ) * dx * dT;
+        float dyp = -(ri          - rho(x, y-1)) * dx * dT;
+        float dym = -(rho(x, y+1) - ri         ) * dx * dT;
+
+        // Max possible increase and decrease (Eq. 8-13, 2D)
+        float gradPlus  = (1.f / (dx*dx)) * sqrtf(
+            std::max(std::max(dxp,0.f)*std::max(dxp,0.f), std::min(dxm,0.f)*std::min(dxm,0.f)) +
+            std::max(std::max(dyp,0.f)*std::max(dyp,0.f), std::min(dym,0.f)*std::min(dym,0.f))
+        );
+        float gradMinus = (1.f / (dx*dx)) * sqrtf(
+            std::max(std::min(dxp,0.f)*std::min(dxp,0.f), std::max(dxm,0.f)*std::max(dxm,0.f)) +
+            std::max(std::min(dyp,0.f)*std::min(dyp,0.f), std::max(dym,0.f)*std::max(dym,0.f))
+        );
+
+        // Maximum neighbor difference (for w_i in Eq. 14)
+        float maxDiff = std::max({
+            std::abs(ri - rho(x+1, y)),
+            std::abs(ri - rho(x-1, y)),
+            std::abs(ri - rho(x, y+1)),
+            std::abs(ri - rho(x, y-1))
+        });
+
+        // Sharpening weight (Eq. 14)
+        float wi = powf(ri - 0.5f, 3.f) * (1.f - std::min(1.f, maxDiff / tau));
+
+        // Raw correction (Eq. 15)
+        float dRho = wi * (wi >= 0.f ? gradPlus : gradMinus);
+
+        // Local mass conservation clamping (Eq. 17):
+        // - don't let rho go below zero
+        // - don't modify cells that are already inside the liquid (rho > 0.5)
+        if (ri + dRho < 0.f || ri < eps)
+            dRho = -ri;
+        else if (ri > 0.5f)
+            dRho = 0.f;
+
+        deltaRho(x, y) = dRho;
+    }
+
+    // Apply correction and scatter lost mass back toward the interface
+    LOOP_2D_GRID(x, y, 1) {
+        rho(x, y) += deltaRho(x, y);
+
+        // Scatter -deltaRho toward the 0.5 iso-contour along the density gradient
+        // (Algorithm 2 in the paper — simplified: deposit in the direction of steepest ascent)
+        float dr = -deltaRho(x, y);
+        if (std::abs(dr) < eps) continue;
+
+        // Gradient of rho at this cell
+        glm::vec2 grad(
+            rho(x+1, y) - rho(x-1, y),
+            rho(x, y+1) - rho(x, y-1)
+        );
+        float len = glm::length(grad);
+        if (len < eps) continue;
+
+        // Step toward the 0.5 iso-contour
+        glm::vec2 dir = grad / len;
+        glm::vec2 p = glm::vec2(x, y) + dir * 2.f;
+
+        // Clamp and deposit using bilinear scatter
+        p.x = std::clamp(p.x, 1.f, (float)_grid->width()  - 2.f);
+        p.y = std::clamp(p.y, 1.f, (float)_grid->height() - 2.f);
+
+        int x0 = (int)p.x, y0 = (int)p.y;
+        int x1 = x0 + 1,   y1 = y0 + 1;
+        float fx = p.x - x0, fy = p.y - y0;
+
+        // Bilinear weights
+        rho(x0, y0) += dr * (1-fx) * (1-fy);
+        rho(x1, y0) += dr *    fx  * (1-fy);
+        rho(x0, y1) += dr * (1-fx) *    fy;
+        rho(x1, y1) += dr *    fx  *    fy;
+    }
+
+    // Clamp rho to [0, 1] — shouldn't be needed often but prevents runaway values
+    LOOP_2D_GRID(x, y, 1) {
+        rho(x, y) = std::clamp(rho(x, y), 0.f, 1.f);
+    }
+}
+
+void Simulator::add_force() const {
+	auto& forces = _grid->forces();
+	auto& vel = _grid->vel();
+	auto& rho = _grid->rho();
+
+	LOOP_2D_GRID(x, y, 1) {
+		if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
+			continue;
+
+		vel(x, y) += forces(x, y) *  Properties::Get()->DT;
+
+		if(Properties::Get()->GRAVITY)
+			vel(x, y).y -= Properties::Get()->GRAVITY_FORCE * Properties::Get()->DT;
+
+		if (Properties::Get()->PUSH)
+			if (x >= 30 && x < 42 && y > 50 && y < 60)
+				vel(x, y) += glm::vec2(0, -Properties::Get()->PUSH_FORCE);
+	}
+}
+
+void Simulator::vel_advect() {
+	auto& velField = _grid->vel();
+	auto& newVel = _grid->tmpVec();
+
+	LOOP_2D_GRID(x, y, 1){
+		auto curPos = glm::vec2(x, y) - glm::vec2(.5f);
+		auto velVec = velField.interpolate(curPos);
+
+		auto prevPos = curPos - (velVec * Properties::Get()->DT);
+
+		prevPos.x = std::clamp(prevPos.x, 1.f, _grid->width() - 2.f);
+		prevPos.y = std::clamp(prevPos.y, 1.f, _grid->height() - 2.f);
+
+		newVel(x, y) = velField.interpolate(prevPos);
+	}
+
+	LOOP_2D_GRID(x, y, 1){
+		if (x == 1)
+			velField(x, y).x = 0;
+		else
+			velField(x, y).x = 0.5f * (newVel(x, y).x + newVel(x - 1, y).x);
+
+		if (y == 1)
+			velField(x, y).y = 0;
+		else
+			velField(x, y).y = 0.5f * (newVel(x, y).y + newVel(x, y - 1).y);
+	}
+}
+
+void Simulator::diffuse() {
+	auto& field = _grid->vel();
+	float visc = Properties::Get()->VISCOSITY;
+	float dt   = Properties::Get()->DT;
+
+	if (visc == 0.0f) return;
+
+	int w = field.width();
+	int h = field.height();
+	int n = w * h;
+
+	ImplicitMatrixDiff diffMat(w, h, visc, dt);
+
+	// Solve for each velocity component separately
+	// (they decouple — ∇² acts independently on each)
+	for (int c = 0; c < 2; c++) {
+		// Copy current velocity component into flat rhs array
+		ScalField rhs(w, h);
+		ScalField sol(w, h);
+
+		LOOP_2D_GRID(x, y, 0) {
+			rhs(x, y) = (c == 0) ? field(x, y).x : field(x, y).y;
+			sol(x, y) = rhs(x, y); // warm start
+		}
+
+		int steps = Properties::Get()->MAX_STEPS;
+		double err = ConjGrad(n, &diffMat, sol.data(), rhs.data(),
+							  Properties::Get()->THRESHOLD, &steps);
+
+		if (err > Properties::Get()->THRESHOLD) {
+			fprintf(stderr, "diffuse did not converge! error: %f\n", err);
+			_reset = true;
+		}
+
+		// Write solution back
+		LOOP_2D_GRID(x, y, 0) {
+			if (c == 0) field(x, y).x = sol[y * w + x];
+			else        field(x, y).y = sol[y * w + x];
+		}
+	}
+}
+
+void Simulator::project() {
+	auto& field = _grid->vel();
+	auto& rho = _grid->rho();
+
+	auto& pressure = _grid->pressure();
+    auto& divergence = _grid->divergence();
+	pressure.clear();
+	divergence.clear();
+
+    LOOP_2D_GRID(x, y, 1){
+    	if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
+    		continue;
+
+    	divergence(x, y) = field(x + 1, y).x
+    					- field(x, y).x
+    					+ field(x, y + 1).y
+                        - field(x, y).y;
+    }
+
+	const float err = ConjugateGradient2(pressure, divergence, rho, Properties::Get()->MAX_STEPS);
+    if (err > Properties::Get()->THRESHOLD) {
+        fprintf(stderr, "solution for projection did not converge! error: %f\n", err);
+    	_reset = true;
+    	Properties::Get()->PAUSED = true;
+        //exit(1);
+    }
+
+    // Calculate the new velocity field as v - grad(p)
+    LOOP_2D_GRID(x, y, 1){
+         // Checks for boundaries
+         if (x == 1) {
+             if (y == 1) {
+                 field(x, y) = glm::vec2(0, 0);
+             }
+             else {
+                 const float dyPressure = pressure(x, y) - pressure(x, y - 1);
+                 field(x, y) = field(x, y) - glm::vec2(0, dyPressure);
+             }
+         }
+         else {
+             if (y == 1) {
+                 field(x, y) = field(x, y)
+                     - glm::vec2(pressure(x, y) - pressure(x - 1, y), 0);
+             }
+             else {
+                 const float dxPressure = pressure(x, y) - pressure(x - 1, y);
+                 const float dyPressure = pressure(x, y) - pressure(x, y - 1);
+                 field(x, y) = field(x, y) - glm::vec2(dxPressure, dyPressure);
+             }
+         }
     }
 }
 
 
-void Simulator::simulate() {
-    if (_paused)
-        return;
+#if 0
 
-	extrapolateVelocity(_grid->getVel(), _grid->getPres());
+void Simulator::simulate() {
+
+	extrapolateVelocity(_grid->vel(), _grid->rho());
 
 	// 2. Advect rho
-	ScalField rhoNew(_grid->getPres().width(), _grid->getPres().height());
-	advectScalar(rhoNew, _grid->getPres(), _grid->getVel());
-	_grid->getPres() = rhoNew;
+	advectScalar(_grid->tmpScal(), _grid->rho(), _grid->vel());
+	_grid->swapRho();
 
 	// 3. Sharpen rho
-	sharpenDensity(_grid->getPres());
+	sharpenDensity(_grid->rho());
 
-    advect(_grid->getNewVel(), _grid->getVel());
+    advect(_grid->tmpVec(), _grid->vel());
     //_grid->swapVel();
 	//VorticityConfinement();
 
-    add_force(_grid->getVel(), _grid->getPres());
+    add_force(_grid->vel(), _grid->rho());
 	if(Properties::Get()->GRAVITY)
-		applyGravity(_grid->getVel(), _grid->getPres());
-	projection(_grid->getVel(), _grid->getPres());
-	for (int i = 0; i < _grid->getVel().size(); i++) {
-		if (dynamic_cast<SimulationView*>(_views->getView("Simulation"))->getBoundary()[i] == 1)
-			_grid->getVel()[i] = glm::vec2(0);
+		applyGravity(_grid->vel(), _grid->rho());
+	projection(_grid->vel(), _grid->rho());
+	for (int i = 0; i < _grid->vel().size(); i++) {
+		if (_grid->boundary()[i] == 1)
+			_grid->vel()[i] = glm::vec2(0);
 	}
 
-    dynamic_cast<SimulationView*>(_views->getView("Simulation"))->setVelField(&_grid->getVel());
+    _views->getView<SimulationView>("Simulation")->setVelField(&_grid->vel());
 
     //_grid->swapPres();
     //_grid->swapVel();
@@ -120,10 +546,10 @@ void Simulator::add_force(VecField &vel, ScalField &rho) {
         	bool fluidLeft  = rho(x-1, y) > 0.5f;
 
         	// Y-face: between (x,y) and (x,y-1)
-        	if (!(fluidHere || fluidBelow))   // 'or' is more stable than 'and'
-        		continue;
+        	//if (!(fluidHere || fluidBelow))   // 'or' is more stable than 'and'
+        	//	continue;
 
-            vel(x, y) += dynamic_cast<SimulationView*>(_views->getView("Simulation"))->getForces()(x, y) *  Properties::Get()->DT;
+            vel(x, y) += _grid->forces()(x, y) *  Properties::Get()->DT;
 
 
         	if (Properties::Get()->PUSH)
@@ -545,7 +971,7 @@ void Simulator::projection(VecField& field, ScalField& rho) {
 
 
 void Simulator::VorticityConfinement() {
-	VecField& velField = _grid->getVel();
+	VecField& velField = _grid->vel();
 
 	// The curl
 	ScalField curl(velField.width(), velField.height());
@@ -658,3 +1084,4 @@ void Simulator::VorticityConfinement() {
 	for (int i = 0; i < velField.size(); i++)
 		velField[i] +=  Properties::Get()->DT * forces[i];
 }
+#endif

@@ -12,28 +12,42 @@ public:
     explicit Grid(unsigned int nWidth, unsigned int nHeight);
     ~Grid();
 
-    VecField& getVel() const;
-    VecField& getNewVel() const;
+    VecField& vel() const;
+    VecField& tmpVec() const;
+    void swapVec();
 
-    ScalField& getPres();
-    ScalField& getNewPres();
+    ScalField& rho() const;
+    ScalField& tmpScal() const;
+    void swapRho();
 
-    void swapVel();
-    void swapPres();
+    ScalField& gamma() const;
+
+    ScalField& divergence() const;
+    ScalField& pressure() const;
+
+    VecField& forces() const;
+    ScalField& boundary() const;
+
+    unsigned int width() const;
+    unsigned int height() const;
 
 private:
     unsigned int _n_width;
     unsigned int _n_height;
 
-    uint8_t _vel = 0;
-    uint8_t _pres = 0;
+    VecField* _vel{};
+    VecField* _v_tmp{};
 
-    VecField* _v0{};
-    VecField* _v1{};
-    ScalField* _s0;
-    ScalField* _s1;
+    ScalField* _rho{};
+    ScalField* _s_tmp{};
 
-    void init();
+    ScalField* _gamma{};
+
+    ScalField* _divergence{};
+    ScalField* _pressure{};
+
+    VecField* _forces{};
+    ScalField* _boundary{};
 };
 
 

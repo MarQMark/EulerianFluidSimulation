@@ -4,22 +4,14 @@
 
 #include "glm/geometric.hpp"
 #include "imgui/imgui.h"
+#include "simulation/Grid.h"
 #include "simulation/Properties.h"
 #include "simulation/VecField.h"
 
-SimulationView::SimulationView(const ImTextureID textureID, const int width, const int height)
-    : _texture_id(textureID), _width(width), _height(height) {
-    _forces = new VecField(_width,  _height);
-    _boundary = new ScalField(_width,  _height);
-}
-
-SimulationView::~SimulationView() {
-    delete _forces;
-    delete _boundary;
-}
-
 #define TOP_SPACING 10;
 void SimulationView::render() {
+    if (!_initialized)
+        return;
     if (!_visible)
         return;
 
@@ -51,7 +43,8 @@ void SimulationView::render() {
         y_max = win_y + (win_h + (x_max - x_min) / txtAspect) / 2.f;
     }
 
-    ImVec2 topCorner = ImGui::GetCursorPos();
+    //ImVec2 topCorner = ImGui::GetCursorPos();
+    ImVec2 topCorner = ImGui::GetWindowPos();
     ImGui::SetCursorScreenPos(ImVec2(x_min, y_min));
     ImGui::Image(_texture_id,
                  ImVec2(x_max - x_min, y_max - y_min),
@@ -131,7 +124,7 @@ void SimulationView::render() {
         }
     }
 
-    if (_vel_field) {
+    if (_vel_field && !Properties::Get()->DRAW_VEL_ARROWS) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         glm::vec2 gridSpacing((x_max - x_min) / _vel_field->width(), (y_max - y_min) / _vel_field->height());
 
@@ -160,7 +153,8 @@ void SimulationView::render() {
         }
     }
 
-    ImGui::SetCursorScreenPos(ImVec2(topCorner));
+    //ImGui::SetCursorScreenPos(ImVec2(topCorner));
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 20);
     switch (_mode) {
         case FORCE:
             ImGui::Text("Mode: Force");
@@ -179,25 +173,17 @@ void SimulationView::render() {
     ImGui::End();
 }
 
-void SimulationView::recreate(const ImTextureID textureID, const int width, const int height) {
-    delete _forces;
-    delete _boundary;
-    _texture_id = textureID;
-    _width = width;
-    _height = height;
-    _forces = new VecField(_width,  _height);
-    _boundary = new ScalField(_width,  _height);
-}
+void SimulationView::recreate(const ImTextureID textureID, const Grid* grid) {
+    _initialized = true;
 
-VecField& SimulationView::getForces() const {
-    return *_forces;
+    _texture_id = textureID;
+    _width = grid->width();
+    _height = grid->height();
+    _forces = &grid->forces();
+    _boundary = &grid->boundary();
 }
 
 void SimulationView::setVelField(VecField *velField) {
     _vel_field = velField;
-}
-
-ScalField & SimulationView::getBoundary() const {
-    return *_boundary;
 }
 

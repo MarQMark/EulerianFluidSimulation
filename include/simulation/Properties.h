@@ -16,10 +16,12 @@ public:
 
     float BRUSH_SIZE = 50;
 
-    float a = 0.00366;
+    float VISCOSITY = 0.f;
 
     int MAX_STEPS = 100000;
     float THRESHOLD = 1.e-5f;
+
+    float LIQUID_THRESHOLD = 0.5f;
 
     int WIDTH = 72;
     int HEIGHT = 72;
@@ -31,6 +33,29 @@ public:
 
     bool PUSH = false;
     float PUSH_FORCE = .1f;
+
+    enum InitShape {
+        FULL,
+        HALF,
+        SQUARE,
+        EMPTY,
+    };
+
+    InitShape INIT_SHAPE = FULL;
+
+    bool PAUSED = false;
+    int SIMULATION_STEPS = -1;
+
+    enum DrawMode {
+        VELOCITY,
+        DENSITY,
+        DIVERGENCE,
+        PRESSURE,
+        FLUID,
+    };
+    DrawMode DRAW_MODE = FLUID;
+    bool DRAW_VEL_ARROWS = true;
+    float MAX_VALUE = 0;
 private:
 };
 

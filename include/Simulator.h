@@ -21,14 +21,22 @@ private:
 
     Views* _views{};
 
-    Grid* _grid;
+    Grid* _grid{};
 
-    bool _paused = false;
+    bool _reset = false;
 
-    void create();
-    void destroy() const;
     void recreate();
 
+    void simulate();
+    void vel_extrapolate();
+    void rho_advect();
+    void rho_sharpen();
+    void add_force() const;
+    void vel_advect();
+    void diffuse();
+    void project();
+
+#if 0
     void simulate();
 
     void add_force(VecField& vel, ScalField &rho);
@@ -44,6 +52,7 @@ private:
     void projection(VecField& field, ScalField& vof);
 
     void advect2(VecField& velNew, VecField& vel);
+#endif
 };
 
 

@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include "simulation/Properties.h"
 #include "simulation/ScalField.h"
 
 Renderer::Renderer(const int width, const int height) : _width(width), _height(height){
@@ -12,9 +13,8 @@ Renderer::~Renderer() {
     delete _txt;
 }
 
-void Renderer::render( Grid *grid, ScalField& boundary) {
+void Renderer::render(const Grid *grid) {
     std::vector<float> data(_width * _height * 4);
-    auto vel = grid->getVel();
     /*glm::vec2 max(0);
     for(auto v : vel) {
         max.x = std::max(max.x, std::abs(v.x));
@@ -29,34 +29,64 @@ void Renderer::render( Grid *grid, ScalField& boundary) {
     }*/
 
     float max = 0;
-    for(auto v : vel) {
-        max = std::max(max, glm::length(v));
+    switch (Properties::Get()->DRAW_MODE) {
+        case Properties::VELOCITY:
+            for(auto v : grid->vel())
+                max = std::max(max, glm::length(v));
+            for (int i = 0; i < _width * _height; i++) {
+                data[i * 4 + 0] = 0;
+                data[i * 4 + 1] = 0;
+                data[i * 4 + 2] = glm::length(grid->vel()[i]) / max;
+                data[i * 4 + 3] = 1.f;
+            }
+            break;
+        case Properties::DENSITY:
+            for(auto r : grid->rho())
+                max = std::max(max, r);
+            for (int i = 0; i < _width * _height; i++) {
+                data[i * 4 + 0] = 0;
+                data[i * 4 + 1] = 0;
+                data[i * 4 + 2] = glm::length(grid->rho()[i]) / max;
+                data[i * 4 + 3] = 1.f;
+            }
+            break;
+        case Properties::DIVERGENCE:
+            for(auto v : grid->divergence())
+                max = std::max(max, v);
+            for (int i = 0; i < _width * _height; i++) {
+                data[i * 4 + 0] = glm::length(grid->divergence()[i]) / max;
+                data[i * 4 + 1] = 0;
+                data[i * 4 + 2] = 0;
+                data[i * 4 + 3] = 1.f;
+            }
+            break;
+        case Properties::PRESSURE:
+            for(auto v : grid->pressure())
+                max = std::max(max, v);
+            for (int i = 0; i < _width * _height; i++) {
+                data[i * 4 + 0] = 0;
+                data[i * 4 + 1] = glm::length(grid->pressure()[i]) / max;
+                data[i * 4 + 2] = 0;
+                data[i * 4 + 3] = 1.f;
+            }
+            break;
+        case Properties::FLUID:
+            for (int i = 0; i < _width * _height; i++) {
+                data[i * 4 + 0] = 0;
+                data[i * 4 + 1] = 0;
+                data[i * 4 + 2] = grid->rho()[i] > Properties::Get()->LIQUID_THRESHOLD ? .8f : 0.f;
+                data[i * 4 + 3] = 1.f;
+            }
+            break;
     }
+    Properties::Get()->MAX_VALUE = max;
+
     for (int i = 0; i < _width * _height; i++) {
-        float len = glm::length(vel[i]);
-        if (boundary[i] == 1) {
+        if (grid->boundary()[i] == 1) {
             data[i * 4 + 0] = .3f;
             data[i * 4 + 1] = .3f;
             data[i * 4 + 2] = .3f;
             data[i * 4 + 3] = .3f;
-        }
-        else if(glm::length(vel[i]) > .0001f){
-            float angle = atan2(vel[i].y, vel[i].x);
-            float value = 0.5f * (1.0f - cos(angle));
-
-            data[i * 4 + 0] = len / max;
-            //data[i * 4 + 1] = value;//std::atan2(vel[i].y, vel[i].x) / 6.28f + 0.5f;
-            data[i * 4 + 1] = 0.f;
-            //data[i * 4 + 2] = 1;
-            data[i * 4 + 2] = grid->getPres()[i];
-            data[i * 4 + 3] = 1.f;
-        }
-        else {
-            data[i * 4 + 0] = 0;
-            data[i * 4 + 1] = 0;
-            //data[i * 4 + 2] = 0;
-            data[i * 4 + 2] = grid->getPres()[i];
-            data[i * 4 + 3] = 1.f;
         }
     }
 

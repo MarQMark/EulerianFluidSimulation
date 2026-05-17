@@ -31,6 +31,7 @@ add_executable(EulerianFluidSimulation
         src/views/Views.cpp
         src/views/SimulationView.cpp
         src/views/PropertiesView.cpp
+        src/views/FPSView.cpp
 
         src/simulation/Grid.cpp
         src/simulation/Properties.cpp
@@ -40,6 +41,9 @@ add_executable(EulerianFluidSimulation
         src/solver/LinearSolver.cpp
         src/solver/ConjugateGradient.cpp
         src/solver/ConjugateGradient.h
+
+        src/util/Time.cpp
+        src/util/GuiHelper.cpp
 )
 
 
