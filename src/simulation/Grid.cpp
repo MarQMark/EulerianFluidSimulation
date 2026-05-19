@@ -10,6 +10,8 @@ Grid::Grid(const unsigned int nWidth, const unsigned int nHeight) : _n_width(nWi
     _gamma = new ScalField(nWidth, nHeight);
     _divergence = new ScalField(nWidth, nHeight);
     _pressure = new ScalField(nWidth, nHeight);
+
+    *_gamma = 1.f;
 }
 
 Grid::~Grid() {

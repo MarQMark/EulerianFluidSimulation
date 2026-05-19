@@ -141,27 +141,6 @@ void Simulator::vel_extrapolate() {
 }
 
 void Simulator::rho_advect() {
-	/*auto& vel   = _grid->vel();
-	auto& rho   = _grid->rho();
-	auto& tmp   = _grid->tmpScal();
-	float dt    = Properties::Get()->DT;
-
-	LOOP_2D_GRID(x, y, 1) {
-		// Cell center position
-		auto pos = glm::vec2(x, y)  - glm::vec2(0.5f);
-
-		// Sample velocity at cell center (rho lives at cell centers)
-		auto v = vel.interpolate(pos);
-
-		// Backtrace
-		auto prevPos = pos - v * dt;
-		prevPos.x = std::clamp(prevPos.x, 1.f, (float)_grid->width()  - 2.f);
-		prevPos.y = std::clamp(prevPos.y, 1.f, (float)_grid->height() - 2.f);
-
-		tmp(x, y) = rho.interpolate(prevPos);
-	}
-
-	_grid->swapRho();*/
 	auto& vel = _grid->vel();
     auto& rho = _grid->rho();
     int w = _grid->width(), h = _grid->height();
@@ -172,7 +151,7 @@ void Simulator::rho_advect() {
     auto& gamma = _grid->gamma();  // ScalField, persistent
 
     auto beta    = ScalField(w, h);  // reset each step
-    auto rhoNew  = ScalField(w, h);
+	auto rhoNew  = ScalField(w, h);
     auto gammaNew = ScalField(w, h);
 
     // --- Step 1: compute beta ---

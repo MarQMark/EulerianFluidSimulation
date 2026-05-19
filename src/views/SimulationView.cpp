@@ -124,7 +124,7 @@ void SimulationView::render() {
         }
     }
 
-    if (_vel_field && !Properties::Get()->DRAW_VEL_ARROWS) {
+    if (_vel_field && Properties::Get()->DRAW_VEL_ARROWS) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         glm::vec2 gridSpacing((x_max - x_min) / _vel_field->width(), (y_max - y_min) / _vel_field->height());
 
