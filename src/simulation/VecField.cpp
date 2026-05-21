@@ -11,9 +11,10 @@ VecField::VecField(const unsigned int width, const unsigned int height) : _width
     clear();
 }
 
-VecField::VecField(const VecField &field) {
+VecField::VecField(const VecField &field, const bool copy) : _width(field.width()), _height(field.height()) {
     _field.resize(field.width() * field.height());
-    memcpy(_field.data(), field._field.data(), field.size() * sizeof(glm::vec2));
+    if (copy)
+        memcpy(_field.data(), field._field.data(), field.size() * sizeof(glm::vec2));
 }
 
 #if 0

@@ -7,7 +7,7 @@
 class VecField {
 public:
     VecField(unsigned int width, unsigned int height);
-    VecField(const VecField& field);
+    VecField(const VecField& field, bool copy = true);
 
     glm::vec2& operator[](const std::size_t index) {
         return _field[index];

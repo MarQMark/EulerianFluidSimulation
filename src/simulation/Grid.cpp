@@ -8,6 +8,7 @@ Grid::Grid(const unsigned int nWidth, const unsigned int nHeight) : _n_width(nWi
     _forces = new VecField(nWidth, nHeight);
     _boundary = new ScalField(nWidth, nHeight);
     _gamma = new ScalField(nWidth, nHeight);
+    _beta = new ScalField(nWidth, nHeight);
     _divergence = new ScalField(nWidth, nHeight);
     _pressure = new ScalField(nWidth, nHeight);
 
@@ -22,6 +23,7 @@ Grid::~Grid() {
     delete _forces;
     delete _boundary;
     delete _gamma;
+    delete _beta;
     delete _divergence;
     delete _pressure;
 }
@@ -62,6 +64,10 @@ ScalField & Grid::gamma() const {
     return *_gamma;
 }
 
+ScalField & Grid::beta() const {
+    return *_beta;
+}
+
 ScalField & Grid::divergence() const {
     return *_divergence;
 }
@@ -84,4 +90,8 @@ unsigned int Grid::width() const {
 
 unsigned int Grid::height() const {
     return _n_height;
+}
+
+unsigned int Grid::size() const {
+    return _n_height * _n_width;
 }

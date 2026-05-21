@@ -10,7 +10,7 @@
 class ScalField {
 public:
     ScalField(unsigned int width, unsigned int height);
-    ScalField(const ScalField& field);
+    ScalField(const ScalField& field, bool copy = true);
     ~ScalField() = default;
 
     float& operator[](const std::size_t index) {

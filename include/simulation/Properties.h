@@ -23,8 +23,8 @@ public:
 
     float LIQUID_THRESHOLD = 0.5f;
 
-    int WIDTH = 72;
-    int HEIGHT = 72;
+    int WIDTH = 30;
+    int HEIGHT = 30;
 
     float DT = 1.67f;
 
@@ -52,6 +52,8 @@ public:
         DIVERGENCE,
         PRESSURE,
         FLUID,
+        GAMMA,
+        BETA,
     };
     DrawMode DRAW_MODE = FLUID;
     bool DRAW_VEL_ARROWS = true;

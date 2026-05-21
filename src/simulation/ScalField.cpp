@@ -9,9 +9,10 @@ ScalField::ScalField(const unsigned int width, const unsigned int height) : _wid
     clear();
 }
 
-ScalField::ScalField(const ScalField &field) : _width(field.width()), _height(field.height()){
+ScalField::ScalField(const ScalField &field, const bool copy ) : _width(field.width()), _height(field.height()){
     _field.resize(_width * _height);
-    memcpy(_field.data(), field._field.data(), field.size() * sizeof(float));
+    if (copy)
+        memcpy(_field.data(), field._field.data(), field.size() * sizeof(float));
 }
 
 #if 1

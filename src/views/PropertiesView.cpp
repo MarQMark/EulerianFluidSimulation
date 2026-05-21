@@ -61,7 +61,7 @@ void PropertiesView::render() {
     if (ImGui::CollapsingHeader("Rendering")) {
         ImGui::Text("Fill Shape:");
         const char* shapes[] = {
-            "Velocity", "Density", "Divergence", "Pressure", "Fluid"
+            "Velocity", "Density", "Divergence", "Pressure", "Fluid", "Gamma", "Beta"
         };
         if (ImGui::BeginCombo("##Draw_mode_combo", shapes[Properties::Get()->DRAW_MODE])) {
             for (int i = 0; i < IM_ARRAYSIZE(shapes); i++)

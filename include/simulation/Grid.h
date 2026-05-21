@@ -21,6 +21,7 @@ public:
     void swapRho();
 
     ScalField& gamma() const;
+    ScalField& beta() const;
 
     ScalField& divergence() const;
     ScalField& pressure() const;
@@ -30,6 +31,7 @@ public:
 
     unsigned int width() const;
     unsigned int height() const;
+    unsigned int size() const;
 
 private:
     unsigned int _n_width;
@@ -42,6 +44,7 @@ private:
     ScalField* _s_tmp{};
 
     ScalField* _gamma{};
+    ScalField* _beta{};
 
     ScalField* _divergence{};
     ScalField* _pressure{};

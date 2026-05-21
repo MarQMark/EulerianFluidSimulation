@@ -13,6 +13,31 @@ Renderer::~Renderer() {
     delete _txt;
 }
 
+void drawField(std::vector<float>& data, VecField& field, int chanel, float& max) {
+    for(auto v : field)
+        max = std::max(max, glm::length(v));
+    for (int i = 0; i < field.width() * field.height(); i++) {
+        data[i * 4 + 0] = 0;
+        data[i * 4 + 1] = 0;
+        data[i * 4 + 2] = 0;
+        data[i * 4 + 3] = 1.f;
+
+        data[i * 4 + chanel] = glm::length(field[i]) / max;
+    }
+}
+void drawField(std::vector<float>& data, ScalField& field, int chanel, float& max) {
+    for(auto s : field)
+        max = std::max(max, s);
+    for (int i = 0; i < field.width() * field.height(); i++) {
+        data[i * 4 + 0] = 0;
+        data[i * 4 + 1] = 0;
+        data[i * 4 + 2] = 0;
+        data[i * 4 + 3] = 1.f;
+
+        data[i * 4 + chanel] = glm::length(field[i]) / max;
+    }
+}
+
 void Renderer::render(const Grid *grid) {
     std::vector<float> data(_width * _height * 4);
     /*glm::vec2 max(0);
@@ -31,44 +56,22 @@ void Renderer::render(const Grid *grid) {
     float max = 0;
     switch (Properties::Get()->DRAW_MODE) {
         case Properties::VELOCITY:
-            for(auto v : grid->vel())
-                max = std::max(max, glm::length(v));
-            for (int i = 0; i < _width * _height; i++) {
-                data[i * 4 + 0] = 0;
-                data[i * 4 + 1] = 0;
-                data[i * 4 + 2] = glm::length(grid->vel()[i]) / max;
-                data[i * 4 + 3] = 1.f;
-            }
+            drawField(data, grid->vel(), 2, max);
             break;
         case Properties::DENSITY:
-            for(auto r : grid->rho())
-                max = std::max(max, r);
-            for (int i = 0; i < _width * _height; i++) {
-                data[i * 4 + 0] = 0;
-                data[i * 4 + 1] = 0;
-                data[i * 4 + 2] = glm::length(grid->rho()[i]) / max;
-                data[i * 4 + 3] = 1.f;
-            }
+            drawField(data, grid->rho(), 2, max);
             break;
         case Properties::DIVERGENCE:
-            for(auto v : grid->divergence())
-                max = std::max(max, v);
-            for (int i = 0; i < _width * _height; i++) {
-                data[i * 4 + 0] = glm::length(grid->divergence()[i]) / max;
-                data[i * 4 + 1] = 0;
-                data[i * 4 + 2] = 0;
-                data[i * 4 + 3] = 1.f;
-            }
+            drawField(data, grid->divergence(), 0, max);
             break;
         case Properties::PRESSURE:
-            for(auto v : grid->pressure())
-                max = std::max(max, v);
-            for (int i = 0; i < _width * _height; i++) {
-                data[i * 4 + 0] = 0;
-                data[i * 4 + 1] = glm::length(grid->pressure()[i]) / max;
-                data[i * 4 + 2] = 0;
-                data[i * 4 + 3] = 1.f;
-            }
+            drawField(data, grid->pressure(), 1, max);
+            break;
+        case Properties::GAMMA:
+            drawField(data, grid->gamma(), 1, max);
+            break;
+        case Properties::BETA:
+            drawField(data, grid->beta(), 0, max);
             break;
         case Properties::FLUID:
             for (int i = 0; i < _width * _height; i++) {
