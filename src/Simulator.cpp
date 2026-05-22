@@ -242,10 +242,19 @@ void Simulator::rho_advect() {
 
 		int p0x = floor(prevPos.x);
 		int p0y = floor(prevPos.y);
-		A(idx(x, y), idx(p0x,	  p0y))		+= (prevPos.x - p0x)	 * (prevPos.y - p0y);
-		A(idx(x, y), idx(p0x + 1, p0y))		+= (p0x + 1 - prevPos.x) * (prevPos.y - p0y);
-		A(idx(x, y), idx(p0x,	  p0y + 1))	+= (prevPos.x - p0x)	 * (p0y + 1 - prevPos.y);
-		A(idx(x, y), idx(p0x + 1, p0y + 1)) += (p0x + 1 - prevPos.x) * (p0y + 1 - prevPos.y);
+		//A(idx(x, y), idx(p0x,	  p0y))		+= (prevPos.x - p0x)	 * (prevPos.y - p0y);
+		//A(idx(x, y), idx(p0x + 1, p0y))		+= (p0x + 1 - prevPos.x) * (prevPos.y - p0y);
+		//A(idx(x, y), idx(p0x,	  p0y + 1))	+= (prevPos.x - p0x)	 * (p0y + 1 - prevPos.y);
+		//A(idx(x, y), idx(p0x + 1, p0y + 1)) += (p0x + 1 - prevPos.x) * (p0y + 1 - prevPos.y);
+
+		auto dx0 = 1 - (prevPos.x - p0x);
+		auto dy0 = 1 - (prevPos.y - p0y);
+		auto dx1 = 1 - (p0x + 1 - prevPos.x);
+		auto dy1 = 1 - (p0y + 1 - prevPos.y);
+		A(idx(x, y), idx(p0x,	  p0y))		+= dx0 * dy0;
+		A(idx(x, y), idx(p0x + 1, p0y))		+= dx1 * dy0;
+		A(idx(x, y), idx(p0x,	  p0y + 1))	+= dx0 * dy1;
+		A(idx(x, y), idx(p0x + 1, p0y + 1)) += dx1 * dy1;
 	}
 
 	//################## Step 3 ##################
@@ -277,10 +286,19 @@ void Simulator::rho_advect() {
 
 		int p0x = floor(nextPos.x);
 		int p0y = floor(nextPos.y);
-		A(idx(p0x,	 p0y),	   j) += (1-beta[j]) * (nextPos.x - p0x)	   * (nextPos.y - p0y);
-		A(idx(p0x + 1, p0y),	   j)	+= (1-beta[j]) * (p0x + 1 - nextPos.x) * (nextPos.y - p0y);
-		A(idx(p0x,	 p0y + 1), j)	+= (1-beta[j]) * (nextPos.x - p0x)	   * (p0y + 1 - nextPos.y);
-		A(idx(p0x + 1, p0y + 1), j) += (1-beta[j]) * (p0x + 1 - nextPos.x) * (p0y + 1 - nextPos.y);
+		//A(idx(p0x,	 p0y),	   j) += (1-beta[j]) * (nextPos.x - p0x)	   * (nextPos.y - p0y);
+		//A(idx(p0x + 1, p0y),	   j)	+= (1-beta[j]) * (p0x + 1 - nextPos.x) * (nextPos.y - p0y);
+		//A(idx(p0x,	 p0y + 1), j)	+= (1-beta[j]) * (nextPos.x - p0x)	   * (p0y + 1 - nextPos.y);
+		//A(idx(p0x + 1, p0y + 1), j) += (1-beta[j]) * (p0x + 1 - nextPos.x) * (p0y + 1 - nextPos.y);
+
+		auto dx0 = 1 - (nextPos.x - p0x);
+		auto dy0 = 1 - (nextPos.y - p0y);
+		auto dx1 = 1 - (p0x + 1 - nextPos.x);
+		auto dy1 = 1 - (p0y + 1 - nextPos.y);
+		A(idx(p0x,	 p0y),	   j) += (1-beta[j]) * dx0 * dy0;
+		A(idx(p0x + 1, p0y),	   j)	+= (1-beta[j]) * dx1 * dy0;
+		A(idx(p0x,	 p0y + 1), j)	+= (1-beta[j]) * dx0 * dy1;
+		A(idx(p0x + 1, p0y + 1), j) += (1-beta[j]) * dx1 * dy1;
 	}
 
 	//################## Step 6 ##################
