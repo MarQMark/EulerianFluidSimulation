@@ -44,7 +44,7 @@ public:
     InitShape INIT_SHAPE = FULL;
 
     bool PAUSED = false;
-    int SIMULATION_STEPS = -1;
+    int SIMULATION_STEPS = 0;
 
     enum DrawMode {
         VELOCITY,

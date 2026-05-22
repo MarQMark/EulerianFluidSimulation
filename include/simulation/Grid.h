@@ -22,6 +22,7 @@ public:
 
     ScalField& gamma() const;
     ScalField& beta() const;
+    ScalField& A() const;
 
     ScalField& divergence() const;
     ScalField& pressure() const;
@@ -45,6 +46,7 @@ private:
 
     ScalField* _gamma{};
     ScalField* _beta{};
+    ScalField* _A{};
 
     ScalField* _divergence{};
     ScalField* _pressure{};

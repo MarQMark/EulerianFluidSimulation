@@ -32,6 +32,7 @@ add_executable(EulerianFluidSimulation
         src/views/SimulationView.cpp
         src/views/PropertiesView.cpp
         src/views/FPSView.cpp
+        src/views/FieldViewerView.cpp
 
         src/simulation/Grid.cpp
         src/simulation/Properties.cpp

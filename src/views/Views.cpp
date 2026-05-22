@@ -11,6 +11,7 @@ Views::Views(const Window* window) {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window->getWindow(), true);
     ImGui_ImplOpenGL3_Init("#version 430");
@@ -77,6 +78,15 @@ void Views::render() {
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        GLFWwindow* backup = glfwGetCurrentContext();
+
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+
+        glfwMakeContextCurrent(backup);
+    }
 }
 
 void Views::addView(const std::string &name, Viewable *view) {
@@ -88,9 +98,24 @@ void Views::addView(const std::string &name, Viewable *view) {
 
 Viewable* Views::getView(const std::string &name) {
     if(!_views.contains(name)) {
-        std::cout << "[Warning] View with name " << name << " not in views map\n";
+        //std::cout << "[Warning] View with name " << name << " not in views map\n";
         return nullptr;
     }
 
     return _views[name];
+}
+
+void Views::replaceView(const std::string &name, Viewable *view) {
+    if(_views.contains(name))
+        delete _views[name];
+
+    _views[name] = view;
+}
+
+void Views::deleteView(const std::string &name) {
+    if(!_views.contains(name))
+        return;
+
+    delete _views[name];
+    _views.erase(name);
 }

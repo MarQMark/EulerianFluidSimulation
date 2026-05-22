@@ -9,6 +9,7 @@
 #include "solver/ConjugateGradient.h"
 #include "solver/LinearSolver.hpp"
 #include "util/Time.h"
+#include "views/FieldViewerView.h"
 #include "views/FPSView.h"
 #include "views/PropertiesView.h"
 
@@ -37,6 +38,21 @@ void Simulator::recreate() {
 
 	_renderer = new Renderer(Properties::Get()->WIDTH, Properties::Get()->HEIGHT);
 	_grid = new Grid(Properties::Get()->WIDTH, Properties::Get()->HEIGHT);
+
+	if (_views->getView("FieldViewerVel"))
+		_views->replaceView("FieldViewerVel", new FieldViewerView(&_grid->vel(), "Velocity Viewer"));
+	if (_views->getView("FieldViewerRho"))
+		_views->replaceView("FieldViewerRho", new FieldViewerView(&_grid->rho(), "Rho Viewer"));
+	if (_views->getView("FieldViewerGamma"))
+		_views->replaceView("FieldViewerGamma", new FieldViewerView(&_grid->gamma(), "Gamma Viewer"));
+	if (_views->getView("FieldViewerBeta"))
+		_views->replaceView("FieldViewerBeta", new FieldViewerView(&_grid->beta(), "Beta Viewer"));
+	if (_views->getView("FieldViewerDiv"))
+		_views->replaceView("FieldViewerDiv", new FieldViewerView(&_grid->divergence(), "Divergence Viewer"));
+	if (_views->getView("FieldViewerPressure"))
+		_views->replaceView("FieldViewerPressure", new FieldViewerView(&_grid->pressure(), "Pressure Viewer"));
+	if (_views->getView("FieldViewerA"))
+		_views->replaceView("FieldViewerA", new FieldViewerView(&_grid->A(), "A Viewer"));
 
 	_views->getView<SimulationView>("Simulation")->recreate(
 		_renderer->getTexture2D()->get(), _grid);
@@ -67,8 +83,12 @@ void Simulator::update() {
     while (!_window->shouldClose()) {
     	Time::Get()->update();
 
-    	if (!Properties::Get()->PAUSED)
+    	if (!Properties::Get()->PAUSED || Properties::Get()->SIMULATION_STEPS > 0) {
 			simulate();
+
+    		if (Properties::Get()->SIMULATION_STEPS > 0)
+    			Properties::Get()->SIMULATION_STEPS--;
+    	}
 
     	_views->getView<SimulationView>("Simulation")->setVelField(&_grid->vel());
 
@@ -80,6 +100,51 @@ void Simulator::update() {
         	_reset = true;
         if (ImGui::IsKeyPressed(ImGuiKey_P))
             Properties::Get()->PAUSED = !Properties::Get()->PAUSED;
+    	if (ImGui::IsKeyPressed(ImGuiKey_S))
+    		Properties::Get()->SIMULATION_STEPS++;
+
+    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad1)) {
+    		if (!_views->getView("FieldViewerVel"))
+    			_views->addView("FieldViewerVel", new FieldViewerView(&_grid->vel(), "Velocity Viewer"));
+    		else
+    			_views->deleteView("FieldViewerVel");
+    	}
+    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad2)) {
+    		if (!_views->getView("FieldViewerRho"))
+    			_views->addView("FieldViewerRho", new FieldViewerView(&_grid->rho(), "Rho Viewer"));
+    		else
+    			_views->deleteView("FieldViewerRho");
+    	}
+    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad3)) {
+    		if (!_views->getView("FieldViewerGamma"))
+    			_views->addView("FieldViewerGamma", new FieldViewerView(&_grid->gamma(), "Gamma Viewer"));
+    		else
+    			_views->deleteView("FieldViewerGamma");
+    	}
+    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad4)) {
+    		if (!_views->getView("FieldViewerBeta"))
+    			_views->addView("FieldViewerBeta", new FieldViewerView(&_grid->beta(), "Beta Viewer"));
+    		else
+    			_views->deleteView("FieldViewerBeta");
+    	}
+    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad5)) {
+    		if (!_views->getView("FieldViewerDiv"))
+    			_views->addView("FieldViewerDiv", new FieldViewerView(&_grid->divergence(), "Divergence Viewer"));
+    		else
+    			_views->deleteView("FieldViewerDiv");
+    	}
+    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad6)) {
+    		if (!_views->getView("FieldViewerPressure"))
+    			_views->addView("FieldViewerPressure", new FieldViewerView(&_grid->pressure(), "Pressure Viewer"));
+    		else
+    			_views->deleteView("FieldViewerPressure");
+    	}
+    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad7)) {
+    		if (!_views->getView("FieldViewerA"))
+    			_views->addView("FieldViewerA", new FieldViewerView(&_grid->A(), "A Viewer"));
+    		else
+    			_views->deleteView("FieldViewerA");
+    	}
 
     	if (_reset) {
     		_reset = false;
@@ -165,7 +230,8 @@ void Simulator::rho_advect() {
 
 	//################## Step 2 ##################
 	// Compute A
-	auto A = ScalField(_grid->size(), _grid->size());
+	auto& A = _grid->A();
+	A.clear();
 	LOOP_2D_GRID(x, y, 1) {
 		auto curPos = glm::vec2(x, y);
 		auto velVec = velField.interpolate(curPos - glm::vec2(.5f));
@@ -174,12 +240,12 @@ void Simulator::rho_advect() {
 		prevPos.x = std::clamp(prevPos.x, 1.f, _grid->width() - 2.f);
 		prevPos.y = std::clamp(prevPos.y, 1.f, _grid->height() - 2.f);
 
-		int p0x = floor(prevPos.x - .5);
-		int p0y = floor(prevPos.y - .5);
+		int p0x = floor(prevPos.x);
+		int p0y = floor(prevPos.y);
 		A(idx(x, y), idx(p0x,	  p0y))		+= (prevPos.x - p0x)	 * (prevPos.y - p0y);
-		A(idx(x, y), idx(p0x + 1, p0y))		+= (prevPos.x - p0x + 1) * (prevPos.y - p0y);
-		A(idx(x, y), idx(p0x,	  p0y + 1))	+= (prevPos.x - p0x)	 * (prevPos.y - p0y + 1);
-		A(idx(x, y), idx(p0x + 1, p0y + 1)) += (prevPos.x - p0x + 1) * (prevPos.y - p0y + 1);
+		A(idx(x, y), idx(p0x + 1, p0y))		+= (p0x + 1 - prevPos.x) * (prevPos.y - p0y);
+		A(idx(x, y), idx(p0x,	  p0y + 1))	+= (prevPos.x - p0x)	 * (p0y + 1 - prevPos.y);
+		A(idx(x, y), idx(p0x + 1, p0y + 1)) += (p0x + 1 - prevPos.x) * (p0y + 1 - prevPos.y);
 	}
 
 	//################## Step 3 ##################
@@ -209,12 +275,12 @@ void Simulator::rho_advect() {
 		nextPos.x = std::clamp(nextPos.x, 1.f, _grid->width() - 2.f);
 		nextPos.y = std::clamp(nextPos.y, 1.f, _grid->height() - 2.f);
 
-		int p0x = floor(nextPos.x - .5);
-		int p0y = floor(nextPos.y - .5);
-		A(idx(p0x,	 p0y),	   j) += (nextPos.x - p0x)	 * (nextPos.y - p0y);
-		A(idx(p0x + 1, p0y),	   j)	+= (nextPos.x - p0x + 1) * (nextPos.y - p0y);
-		A(idx(p0x,	 p0y + 1), j)	+= (nextPos.x - p0x)	 * (nextPos.y - p0y + 1);
-		A(idx(p0x + 1, p0y + 1), j) += (nextPos.x - p0x + 1) * (nextPos.y - p0y + 1);
+		int p0x = floor(nextPos.x);
+		int p0y = floor(nextPos.y);
+		A(idx(p0x,	 p0y),	   j) += (1-beta[j]) * (nextPos.x - p0x)	   * (nextPos.y - p0y);
+		A(idx(p0x + 1, p0y),	   j)	+= (1-beta[j]) * (p0x + 1 - nextPos.x) * (nextPos.y - p0y);
+		A(idx(p0x,	 p0y + 1), j)	+= (1-beta[j]) * (nextPos.x - p0x)	   * (p0y + 1 - nextPos.y);
+		A(idx(p0x + 1, p0y + 1), j) += (1-beta[j]) * (p0x + 1 - nextPos.x) * (p0y + 1 - nextPos.y);
 	}
 
 	//################## Step 6 ##################

@@ -7,6 +7,7 @@
 #include "simulation/Grid.h"
 #include "simulation/Properties.h"
 #include "simulation/VecField.h"
+#include "util/Time.h"
 
 #define TOP_SPACING 10;
 void SimulationView::render() {
@@ -43,8 +44,8 @@ void SimulationView::render() {
         y_max = win_y + (win_h + (x_max - x_min) / txtAspect) / 2.f;
     }
 
-    //ImVec2 topCorner = ImGui::GetCursorPos();
-    ImVec2 topCorner = ImGui::GetWindowPos();
+    ImVec2 topCorner = ImGui::GetCursorPos();
+    //ImVec2 topCorner = ImGui::GetWindowPos();
     ImGui::SetCursorScreenPos(ImVec2(x_min, y_min));
     ImGui::Image(_texture_id,
                  ImVec2(x_max - x_min, y_max - y_min),
@@ -168,6 +169,11 @@ void SimulationView::render() {
         default:
             ImGui::Text("Mode: Invalid");
             break;
+    }
+
+    if (Properties::Get()->PAUSED && (int)(Time::Get()->tt / 500) % 2 == 0) {
+        ImGui::SetCursorPos(topCorner);
+        ImGui::Text("PAUSED");
     }
 
     ImGui::End();

@@ -17,6 +17,8 @@ public:
 
     void addView(const std::string& name, Viewable* view);
     Viewable* getView(const std::string& name);
+    void replaceView(const std::string& name, Viewable* view);
+    void deleteView(const std::string& name);
 
     template<class T = Viewable>
     T* getView(const std::string& name) {

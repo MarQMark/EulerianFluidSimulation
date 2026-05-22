@@ -15,6 +15,8 @@ public:
 
     Texture2D* getTexture2D() const;
 
+    static void drawField(std::vector<float>& data, VecField& field, int chanel, float& max);
+    static void drawField(std::vector<float>& data, ScalField& field, int chanel, float& max);
 private:
     Texture2D* _txt;
     int _width;

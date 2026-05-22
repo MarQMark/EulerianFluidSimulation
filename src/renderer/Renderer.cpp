@@ -13,7 +13,7 @@ Renderer::~Renderer() {
     delete _txt;
 }
 
-void drawField(std::vector<float>& data, VecField& field, int chanel, float& max) {
+void Renderer::drawField(std::vector<float>& data, VecField& field, int chanel, float& max) {
     for(auto v : field)
         max = std::max(max, glm::length(v));
     for (int i = 0; i < field.width() * field.height(); i++) {
@@ -25,7 +25,7 @@ void drawField(std::vector<float>& data, VecField& field, int chanel, float& max
         data[i * 4 + chanel] = glm::length(field[i]) / max;
     }
 }
-void drawField(std::vector<float>& data, ScalField& field, int chanel, float& max) {
+void Renderer::drawField(std::vector<float>& data, ScalField& field, int chanel, float& max) {
     for(auto s : field)
         max = std::max(max, s);
     for (int i = 0; i < field.width() * field.height(); i++) {
@@ -35,6 +35,9 @@ void drawField(std::vector<float>& data, ScalField& field, int chanel, float& ma
         data[i * 4 + 3] = 1.f;
 
         data[i * 4 + chanel] = glm::length(field[i]) / max;
+
+        if (!std::isfinite(field[i]))
+            data[i * 4 + ((chanel + 1) % 3)] = 1.f;
     }
 }
 
