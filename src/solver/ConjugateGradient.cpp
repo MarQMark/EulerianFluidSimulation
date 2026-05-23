@@ -125,17 +125,18 @@ void MatVecMult(ScalField& result, const ScalField& x, const ScalField& rho) {
 			int   nCount = 0;
 
 			auto sampleNeighbor = [&](int nx, int ny) {
-				if (nx < 0 || nx >= w || ny < 0 || ny >= h) {
-					// Solid wall: Neumann (no-slip) — counts in diagonal
-					// but contributes 0 to sum (p_wall = p_interior)
-					// Actually for solid walls use Neumann: don't count
-					return;
-				}
+				// Out of bounds: already Neumann (never reached with border cells in domain)
+				if (nx < 0 || nx >= w || ny < 0 || ny >= h) return;
+
+				// Border cells are solid walls → Neumann (dp/dn = 0): exclude entirely
+				// Previously these were treated as air (Dirichlet p=0) which inflated
+				// the diagonal and caused the pressure to be too small to cancel divergence
+				if (nx == 0 || nx == w-1 || ny == 0 || ny == h-1) return;
+
 				nCount++;
 				if (rho(nx, ny) > 0.5f)
 					sum += x(nx, ny);
-				// else: surface neighbor has p=0 (Dirichlet),
-				// contributes 0 to sum but still counted in diagonal
+				// Interior air cell: Dirichlet p=0 (correct — counts in nCount, not sum)
 			};
 
 			sampleNeighbor(x_ - 1, y);

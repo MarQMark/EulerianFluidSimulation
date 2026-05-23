@@ -41,7 +41,7 @@ public:
         EMPTY,
     };
 
-    InitShape INIT_SHAPE = FULL;
+    InitShape INIT_SHAPE = HALF;
 
     bool PAUSED = false;
     int SIMULATION_STEPS = 0;

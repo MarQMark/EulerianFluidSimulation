@@ -16,8 +16,8 @@ class SimulationView : public Viewable {
 private:
     enum Mode{
         FORCE = 0,
-        BOUNDARY_ADD,
-        BOUNDARY_REMOVE,
+        BOUNDARY,
+        FLUID,
         END
     };
 public:
@@ -43,6 +43,7 @@ private:
 
     VecField* _vel_field{};
     ScalField* _boundary{};
+    ScalField* _rho{};
 };
 
 

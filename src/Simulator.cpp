@@ -32,6 +32,9 @@ Simulator::~Simulator() {
 	delete _window;
 }
 
+#define LOOP_2D_GRID(x, y, offset)  for (int y = offset; y < _grid->height() - offset; y++) \
+									for (int x = offset; x < _grid->width() - offset; x++)
+
 void Simulator::recreate() {
 	if (_grid) delete _grid;
 	if (_renderer) delete _renderer;
@@ -77,6 +80,13 @@ void Simulator::recreate() {
 			_grid->rho() = 0.f;
 			break;
 	}
+
+	LOOP_2D_GRID(x, y, 0) {
+		if (y == 0) _grid->rho()(x, y) = 0.f;
+		if (x == 0) _grid->rho()(x, y) = 0.f;
+		if (x == _grid->width() - 1) _grid->rho()(x, y) = 0.f;
+		if (x == _grid->height() - 1) _grid->rho()(x, y) = 0.f;
+	}
 }
 
 void Simulator::update() {
@@ -102,6 +112,8 @@ void Simulator::update() {
             Properties::Get()->PAUSED = !Properties::Get()->PAUSED;
     	if (ImGui::IsKeyPressed(ImGuiKey_S))
     		Properties::Get()->SIMULATION_STEPS++;
+    	if (ImGui::IsKeyPressed(ImGuiKey_G))
+    		Properties::Get()->GRAVITY = !Properties::Get()->GRAVITY;
 
     	if (ImGui::IsKeyPressed(ImGuiKey_Keypad1)) {
     		if (!_views->getView("FieldViewerVel"))
@@ -156,17 +168,16 @@ void Simulator::update() {
 }
 
 void Simulator::simulate() {
-	vel_extrapolate();
+	//vel_extrapolate();
 	rho_advect();
-	diffuse();
-	rho_sharpen();
+	//diffuse();
+	//rho_sharpen();
 	vel_advect();
 	add_force();
 	project();
 }
 
-#define LOOP_2D_GRID(x, y, offset) for (int y = offset; y < _grid->height() - offset; y++) \
-					               for (int x = offset; x < _grid->width() - offset; x++)
+
 
 void Simulator::vel_extrapolate() {
 	return;
@@ -242,10 +253,6 @@ void Simulator::rho_advect() {
 
 		int p0x = floor(prevPos.x);
 		int p0y = floor(prevPos.y);
-		//A(idx(x, y), idx(p0x,	  p0y))		+= (prevPos.x - p0x)	 * (prevPos.y - p0y);
-		//A(idx(x, y), idx(p0x + 1, p0y))		+= (p0x + 1 - prevPos.x) * (prevPos.y - p0y);
-		//A(idx(x, y), idx(p0x,	  p0y + 1))	+= (prevPos.x - p0x)	 * (p0y + 1 - prevPos.y);
-		//A(idx(x, y), idx(p0x + 1, p0y + 1)) += (p0x + 1 - prevPos.x) * (p0y + 1 - prevPos.y);
 
 		auto dx0 = 1 - (prevPos.x - p0x);
 		auto dy0 = 1 - (prevPos.y - p0y);
@@ -286,10 +293,6 @@ void Simulator::rho_advect() {
 
 		int p0x = floor(nextPos.x);
 		int p0y = floor(nextPos.y);
-		//A(idx(p0x,	 p0y),	   j) += (1-beta[j]) * (nextPos.x - p0x)	   * (nextPos.y - p0y);
-		//A(idx(p0x + 1, p0y),	   j)	+= (1-beta[j]) * (p0x + 1 - nextPos.x) * (nextPos.y - p0y);
-		//A(idx(p0x,	 p0y + 1), j)	+= (1-beta[j]) * (nextPos.x - p0x)	   * (p0y + 1 - nextPos.y);
-		//A(idx(p0x + 1, p0y + 1), j) += (1-beta[j]) * (p0x + 1 - nextPos.x) * (p0y + 1 - nextPos.y);
 
 		auto dx0 = 1 - (nextPos.x - p0x);
 		auto dy0 = 1 - (nextPos.y - p0y);
@@ -329,6 +332,11 @@ void Simulator::rho_advect() {
 	if (beta[j] > 1.e-5f)
 		A(i, j) /= beta[j];
 
+	/*beta.clear();
+	for (unsigned int j = 0; j < _grid->size(); j++)
+	for (unsigned int i = 0; i < _grid->size(); i++)
+		beta[j] += A(i, j);*/
+
 	//################## Step 10 ##################
 	// Recompute gamma
 	gamma.clear();
@@ -347,6 +355,60 @@ void Simulator::rho_advect() {
 	}
 	LOOP_2D_GRID(x, y, 1)
 		rho(x, y) = advectRho(x, y);
+
+	//################## Step 12 ##################
+	// Diffusion of rho and gamma
+	for (int it = 0; it < 7; it++) {
+		// X-dimension
+		for (int y = 1; y < _grid->height() - 1; y++)
+		for (int x = 2; x < _grid->width()  - 1; x++) {
+			float g_j = gamma(x-1, y);
+			float g_i = gamma(x,   y);
+
+			if (g_j < 1e-5f || g_i < 1e-5f) continue;
+			if (g_j == g_i) continue;
+
+			float avg = (g_j + g_i) / 2.f;
+
+			if (g_j > g_i) {
+				float dif = rho(x-1, y) * (g_j - g_i) / (2.f * g_j);
+				rho(x-1, y) -= dif;
+				rho(x,   y) += dif;
+			} else {
+				float dif = rho(x, y) * (g_i - g_j) / (2.f * g_i);
+				rho(x,   y) -= dif;
+				rho(x-1, y) += dif;
+			}
+
+			gamma(x-1, y) = avg;
+			gamma(x,   y) = avg;
+		}
+
+		// Y-dimension
+		for (int x = 1; x < _grid->width()  - 1; x++)
+		for (int y = 2; y < _grid->height() - 1; y++) {
+			float g_j = gamma(x, y-1);
+			float g_i = gamma(x, y  );
+
+			if (g_j < 1e-5f || g_i < 1e-5f) continue;
+			if (g_j == g_i) continue;
+
+			float avg = (g_j + g_i) / 2.f;
+
+			if (g_j > g_i) {
+				float dif = rho(x, y-1) * (g_j - g_i) / (2.f * g_j);
+				rho(x, y-1) -= dif;
+				rho(x, y  ) += dif;
+			} else {
+				float dif = rho(x, y) * (g_i - g_j) / (2.f * g_i);
+				rho(x, y  ) -= dif;
+				rho(x, y-1) += dif;
+			}
+
+			gamma(x, y-1) = avg;
+			gamma(x, y  ) = avg;
+		}
+	}
 }
 
 void Simulator::rho_sharpen() {
@@ -487,12 +549,12 @@ void Simulator::vel_advect() {
 
 	LOOP_2D_GRID(x, y, 1){
 		if (x == 1)
-			velField(x, y).x = 0;
+			velField(x, y).x = newVel(x, y).x;
 		else
 			velField(x, y).x = 0.5f * (newVel(x, y).x + newVel(x - 1, y).x);
 
 		if (y == 1)
-			velField(x, y).y = 0;
+			velField(x, y).y = newVel(x, y).y;
 		else
 			velField(x, y).y = 0.5f * (newVel(x, y).y + newVel(x, y - 1).y);
 	}
@@ -547,14 +609,31 @@ void Simulator::project() {
 	pressure.clear();
 	divergence.clear();
 
+	LOOP_2D_GRID(x, y, 1) {
+		if (y == 1) field(x, y).y = 0.f;
+		if (x == 1) field(x, y).x = 0.f;
+
+		//if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
+		//	field(x, y) = glm::vec2(0.f);
+	}
+
     LOOP_2D_GRID(x, y, 1){
     	if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
     		continue;
 
-    	divergence(x, y) = field(x + 1, y).x
-    					- field(x, y).x
-    					+ field(x, y + 1).y
-                        - field(x, y).y;
+    	divergence(x, y) = field(x + 1, y).x - field(x, y).x
+    					 + field(x, y + 1).y - field(x, y).y;
+
+		if (divergence(x, y) < -1e-5) {
+			float x0 = field(x + 1, y).x;
+			float x1 = field(x, y).x;
+			float dx = x0 - x1;
+			float y0 = field(x, y + 1).y;
+			float y1 = field(x, y).y;
+			float dy = y0 - y1;
+			float div = dx + dy;
+			int a = 0;
+		}
     }
 
 	const float err = ConjugateGradient2(pressure, divergence, rho, Properties::Get()->MAX_STEPS);
@@ -568,25 +647,25 @@ void Simulator::project() {
     // Calculate the new velocity field as v - grad(p)
     LOOP_2D_GRID(x, y, 1){
          // Checks for boundaries
-         if (x == 1) {
-             if (y == 1) {
-                 field(x, y) = glm::vec2(0, 0);
-             }
-             else {
-                 const float dyPressure = pressure(x, y) - pressure(x, y - 1);
-                 field(x, y) = field(x, y) - glm::vec2(0, dyPressure);
-             }
-         }
-         else {
-             if (y == 1) {
-                 field(x, y) = field(x, y)
+    	if (x == 1) {
+    		if (y == 1) {
+                 //field(x, y) = glm::vec2(0, 0);
+    		}
+    		else {
+    			const float dyPressure = pressure(x, y) - pressure(x, y - 1);
+    			field(x, y) = field(x, y) - glm::vec2(0, dyPressure);
+    		}
+    	}
+    	else {
+    		if (y == 1) {
+    			field(x, y) = field(x, y)
                      - glm::vec2(pressure(x, y) - pressure(x - 1, y), 0);
-             }
-             else {
-                 const float dxPressure = pressure(x, y) - pressure(x - 1, y);
-                 const float dyPressure = pressure(x, y) - pressure(x, y - 1);
-                 field(x, y) = field(x, y) - glm::vec2(dxPressure, dyPressure);
-             }
-         }
+    		}
+    		else {
+    			const float dxPressure = pressure(x, y) - pressure(x - 1, y);
+    			const float dyPressure = pressure(x, y) - pressure(x, y - 1);
+    			field(x, y) = field(x, y) - glm::vec2(dxPressure, dyPressure);
+    		}
+    	}
     }
 }

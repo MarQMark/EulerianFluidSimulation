@@ -54,8 +54,7 @@ void SimulationView::render() {
 
 
     _forces->clear();
-    if (ImGui::IsItemHovered())
-    {
+    if (ImGui::IsItemHovered()) {
         const ImVec2 mouse = ImGui::GetIO().MousePos;
 
         constexpr ImU32 color = IM_COL32(255, 0, 0, 255);
@@ -63,8 +62,9 @@ void SimulationView::render() {
         drawList->AddCircle(mouse, Properties::Get()->BRUSH_SIZE, color, 32, 2.0f);
 
 
-        if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-        {
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Left) || ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
+            const bool left = ImGui::IsMouseDown(ImGuiMouseButton_Left);
+
             ImVec2 mouse = ImGui::GetIO().MousePos;
             ImVec2 delta = ImGui::GetIO().MouseDelta; // per-frame drag delta (pixels)
 
@@ -110,13 +110,15 @@ void SimulationView::render() {
                             case FORCE:
                                 (*_forces)(x, (_height - 1 - y)) += force * glm::vec2(1.f, -1);
                                 break;
-                            case BOUNDARY_ADD:
-                                (*_boundary)(x, (_height - 1 - y)) = 1;
+                            case BOUNDARY:
+                                if (left) (*_boundary)(x, (_height - 1 - y)) = 1;
+                                else      (*_boundary)(x, (_height - 1 - y)) = 0;
                                 break;
-                            case BOUNDARY_REMOVE:
-                                (*_boundary)(x, (_height - 1 - y)) = 0;
-                                break;\
-                            default:
+                            case FLUID:
+                                if (left) (*_rho)(x, (_height - 1 - y)) = 1;
+                                else      (*_rho)(x, (_height - 1 - y)) = 0;
+                                break;
+                            case END:
                                 break;
                         }
                     }
@@ -160,12 +162,13 @@ void SimulationView::render() {
         case FORCE:
             ImGui::Text("Mode: Force");
             break;
-        case BOUNDARY_ADD:
-            ImGui::Text("Mode: Boundary Add");
+        case BOUNDARY:
+            ImGui::Text("Mode: Boundary");
             break;
-        case BOUNDARY_REMOVE:
-            ImGui::Text("Mode: Boundary Remove");
+        case FLUID:
+            ImGui::Text("Mode: Fluid");
             break;
+        case END:
         default:
             ImGui::Text("Mode: Invalid");
             break;
@@ -187,6 +190,7 @@ void SimulationView::recreate(const ImTextureID textureID, const Grid* grid) {
     _height = grid->height();
     _forces = &grid->forces();
     _boundary = &grid->boundary();
+    _rho = &grid->rho();
 }
 
 void SimulationView::setVelField(VecField *velField) {
