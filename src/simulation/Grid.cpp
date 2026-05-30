@@ -7,9 +7,13 @@ Grid::Grid(const unsigned int nWidth, const unsigned int nHeight) : _n_width(nWi
     _s_tmp = new ScalField(nWidth, nHeight);
     _forces = new VecField(nWidth, nHeight);
     _boundary = new ScalField(nWidth, nHeight);
+
     _gamma = new ScalField(nWidth, nHeight);
     _beta = new ScalField(nWidth, nHeight);
-    _A = new ScalField(nWidth * nHeight, nWidth * nHeight);
+    // How cares about RAM, just download more if it's not enough
+    //_A = new std::vector<DisAdvCell>();//(nWidth * nHeight * nWidth * nHeight);
+    _A = new std::map<unsigned int, DisAdvCell>;
+
     _divergence = new ScalField(nWidth, nHeight);
     _pressure = new ScalField(nWidth, nHeight);
 
@@ -23,9 +27,11 @@ Grid::~Grid() {
     delete _s_tmp;
     delete _forces;
     delete _boundary;
+
     delete _gamma;
     delete _beta;
     delete _A;
+
     delete _divergence;
     delete _pressure;
 }
@@ -70,8 +76,16 @@ ScalField & Grid::beta() const {
     return *_beta;
 }
 
-ScalField & Grid::A() const {
+std::map<unsigned int, Grid::DisAdvCell>& Grid::A() const {
     return *_A;
+}
+
+void Grid::addA(const unsigned int i, const unsigned int j, const float val) const {
+    const unsigned int idx = i * size() + j;
+    if (_A->contains(idx))
+        (*_A)[idx] += {i, j, val};
+    else
+        (*_A)[idx] = {i, j, val};
 }
 
 ScalField & Grid::divergence() const {

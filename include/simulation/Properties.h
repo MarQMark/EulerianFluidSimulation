@@ -23,8 +23,8 @@ public:
 
     float LIQUID_THRESHOLD = 0.5f;
 
-    int WIDTH = 30;
-    int HEIGHT = 30;
+    int WIDTH = 72;
+    int HEIGHT = 72;
 
     float DT = 1.67f;
 
@@ -56,8 +56,10 @@ public:
         BETA,
     };
     DrawMode DRAW_MODE = FLUID;
-    bool DRAW_VEL_ARROWS = true;
+    bool DRAW_VEL_ARROWS = false;
     float MAX_VALUE = 0;
+
+    float TOTAL_RHO = 0;
 private:
 };
 

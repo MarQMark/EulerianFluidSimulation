@@ -45,6 +45,7 @@ add_executable(EulerianFluidSimulation
 
         src/util/Time.cpp
         src/util/GuiHelper.cpp
+        src/views/StatsView.cpp
 )
 
 

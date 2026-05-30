@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <ranges>
 #include <views/SimulationView.h>
 
 #include "simulation/Properties.h"
@@ -12,6 +13,7 @@
 #include "views/FieldViewerView.h"
 #include "views/FPSView.h"
 #include "views/PropertiesView.h"
+#include "views/StatsView.h"
 
 Simulator::Simulator() {
 	_window = new Window(1280, 720, "StableFluids");
@@ -19,6 +21,7 @@ Simulator::Simulator() {
 	_views->addView("Simulation", new SimulationView());
 	_views->addView("Properties", new PropertiesView());
 	_views->addView("Performance", new FPSView());
+	_views->addView("Stats", new StatsView());
 
 	recreate();
 
@@ -54,11 +57,12 @@ void Simulator::recreate() {
 		_views->replaceView("FieldViewerDiv", new FieldViewerView(&_grid->divergence(), "Divergence Viewer"));
 	if (_views->getView("FieldViewerPressure"))
 		_views->replaceView("FieldViewerPressure", new FieldViewerView(&_grid->pressure(), "Pressure Viewer"));
-	if (_views->getView("FieldViewerA"))
-		_views->replaceView("FieldViewerA", new FieldViewerView(&_grid->A(), "A Viewer"));
+	//if (_views->getView("FieldViewerA"))
+	//	_views->replaceView("FieldViewerA", new FieldViewerView(&_grid->A(), "A Viewer"));
 
 	_views->getView<SimulationView>("Simulation")->recreate(
 		_renderer->getTexture2D()->get(), _grid);
+	_views->getView<StatsView>("Stats")->recreate(_grid);
 
 	switch (Properties::Get()->INIT_SHAPE) {
 		case Properties::FULL:
@@ -86,6 +90,11 @@ void Simulator::recreate() {
 		if (x == 0) _grid->rho()(x, y) = 0.f;
 		if (x == _grid->width() - 1) _grid->rho()(x, y) = 0.f;
 		if (x == _grid->height() - 1) _grid->rho()(x, y) = 0.f;
+	}
+
+	Properties::Get()->TOTAL_RHO = 0;
+	LOOP_2D_GRID(x, y, 0) {
+		Properties::Get()->TOTAL_RHO += _grid->rho()(x, y);
 	}
 }
 
@@ -151,12 +160,12 @@ void Simulator::update() {
     		else
     			_views->deleteView("FieldViewerPressure");
     	}
-    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad7)) {
+    	/*if (ImGui::IsKeyPressed(ImGuiKey_Keypad7)) {
     		if (!_views->getView("FieldViewerA"))
     			_views->addView("FieldViewerA", new FieldViewerView(&_grid->A(), "A Viewer"));
     		else
     			_views->deleteView("FieldViewerA");
-    	}
+    	}*/
 
     	if (_reset) {
     		_reset = false;
@@ -171,7 +180,7 @@ void Simulator::simulate() {
 	//vel_extrapolate();
 	rho_advect();
 	//diffuse();
-	//rho_sharpen();
+	rho_sharpen();
 	vel_advect();
 	add_force();
 	project();
@@ -221,6 +230,7 @@ void Simulator::rho_advect() {
     auto& rho   = _grid->rho();
     auto& gamma = _grid->gamma();
 	auto& beta = _grid->beta();
+	auto& boundary = _grid->boundary();
 
 	auto idx = [&](int x, int y) { return y * _grid->width() + x; };
 
@@ -254,29 +264,31 @@ void Simulator::rho_advect() {
 		int p0x = floor(prevPos.x);
 		int p0y = floor(prevPos.y);
 
+		if (boundary(p0x, p0y) == 1)
+			continue;
+
 		auto dx0 = 1 - (prevPos.x - p0x);
 		auto dy0 = 1 - (prevPos.y - p0y);
 		auto dx1 = 1 - (p0x + 1 - prevPos.x);
 		auto dy1 = 1 - (p0y + 1 - prevPos.y);
-		A(idx(x, y), idx(p0x,	  p0y))		+= dx0 * dy0;
-		A(idx(x, y), idx(p0x + 1, p0y))		+= dx1 * dy0;
-		A(idx(x, y), idx(p0x,	  p0y + 1))	+= dx0 * dy1;
-		A(idx(x, y), idx(p0x + 1, p0y + 1)) += dx1 * dy1;
+
+		_grid->addA(idx(x, y), idx(p0x,	    p0y),	  dx0 * dy0);
+		_grid->addA(idx(x, y), idx(p0x + 1, p0y),	  dx1 * dy0);
+		_grid->addA(idx(x, y), idx(p0x,	    p0y + 1), dx0 * dy1);
+		_grid->addA(idx(x, y), idx(p0x + 1, p0y + 1), dx1 * dy1);
 	}
 
 	//################## Step 3 ##################
 	// Scale A by gamma
-	for (unsigned int i = 0; i < _grid->size(); i++)
-	for (unsigned int j = 0; j < _grid->size(); j++)
-	if (gamma[i] > 1.e-5f)
-		A(i, j) /= gamma[i];
+	for (auto &cell: A | std::views::values)
+	if (gamma[cell.i] > 1.e-5f)
+		cell.val /= gamma[cell.i];
 
 	//################## Step 4 ##################
 	// Compute beta
 	beta.clear();
-	for (unsigned int j = 0; j < _grid->size(); j++)
-	for (unsigned int i = 0; i < _grid->size(); i++)
-		beta[j] += A(i, j);
+	for (auto &cell: A | std::views::values)
+		beta[cell.j] += cell.val;
 
 	//################## Step 5 ##################
 	// Forward trace the velocity field to add the weights to A for all cells j where beta j < 1
@@ -294,43 +306,43 @@ void Simulator::rho_advect() {
 		int p0x = floor(nextPos.x);
 		int p0y = floor(nextPos.y);
 
+		if (boundary(p0x, p0y) == 1)
+			continue;
+
 		auto dx0 = 1 - (nextPos.x - p0x);
 		auto dy0 = 1 - (nextPos.y - p0y);
 		auto dx1 = 1 - (p0x + 1 - nextPos.x);
 		auto dy1 = 1 - (p0y + 1 - nextPos.y);
-		A(idx(p0x,	 p0y),	   j) += (1-beta[j]) * dx0 * dy0;
-		A(idx(p0x + 1, p0y),	   j)	+= (1-beta[j]) * dx1 * dy0;
-		A(idx(p0x,	 p0y + 1), j)	+= (1-beta[j]) * dx0 * dy1;
-		A(idx(p0x + 1, p0y + 1), j) += (1-beta[j]) * dx1 * dy1;
+
+		_grid->addA(idx(p0x,	 p0y),		 j, (1-beta[j]) * dx0 * dy0);
+		_grid->addA(idx(p0x + 1, p0y),	 j, (1-beta[j]) * dx1 * dy0);
+		_grid->addA(idx(p0x,	 p0y + 1),   j, (1-beta[j]) * dx0 * dy1);
+		_grid->addA(idx(p0x + 1, p0y + 1), j, (1-beta[j]) * dx1 * dy1);
 	}
 
 	//################## Step 6 ##################
 	// Recompute gamma
 	gamma.clear();
-	for (unsigned int i = 0; i < _grid->size(); i++)
-	for (unsigned int j = 0; j < _grid->size(); j++)
-			gamma[i] += A(i, j);
+	for (auto &cell: A | std::views::values)
+		gamma[cell.i] += cell.val;
 
 	//################## Step 7 ##################
 	// Scale A by gamma
-	for (unsigned int i = 0; i < _grid->size(); i++)
-	for (unsigned int j = 0; j < _grid->size(); j++)
-	if (gamma[i] > 1.e-5f)
-		A(i, j) /= gamma[i];
+	for (auto &cell: A | std::views::values)
+	if (gamma[cell.i] > 1.e-5f)
+		cell.val /= gamma[cell.i];
 
 	//################## Step 8 ##################
 	// Recompute beta from A
 	beta.clear();
-	for (unsigned int j = 0; j < _grid->size(); j++)
-	for (unsigned int i = 0; i < _grid->size(); i++)
-		beta[j] += A(i, j);
+	for (auto &cell: A | std::views::values)
+		beta[cell.j] += cell.val;
 
 	//################## Step 9 ##################
 	// Clamp beta to 1
-	for (unsigned int j = 0; j < _grid->size(); j++)
-	for (unsigned int i = 0; i < _grid->size(); i++)
-	if (beta[j] > 1.e-5f)
-		A(i, j) /= beta[j];
+	for (auto &cell: A | std::views::values)
+	if (beta[cell.j] > 1.e-5f)
+		cell.val /= beta[cell.j];
 
 	/*beta.clear();
 	for (unsigned int j = 0; j < _grid->size(); j++)
@@ -340,19 +352,15 @@ void Simulator::rho_advect() {
 	//################## Step 10 ##################
 	// Recompute gamma
 	gamma.clear();
-	for (unsigned int i = 0; i < _grid->size(); i++)
-	for (unsigned int j = 0; j < _grid->size(); j++)
-		gamma[i] += A(i, j);
+	for (auto &cell: A | std::views::values)
+		gamma[cell.i] += cell.val;
 
 	//################## Step 11 ##################
 	// Evaluate p_n+1 = A * p
 	auto& advectRho = _grid->tmpScal();
 	advectRho.clear();
-	for (unsigned int i = 0; i < _grid->size(); i++) {
-		for (unsigned int j = 0; j < _grid->size(); j++) {
-			advectRho[i] += A(i, j) * rho[j];
-		}
-	}
+	for (auto &cell: A | std::views::values)
+		advectRho[cell.i] += cell.val * rho[cell.j];
 	LOOP_2D_GRID(x, y, 1)
 		rho(x, y) = advectRho(x, y);
 
@@ -601,8 +609,9 @@ void Simulator::diffuse() {
 }
 
 void Simulator::project() {
-	auto& field = _grid->vel();
+	auto& vel = _grid->vel();
 	auto& rho = _grid->rho();
+	auto& boundary = _grid->boundary();
 
 	auto& pressure = _grid->pressure();
     auto& divergence = _grid->divergence();
@@ -610,26 +619,28 @@ void Simulator::project() {
 	divergence.clear();
 
 	LOOP_2D_GRID(x, y, 1) {
-		if (y == 1) field(x, y).y = 0.f;
-		if (x == 1) field(x, y).x = 0.f;
+		if (y == 1) vel(x, y).y = 0.f;
+		if (x == 1|| x == vel.width() - 2) vel(x, y).x = 0.f;
 
 		//if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
 		//	field(x, y) = glm::vec2(0.f);
+
+		if (boundary(x, y) == 1) vel(x, y) = glm::vec2(0.f);
 	}
 
     LOOP_2D_GRID(x, y, 1){
     	if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
     		continue;
 
-    	divergence(x, y) = field(x + 1, y).x - field(x, y).x
-    					 + field(x, y + 1).y - field(x, y).y;
+    	divergence(x, y) = vel(x + 1, y).x - vel(x, y).x
+    					 + vel(x, y + 1).y - vel(x, y).y;
 
 		if (divergence(x, y) < -1e-5) {
-			float x0 = field(x + 1, y).x;
-			float x1 = field(x, y).x;
+			float x0 = vel(x + 1, y).x;
+			float x1 = vel(x, y).x;
 			float dx = x0 - x1;
-			float y0 = field(x, y + 1).y;
-			float y1 = field(x, y).y;
+			float y0 = vel(x, y + 1).y;
+			float y1 = vel(x, y).y;
 			float dy = y0 - y1;
 			float div = dx + dy;
 			int a = 0;
@@ -653,19 +664,27 @@ void Simulator::project() {
     		}
     		else {
     			const float dyPressure = pressure(x, y) - pressure(x, y - 1);
-    			field(x, y) = field(x, y) - glm::vec2(0, dyPressure);
+    			vel(x, y) = vel(x, y) - glm::vec2(0, dyPressure);
     		}
     	}
     	else {
     		if (y == 1) {
-    			field(x, y) = field(x, y)
-                     - glm::vec2(pressure(x, y) - pressure(x - 1, y), 0);
+    			const float dxPressure = pressure(x, y) - pressure(x - 1, y);
+    			vel(x, y) = vel(x, y) - glm::vec2(dxPressure, 0);
     		}
     		else {
     			const float dxPressure = pressure(x, y) - pressure(x - 1, y);
     			const float dyPressure = pressure(x, y) - pressure(x, y - 1);
-    			field(x, y) = field(x, y) - glm::vec2(dxPressure, dyPressure);
+    			vel(x, y) = vel(x, y) - glm::vec2(dxPressure, dyPressure);
     		}
     	}
+    }
+
+	LOOP_2D_GRID(x, y, 1){
+    	if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
+    		continue;
+
+    	divergence(x, y) = vel(x + 1, y).x - vel(x, y).x
+						 + vel(x, y + 1).y - vel(x, y).y;
     }
 }
