@@ -17,6 +17,7 @@ void StatsView::render() {
     float current = 0;
     float compressed = 0;
     float floating = 0;
+    float sum = 0;
     for (unsigned int i = 0; i < _grid->rho().size(); i++) {
         if (_grid->rho()[i] > Properties::Get()->LIQUID_THRESHOLD)
             current += 1;
@@ -26,7 +27,7 @@ void StatsView::render() {
         if (_grid->rho()[i] > 1.f)
             compressed += _grid->rho()[i] - 1.f;
 
-        //val += _grid->rho()[i];
+        sum += _grid->rho()[i];
     }
 
     const float total = Properties::Get()->TOTAL_RHO;
@@ -48,6 +49,7 @@ void StatsView::render() {
     ImGui::Text("In Fluid: %.0f/ %.0f (%.2f)", current, total, (current/total) * 100.f);
     ImGui::Text("Compressed: %.0f/ %.0f (%.2f)", compressed, total, (compressed/total) * 100.f);
     ImGui::Text("Floating: %.0f/ %.0f (%.2f)", floating, total, (floating/total) * 100.f);
+    ImGui::Text("Total: %.0f/ %.0f (%.2f)", sum, total, (sum/total) * 100.f);
 
     ImGui::End();
 }

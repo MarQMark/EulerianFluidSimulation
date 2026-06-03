@@ -35,6 +35,7 @@ private:
     void vel_advect();
     void diffuse();
     void project();
+    void gauss_sidel();
 };
 
 

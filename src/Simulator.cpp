@@ -57,8 +57,6 @@ void Simulator::recreate() {
 		_views->replaceView("FieldViewerDiv", new FieldViewerView(&_grid->divergence(), "Divergence Viewer"));
 	if (_views->getView("FieldViewerPressure"))
 		_views->replaceView("FieldViewerPressure", new FieldViewerView(&_grid->pressure(), "Pressure Viewer"));
-	//if (_views->getView("FieldViewerA"))
-	//	_views->replaceView("FieldViewerA", new FieldViewerView(&_grid->A(), "A Viewer"));
 
 	_views->getView<SimulationView>("Simulation")->recreate(
 		_renderer->getTexture2D()->get(), _grid);
@@ -111,8 +109,8 @@ void Simulator::update() {
 
     	_views->getView<SimulationView>("Simulation")->setVelField(&_grid->vel());
 
-        _views->render();
         _renderer->render(_grid);
+        _views->render();
         _window->update();
 
         if(ImGui::IsKeyPressed(ImGuiKey_R))
@@ -160,12 +158,6 @@ void Simulator::update() {
     		else
     			_views->deleteView("FieldViewerPressure");
     	}
-    	/*if (ImGui::IsKeyPressed(ImGuiKey_Keypad7)) {
-    		if (!_views->getView("FieldViewerA"))
-    			_views->addView("FieldViewerA", new FieldViewerView(&_grid->A(), "A Viewer"));
-    		else
-    			_views->deleteView("FieldViewerA");
-    	}*/
 
     	if (_reset) {
     		_reset = false;
@@ -180,7 +172,7 @@ void Simulator::simulate() {
 	//vel_extrapolate();
 	rho_advect();
 	//diffuse();
-	rho_sharpen();
+	//rho_sharpen();
 	vel_advect();
 	add_force();
 	project();
@@ -620,10 +612,7 @@ void Simulator::project() {
 
 	LOOP_2D_GRID(x, y, 1) {
 		if (y == 1) vel(x, y).y = 0.f;
-		if (x == 1|| x == vel.width() - 2) vel(x, y).x = 0.f;
-
-		//if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
-		//	field(x, y) = glm::vec2(0.f);
+		if (x == 1) vel(x, y).x = 0.f;
 
 		if (boundary(x, y) == 1) vel(x, y) = glm::vec2(0.f);
 	}
@@ -632,19 +621,20 @@ void Simulator::project() {
     	if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
     		continue;
 
-    	divergence(x, y) = vel(x + 1, y).x - vel(x, y).x
-    					 + vel(x, y + 1).y - vel(x, y).y;
+		const float dx = vel(x + 1, y).x - vel(x, y).x;
+		const float dy = vel(x, y + 1).y - vel(x, y).y;
+    	divergence(x, y) = dx + dy;
 
-		if (divergence(x, y) < -1e-5) {
-			float x0 = vel(x + 1, y).x;
-			float x1 = vel(x, y).x;
-			float dx = x0 - x1;
-			float y0 = vel(x, y + 1).y;
-			float y1 = vel(x, y).y;
-			float dy = y0 - y1;
-			float div = dx + dy;
-			int a = 0;
+		if (rho(x, y) > 1.f) {
+			const float lambda = Properties::Get()->LAMBDA;
+			const float eta = Properties::Get()->ETA;
+			divergence(x, y) -= std::min(lambda * (rho(x, y) - 1.f), eta);
 		}
+		/*if (rho(x, y) < 1.f) {
+			const float lambda = Properties::Get()->LAMBDA;
+			const float eta = Properties::Get()->ETA;
+			divergence(x, y) += std::min(lambda * (1.f - rho(x, y)), eta);
+		}*/
     }
 
 	const float err = ConjugateGradient2(pressure, divergence, rho, Properties::Get()->MAX_STEPS);
@@ -652,7 +642,6 @@ void Simulator::project() {
         fprintf(stderr, "solution for projection did not converge! error: %f\n", err);
     	_reset = true;
     	Properties::Get()->PAUSED = true;
-        //exit(1);
     }
 
     // Calculate the new velocity field as v - grad(p)
@@ -680,11 +669,13 @@ void Simulator::project() {
     	}
     }
 
-	LOOP_2D_GRID(x, y, 1){
-    	if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
-    		continue;
+	if (Properties::Get()->RE_CALC_DIV) {
+		LOOP_2D_GRID(x, y, 1){
+			if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
+				continue;
 
-    	divergence(x, y) = vel(x + 1, y).x - vel(x, y).x
-						 + vel(x, y + 1).y - vel(x, y).y;
-    }
+			divergence(x, y) = vel(x + 1, y).x - vel(x, y).x
+							 + vel(x, y + 1).y - vel(x, y).y;
+		}
+	}
 }

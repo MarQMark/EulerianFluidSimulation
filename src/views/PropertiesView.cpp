@@ -50,6 +50,10 @@ void PropertiesView::render() {
         Util::AddTextField("Viscosity", Properties::Get()->VISCOSITY);
         ImGui::Separator();
 
+        Util::AddTextField("Lambda", Properties::Get()->LAMBDA);
+        Util::AddTextField("Eta", Properties::Get()->ETA);
+        ImGui::Separator();
+
         Util::AddTextField("DT", Properties::Get()->DT);
         ImGui::Checkbox("Gravity", &Properties::Get()->GRAVITY);
         Util::AddTextField("Gravity F", Properties::Get()->GRAVITY_FORCE);
@@ -85,6 +89,9 @@ void PropertiesView::render() {
         }
 
         ImGui::Checkbox("Velocity Arrows", &Properties::Get()->DRAW_VEL_ARROWS);
+
+        ImGui::Separator();
+        ImGui::Checkbox("Re-Calculate Divergence", &Properties::Get()->RE_CALC_DIV);
     }
 
     //ImGui::PopItemWidth();

@@ -18,10 +18,12 @@ public:
 
     float VISCOSITY = 0.f;
 
-    int MAX_STEPS = 100000;
+    int MAX_STEPS = 10000;
     float THRESHOLD = 1.e-5f;
 
     float LIQUID_THRESHOLD = 0.5f;
+    float LAMBDA = .5f;
+    float ETA = 1.f;
 
     int WIDTH = 72;
     int HEIGHT = 72;
@@ -58,6 +60,8 @@ public:
     DrawMode DRAW_MODE = FLUID;
     bool DRAW_VEL_ARROWS = false;
     float MAX_VALUE = 0;
+
+    bool RE_CALC_DIV = false;
 
     float TOTAL_RHO = 0;
 private:

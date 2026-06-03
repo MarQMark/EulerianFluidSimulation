@@ -22,19 +22,28 @@ void Renderer::drawField(std::vector<float>& data, VecField& field, int chanel, 
         data[i * 4 + 2] = 0;
         data[i * 4 + 3] = 1.f;
 
-        data[i * 4 + chanel] = glm::length(field[i]) / max;
+        if (const float val = glm::length(field[i]) > 0)
+            data[i * 4 + chanel] = val / max;
+        else
+            data[i * 4 + ((chanel + 1) % 3)] = val / max;
     }
 }
 void Renderer::drawField(std::vector<float>& data, ScalField& field, int chanel, float& max) {
     for(auto s : field)
-        max = std::max(max, s);
+        max = std::max(max, std::abs(s));
     for (int i = 0; i < field.width() * field.height(); i++) {
         data[i * 4 + 0] = 0;
         data[i * 4 + 1] = 0;
         data[i * 4 + 2] = 0;
         data[i * 4 + 3] = 1.f;
 
-        data[i * 4 + chanel] = glm::length(field[i]) / max;
+        //data[i * 4 + chanel] = std::abs(field[i]) / max;
+        const float val = field[i];
+        if (val > 0)
+            data[i * 4 + chanel] = val / max;
+        else
+            data[i * 4 + ((chanel + 1) % 3)] = std::abs(val) / max;
+
 
         if (!std::isfinite(field[i]))
             data[i * 4 + ((chanel + 1) % 3)] = 1.f;

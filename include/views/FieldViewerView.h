@@ -28,6 +28,9 @@ private:
 
     void render_vec_field();
     void render_scal_field();
+
+    unsigned int field_width() const;
+    unsigned int field_height() const;
 };
 
 

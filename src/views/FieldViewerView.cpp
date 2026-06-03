@@ -111,12 +111,65 @@ void FieldViewerView::render() {
     }
 
     ImVec2 topCorner = ImGui::GetCursorPos();
-    //ImVec2 topCorner = ImGui::GetWindowPos();
     ImGui::SetCursorScreenPos(ImVec2(x_min, y_min));
     ImGui::Image(_txt->get(),
                  ImVec2(x_max - x_min, y_max - y_min),
                  ImVec2(0, 1),
                  ImVec2(1, 0));
+
+    // ------------------------------------------------------------------
+    // Hover detection
+    // ------------------------------------------------------------------
+
+    const float draw_w = x_max - x_min;
+    const float draw_h = y_max - y_min;
+
+    const int grid_w = field_width();
+    const int grid_h = field_height();
+
+    ImVec2 mouse = ImGui::GetMousePos();
+
+    if(mouse.x >= x_min && mouse.x < x_max &&
+       mouse.y >= y_min && mouse.y < y_max)
+    {
+        const float rel_x = (mouse.x - x_min) / draw_w;
+        const float rel_y = (mouse.y - y_min) / draw_h;
+
+        int cell_x = (int)(rel_x * grid_w);
+        int cell_y = (int)((1.0f - rel_y) * grid_h); // image is vertically flipped
+
+        cell_x = std::clamp(cell_x, 0, grid_w - 1);
+        cell_y = std::clamp(cell_y, 0, grid_h - 1);
+
+        const float cell_w = draw_w / grid_w;
+        const float cell_h = draw_h / grid_h;
+
+        ImVec2 p0(
+            x_min + cell_x * cell_w,
+            y_min + (grid_h - 1 - cell_y) * cell_h
+        );
+
+        ImVec2 p1(
+            p0.x + cell_w,
+            p0.y + cell_h
+        );
+
+        ImGui::GetWindowDrawList()->AddRect(
+            p0,
+            p1,
+            IM_COL32(255, 0, 0, 255),
+            0.0f,
+            0,
+            2.0f
+        );
+
+        ImGui::BeginTooltip();
+        ImGui::Text("x: %d", cell_x);
+        ImGui::Text("y: %d", cell_y);
+        if (_s_field) ImGui::Text("value: %.6f", (*_s_field)(cell_x, cell_y));
+        if (_v_field) ImGui::Text("value: (%.6f, %.6f)", (*_v_field)(cell_x, cell_y).x, (*_v_field)(cell_x, cell_y).y );
+        ImGui::EndTooltip();
+    }
 
     ImGui::SetCursorPos(topCorner);
     ImGui::Text("Max: %f", _max);
@@ -134,4 +187,16 @@ void FieldViewerView::render_scal_field() {
     std::vector<float> data(_s_field->size() * 4);
     Renderer::drawField(data, *_s_field, 2, _max);
     _txt->update(reinterpret_cast<uint8_t *>(data.data()));
+}
+
+unsigned int FieldViewerView::field_width() const {
+    if (_v_field) return _v_field->width();
+    if (_s_field) return _s_field->width();
+    return 0;
+}
+
+unsigned int FieldViewerView::field_height() const {
+    if (_v_field) return _v_field->height();
+    if (_s_field) return _s_field->height();
+    return 0;
 }

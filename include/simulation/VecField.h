@@ -87,8 +87,6 @@ private:
     unsigned int _height = 0;
 
     std::vector<glm::vec2> _field;
-
-
 };
 
 
