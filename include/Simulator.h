@@ -30,12 +30,17 @@ private:
     void simulate();
     void vel_extrapolate();
     void rho_advect();
+
     void rho_sharpen();
+    glm::vec2 traceAlongField( glm::vec2 start, const ScalField& rho, const ScalField& walls, float D, int substeps) const;
+    void scatterValue(ScalField& rho, const ScalField& walls, glm::vec2 pos, float value);
+
     void add_force() const;
     void vel_advect();
     void diffuse();
     void project();
-    void gauss_sidel();
+
+    void enforce_wall_boundaries() const;
 };
 
 

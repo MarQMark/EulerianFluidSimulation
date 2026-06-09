@@ -33,6 +33,8 @@ public:
     explicit Grid(unsigned int nWidth, unsigned int nHeight);
     ~Grid();
 
+    glm::vec2 traceParticle(glm::vec2 pos, float dt, int substeps) const;
+
     VecField& vel() const;
     VecField& tmpVec() const;
     void swapVec();
@@ -71,7 +73,6 @@ private:
 
 
     std::map<unsigned int, DisAdvCell>* _A{};
-    //ScalField* _A{};
 
     ScalField* _divergence{};
     ScalField* _pressure{};

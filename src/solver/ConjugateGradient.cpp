@@ -107,7 +107,9 @@ void MatVecMult(ScalField& result, const ScalField& x) {
 		}
 	}
 }*/
-void MatVecMult(ScalField& result, const ScalField& x, const ScalField& rho) {
+#endif
+
+void MatVecMult(ScalField& result, const ScalField& x, const ScalField& rho, const ScalField& boundary) {
 	const int w = x.width();
 	const int h = x.height();
 
@@ -115,7 +117,7 @@ void MatVecMult(ScalField& result, const ScalField& x, const ScalField& rho) {
 		for (int x_ = 0; x_ < w; x_++) {
 
 			// Air cell OR boundary of domain: p = 0, identity row
-			if (rho(x_, y) <= 0.5f) {
+			if (rho(x_, y) <= 0.5f || boundary(x_, y) == 1) {
 				result(x_, y) = x(x_, y);
 				continue;
 			}
@@ -132,6 +134,7 @@ void MatVecMult(ScalField& result, const ScalField& x, const ScalField& rho) {
 				// Previously these were treated as air (Dirichlet p=0) which inflated
 				// the diagonal and caused the pressure to be too small to cancel divergence
 				if (nx == 0 || nx == w-1 || ny == 0 || ny == h-1) return;
+				if (boundary(nx, ny) > 0.5f) return;
 
 				nCount++;
 				if (rho(nx, ny) > 0.5f)
@@ -149,16 +152,13 @@ void MatVecMult(ScalField& result, const ScalField& x, const ScalField& rho) {
 	}
 }
 
-#endif
-
-float ConjugateGradient2(ScalField& pressure, const ScalField& divergence, const ScalField& rho, const int steps) {
+float ConjugateGradient2(ScalField& pressure, const ScalField& divergence, const ScalField& rho, const ScalField& boundary, const int steps) {
 	ScalField t(pressure.width(), pressure.height());
 	ScalField tmp(pressure.width(), pressure.height());
 	ScalField r(divergence);
 
 	pressure = divergence;
-	//pressure = 1;
-	MatVecMult(t, pressure, rho);
+	MatVecMult(t, pressure, rho, boundary);
 	r -= t;
 	ScalField d(r);
 
@@ -167,26 +167,17 @@ float ConjugateGradient2(ScalField& pressure, const ScalField& divergence, const
 		return sqrtLen;
 
 	for (int i = 0; i < steps; i++) {
-		MatVecMult(t, d, rho);
+		MatVecMult(t, d, rho, boundary);
 		const float alpha = sqrtLen / d.dot(t);
-		//tmp = d;
-		//tmp *= alpha;
-		//pressure += tmp;
-		//pressure += (d * alpha);
 		pressure.addScaled(d, alpha);
 
 		if (i & 0x3F) {
-			//tmp = t;
-			//tmp *= alpha;
-			//r -= tmp;
-			//r -= t * alpha;
 			r.addScaled(t, -alpha);
 		}
 		else {
-			MatVecMult(t, pressure, rho);
+			MatVecMult(t, pressure, rho, boundary);
 			r = divergence;
 			r -= t;
-			//r = divergence - t;
 		}
 
 		const float oldSqrtLen = sqrtLen;
@@ -197,7 +188,6 @@ float ConjugateGradient2(ScalField& pressure, const ScalField& divergence, const
 		const float beta = sqrtLen / oldSqrtLen;
 		d *= beta;
 		d += r;
-		//d = (d * beta) + r;
 	}
 
 	return sqrtLen;

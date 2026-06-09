@@ -73,41 +73,32 @@ void Util::parse_val(unsigned int& dest, std::string& src, bool reset){
     dest = tmp;
 }
 
-void Util::AddTextField(const std::string& name, int& val) {
-    std::stringstream ss;
-
-    ss << val;
-    std::string buf1(ss.str());
-    ss.str(std::string());
-
-    ImGui::Text(name.c_str());
-    ImGui::InputText(std::string("##" + name).c_str(), &buf1, ImGuiInputTextFlags_CharsDecimal);
-
-    parse_val(val, buf1);
+void Util::AddTextField(const std::string& name, int& val)
+{
+    ImGui::Columns(2, nullptr, false);
+    ImGui::TextUnformatted(name.c_str());
+    ImGui::NextColumn();
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    ImGui::InputInt(std::string("##" + name).c_str(), &val);
+    ImGui::Columns(1);
 }
-
-void Util::AddTextField(const std::string& name, float& val) {
-    std::stringstream ss;
-
-    ss << val;
-    std::string buf1(ss.str());
-    ss.str(std::string());
-
-    ImGui::Text(name.c_str());
-    ImGui::InputText(std::string("##" + name).c_str(), &buf1, ImGuiInputTextFlags_CharsDecimal);
-
-    parse_val(val, buf1);
+void Util::AddTextField(const std::string& name, float& val)
+{
+    ImGui::Columns(2, nullptr, false);
+    ImGui::TextUnformatted(name.c_str());
+    ImGui::NextColumn();
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    ImGui::InputFloat(std::string("##" + name).c_str(), &val);
+    ImGui::Columns(1);
 }
-
-void Util::AddTextField(const std::string& name, unsigned int& val) {
-    std::stringstream ss;
-
-    ss << val;
-    std::string buf1(ss.str());
-    ss.str(std::string());
-
-    ImGui::Text(name.c_str());
-    ImGui::InputText(std::string("##" + name).c_str(), &buf1, ImGuiInputTextFlags_CharsDecimal);
-
-    parse_val(val, buf1);
+void Util::AddTextField(const std::string& name, unsigned int& val)
+{
+    ImGui::Columns(2, nullptr, false);
+    ImGui::TextUnformatted(name.c_str());
+    ImGui::NextColumn();
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    ImGui::InputScalar((std::string("##" + name).c_str() + name).c_str(),
+                       ImGuiDataType_U32,
+                       &val);
+    ImGui::Columns(1);
 }

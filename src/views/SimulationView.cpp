@@ -101,22 +101,25 @@ void SimulationView::render() {
             {
                 for (int x = xmin; x <= xmax; ++x)
                 {
-                    float dx = x - cx;
-                    float dy = y - cy;
+                    const float dx = x - cx;
+                    const float dy = y - cy;
 
-                    if (dx*dx + dy*dy <= r2)
-                    {
+                    const int flipY = _height - 1 - y;
+                    if (x == 0 || flipY == 0 || x == _width - 1 || flipY == _height - 1)
+                        continue;
+
+                    if (dx*dx + dy*dy <= r2) {
                         switch (_mode) {
                             case FORCE:
-                                (*_forces)(x, (_height - 1 - y)) += force * glm::vec2(1.f, -1);
+                                (*_forces)(x, flipY) += force * glm::vec2(1.f, -1);
                                 break;
                             case BOUNDARY:
-                                if (left) (*_boundary)(x, (_height - 1 - y)) = 1;
-                                else      (*_boundary)(x, (_height - 1 - y)) = 0;
+                                if (left) (*_boundary)(x, flipY) = 1;
+                                else      (*_boundary)(x, flipY) = 0;
                                 break;
                             case FLUID:
-                                if (left) (*_rho)(x, (_height - 1 - y)) = 1;
-                                else      (*_rho)(x, (_height - 1 - y)) = 0;
+                                if (left) (*_rho)(x, flipY) = 1;
+                                else      (*_rho)(x, flipY) = 0;
                                 break;
                             case END:
                                 break;

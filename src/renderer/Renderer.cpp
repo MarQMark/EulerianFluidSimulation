@@ -22,10 +22,7 @@ void Renderer::drawField(std::vector<float>& data, VecField& field, int chanel, 
         data[i * 4 + 2] = 0;
         data[i * 4 + 3] = 1.f;
 
-        if (const float val = glm::length(field[i]) > 0)
-            data[i * 4 + chanel] = val / max;
-        else
-            data[i * 4 + ((chanel + 1) % 3)] = val / max;
+        data[i * 4 + chanel] = glm::length(field[i]) / max;
     }
 }
 void Renderer::drawField(std::vector<float>& data, ScalField& field, int chanel, float& max) {

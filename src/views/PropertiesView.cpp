@@ -12,7 +12,21 @@
 
 void PropertiesView::render() {
     ImGui::Begin("Properties");
-   // ImGui::PushItemWidth(-FLT_MIN);
+    // ImGui::PushItemWidth(-FLT_MIN);
+
+    for (const auto& cat : Properties::Get()->_categories) {
+        if (ImGui::CollapsingHeader(cat->name.c_str())) {
+            for (const auto& sub : cat->sub_categories) {
+                ImGui::SeparatorText(sub->name.c_str());
+                for (const auto& p : sub->properties)
+                    p->draw();
+            }
+            if (!cat->sub_categories.empty())
+                ImGui::SeparatorText("Ungrouped");
+            for (const auto& p : cat->properties)
+                p->draw();
+        }
+    }
 
     if (ImGui::CollapsingHeader("Grid")) {
         Util::AddTextField("Width", Properties::Get()->WIDTH);
@@ -38,7 +52,7 @@ void PropertiesView::render() {
         }
     }
 
-    if (ImGui::CollapsingHeader("Interaction")) {
+    if (ImGui::CollapsingHeader("Interaction2")) {
         Util::AddTextField("Brush Size", Properties::Get()->BRUSH_SIZE);
     }
 
@@ -51,6 +65,7 @@ void PropertiesView::render() {
         ImGui::Separator();
 
         Util::AddTextField("Lambda", Properties::Get()->LAMBDA);
+        Util::AddTextField("Lambda2", Properties::Get()->LAMBDA2);
         Util::AddTextField("Eta", Properties::Get()->ETA);
         ImGui::Separator();
 

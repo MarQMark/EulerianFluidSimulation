@@ -1,10 +1,75 @@
 #ifndef EULERIANFLUIDSIMULATION_PROPERTIES_H
 #define EULERIANFLUIDSIMULATION_PROPERTIES_H
+#include <map>
+#include <string>
+#include <vector>
 
 
 class Properties {
 private:
     static Properties* s_instance;
+    Properties();
+    ~Properties();
+
+    class IProperty {
+    public:
+        IProperty(const std::string &name, const std::string& description)
+        : name(name), description(description) {}
+
+        virtual ~IProperty() = default;
+        virtual void draw() = 0;
+
+        const std::string name;
+        const std::string description;
+    };
+
+    template<typename T>
+    class Property final : public IProperty{
+    public:
+        Property(const std::string &name, const std::string &description, T value)
+            : IProperty(name, description), value(value) {
+        }
+        T value;
+        void draw() override;
+    };
+
+    struct SubCategory {
+        ~SubCategory() {
+            for (const auto p : properties)
+                delete p;
+        }
+        std::string name;
+        std::vector<IProperty*> properties;
+        void add(IProperty* property) {
+            properties.push_back(property);
+        }
+    };
+    struct Category {
+        ~Category() {
+            for (const auto cat : sub_categories)
+                delete cat;
+            for (const auto p : properties)
+                delete p;
+        }
+        std::string name;
+        std::vector<SubCategory*> sub_categories;
+        std::vector<IProperty*> properties;
+
+        void add(SubCategory* sub_category) {
+            sub_categories.push_back(sub_category);
+        }
+        void add(IProperty* property) {
+            properties.push_back(property);
+        }
+    };
+
+public:
+    std::vector<Category*> _categories;
+    Category& add_category(const std::string& name);
+    SubCategory& add_sub_category(Category& cat, const std::string& name);
+
+    std::map<std::string, IProperty*> _properties;
+    void add_property(IProperty* p);
 
 public:
     static Properties* Get() {
@@ -23,6 +88,7 @@ public:
 
     float LIQUID_THRESHOLD = 0.5f;
     float LAMBDA = .5f;
+    float LAMBDA2 = .1f;
     float ETA = 1.f;
 
     int WIDTH = 72;
