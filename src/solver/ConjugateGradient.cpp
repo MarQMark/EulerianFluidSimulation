@@ -163,7 +163,7 @@ float ConjugateGradient2(ScalField& pressure, const ScalField& divergence, const
 	ScalField d(r);
 
 	float sqrtLen = r.sqLen();
-	if (sqrtLen < Properties::Get()->THRESHOLD)
+	if (sqrtLen < PROPERTY_F(SOLVER_THRESHOLD))
 		return sqrtLen;
 
 	for (int i = 0; i < steps; i++) {
@@ -182,7 +182,7 @@ float ConjugateGradient2(ScalField& pressure, const ScalField& divergence, const
 
 		const float oldSqrtLen = sqrtLen;
 		sqrtLen = r.sqLen();
-		if (sqrtLen < Properties::Get()->THRESHOLD)
+		if (sqrtLen < PROPERTY_F(SOLVER_THRESHOLD))
 			return sqrtLen;
 
 		const float beta = sqrtLen / oldSqrtLen;

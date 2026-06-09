@@ -19,7 +19,7 @@ void StatsView::render() {
     float floating = 0;
     float sum = 0;
     for (unsigned int i = 0; i < _grid->rho().size(); i++) {
-        if (_grid->rho()[i] > Properties::Get()->LIQUID_THRESHOLD)
+        if (_grid->rho()[i] > PROPERTY_F(LIQUID_THRESHOLD))
             current += 1;
         else
             floating += _grid->rho()[i];
@@ -30,7 +30,7 @@ void StatsView::render() {
         sum += _grid->rho()[i];
     }
 
-    const float total = Properties::Get()->TOTAL_RHO;
+    const float total = PROPERTY_F(TOTAL_RHO);
 
     _times[_times_offset] = current;
     _times_offset = (_times_offset + 1) % MAX_TIMES;

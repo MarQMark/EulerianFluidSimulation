@@ -73,8 +73,7 @@ void Util::parse_val(unsigned int& dest, std::string& src, bool reset){
     dest = tmp;
 }
 
-void Util::AddTextField(const std::string& name, int& val)
-{
+void Util::AddTextField(const std::string& name, int& val) {
     ImGui::Columns(2, nullptr, false);
     ImGui::TextUnformatted(name.c_str());
     ImGui::NextColumn();
@@ -82,17 +81,15 @@ void Util::AddTextField(const std::string& name, int& val)
     ImGui::InputInt(std::string("##" + name).c_str(), &val);
     ImGui::Columns(1);
 }
-void Util::AddTextField(const std::string& name, float& val)
-{
+void Util::AddTextField(const std::string& name, float& val) {
     ImGui::Columns(2, nullptr, false);
     ImGui::TextUnformatted(name.c_str());
     ImGui::NextColumn();
     ImGui::SetNextItemWidth(-FLT_MIN);
-    ImGui::InputFloat(std::string("##" + name).c_str(), &val);
+    ImGui::InputFloat(std::string("##" + name).c_str(), &val, 0, 0, "%.6f", ImGuiInputTextFlags_CharsScientific);
     ImGui::Columns(1);
 }
-void Util::AddTextField(const std::string& name, unsigned int& val)
-{
+void Util::AddTextField(const std::string& name, unsigned int& val) {
     ImGui::Columns(2, nullptr, false);
     ImGui::TextUnformatted(name.c_str());
     ImGui::NextColumn();

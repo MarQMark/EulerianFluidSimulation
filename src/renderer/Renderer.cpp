@@ -63,7 +63,7 @@ void Renderer::render(const Grid *grid) {
     }*/
 
     float max = 0;
-    switch (Properties::Get()->DRAW_MODE) {
+    switch (PROPERTY(DRAW_MODE, Properties::DrawMode)) {
         case Properties::VELOCITY:
             drawField(data, grid->vel(), 2, max);
             break;
@@ -86,12 +86,12 @@ void Renderer::render(const Grid *grid) {
             for (int i = 0; i < _width * _height; i++) {
                 data[i * 4 + 0] = 0;
                 data[i * 4 + 1] = 0;
-                data[i * 4 + 2] = grid->rho()[i] > Properties::Get()->LIQUID_THRESHOLD ? .8f : 0.f;
+                data[i * 4 + 2] = grid->rho()[i] > PROPERTY_F(LIQUID_THRESHOLD) ? .8f : 0.f;
                 data[i * 4 + 3] = 1.f;
             }
             break;
     }
-    Properties::Get()->MAX_VALUE = max;
+    SET_PROPERTY_I(MAX_VALUE, max);
 
     for (int i = 0; i < _width * _height; i++) {
         if (grid->boundary()[i] == 1) {

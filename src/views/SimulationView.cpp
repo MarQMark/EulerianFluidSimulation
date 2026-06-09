@@ -59,7 +59,7 @@ void SimulationView::render() {
 
         constexpr ImU32 color = IM_COL32(255, 0, 0, 255);
         ImDrawList* drawList = ImGui::GetWindowDrawList();
-        drawList->AddCircle(mouse, Properties::Get()->BRUSH_SIZE, color, 32, 2.0f);
+        drawList->AddCircle(mouse, PROPERTY_F(BRUSH_SIZE), color, 32, 2.0f);
 
 
         if (ImGui::IsMouseDown(ImGuiMouseButton_Left) || ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
@@ -80,8 +80,8 @@ void SimulationView::render() {
             int cy = (int)(v * (_height - 1));
 
             // Convert radius to texture space
-            float radius_tex_x = Properties::Get()->BRUSH_SIZE * (_width  / (x_max - x_min));
-            float radius_tex_y = Properties::Get()->BRUSH_SIZE * (_height / (y_max - y_min));
+            float radius_tex_x = PROPERTY_F(BRUSH_SIZE) * (_width  / (x_max - x_min));
+            float radius_tex_y = PROPERTY_F(BRUSH_SIZE) * (_height / (y_max - y_min));
 
             float r2 = radius_tex_x * radius_tex_x; // use x scale (aspect already preserved)
 
@@ -130,7 +130,7 @@ void SimulationView::render() {
         }
     }
 
-    if (_vel_field && Properties::Get()->DRAW_VEL_ARROWS) {
+    if (_vel_field && PROPERTY_B(DRAW_VEL_ARROWS)) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         glm::vec2 gridSpacing((x_max - x_min) / _vel_field->width(), (y_max - y_min) / _vel_field->height());
 
@@ -177,7 +177,7 @@ void SimulationView::render() {
             break;
     }
 
-    if (Properties::Get()->PAUSED && (int)(Time::Get()->tt / 500) % 2 == 0) {
+    if (PROPERTY_B(PAUSED) && (int)(Time::Get()->tt / 500) % 2 == 0) {
         ImGui::SetCursorPos(topCorner);
         ImGui::Text("PAUSED");
     }

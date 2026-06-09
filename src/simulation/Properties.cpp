@@ -2,30 +2,19 @@
 
 #include <iostream>
 #include <ostream>
+#include <ranges>
 
 #include "imgui.h"
 #include "util/GuiHelper.h"
 
 Properties* Properties::s_instance = nullptr;
 
-#define ADD(cat, name, desc, val) {auto* p = new Property(name, desc, val); \
-                                   cat.add(p); \
-                                   add_property(p); }
-
-Properties::Properties() {
-    auto& interaction = add_category("Interaction");
-    ADD(interaction, "Brush Size", "Radius of Brush in screen pixels", 50.f);
-
-    auto& simulation = add_category("Simulation2");
-    auto& simulation_rho = add_sub_category(simulation, "Density");
-    ADD(simulation_rho, "Lambda", "Control how much compression is penalized", .5f);
-    ADD(simulation, "Gravity", "", 0.002f);
-    ADD(simulation, "Gravity Enabled", "", false);
-}
-
 Properties::~Properties() {
     for (const auto cat : _categories)
         delete cat;
+
+    for (const auto p: _properties | std::views::values)
+        delete p;
 }
 
 Properties::Category & Properties::add_category(const std::string &name) {
@@ -67,4 +56,14 @@ void Properties::Property<unsigned int>::draw(){
 template<>
 void Properties::Property<bool>::draw(){
     ImGui::Checkbox(name.c_str(), &value);
+}
+template<>
+void Properties::Property<Properties::InitShape>::draw(){
+    const char* shapes[] = {"Full", "Half", "Square", "Empty"};
+    Util::AddCombo(name, value, shapes, IM_ARRAYSIZE(shapes));
+}
+template<>
+void Properties::Property<Properties::DrawMode>::draw(){
+    const char* shapes[] = {"Velocity", "Density", "Divergence", "Pressure", "Fluid", "Gamma", "Beta"};
+    Util::AddCombo(name, value, shapes, IM_ARRAYSIZE(shapes));
 }

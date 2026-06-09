@@ -44,8 +44,8 @@ void Simulator::recreate() {
 	if (_grid) delete _grid;
 	if (_renderer) delete _renderer;
 
-	_renderer = new Renderer(Properties::Get()->WIDTH, Properties::Get()->HEIGHT);
-	_grid = new Grid(Properties::Get()->WIDTH, Properties::Get()->HEIGHT);
+	_renderer = new Renderer(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
+	_grid = new Grid(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
 
 	if (_views->getView("FieldViewerVel"))
 		_views->replaceView("FieldViewerVel", new FieldViewerView(&_grid->vel(), "Velocity Viewer"));
@@ -64,7 +64,7 @@ void Simulator::recreate() {
 		_renderer->getTexture2D()->get(), _grid);
 	_views->getView<StatsView>("Stats")->recreate(_grid);
 
-	switch (Properties::Get()->INIT_SHAPE) {
+	switch (PROPERTY(INIT_SHAPE, Properties::InitShape)) {
 		case Properties::FULL:
 			_grid->rho() = 1.f;
 			break;
@@ -92,9 +92,9 @@ void Simulator::recreate() {
 		if (x == _grid->height() - 1) _grid->rho()(x, y) = 0.f;
 	}
 
-	Properties::Get()->TOTAL_RHO = 0;
+	SET_PROPERTY_F(TOTAL_RHO, 0.f);
 	LOOP_2D_GRID(x, y, 0) {
-		Properties::Get()->TOTAL_RHO += _grid->rho()(x, y);
+		ADD_PROPERTY_F(TOTAL_RHO, _grid->rho()(x, y));
 	}
 }
 
@@ -102,11 +102,11 @@ void Simulator::update() {
     while (!_window->shouldClose()) {
     	Time::Get()->update();
 
-    	if (!Properties::Get()->PAUSED || Properties::Get()->SIMULATION_STEPS > 0) {
+    	if (!PROPERTY_B(PAUSED) || PROPERTY_I(SIMULATION_STEPS) > 0) {
 			simulate();
 
-    		if (Properties::Get()->SIMULATION_STEPS > 0)
-    			Properties::Get()->SIMULATION_STEPS--;
+    		if (PROPERTY_I(SIMULATION_STEPS) > 0)
+    			ADD_PROPERTY_I(SIMULATION_STEPS, -1);
     	}
 
     	_views->getView<SimulationView>("Simulation")->setVelField(&_grid->vel());
@@ -118,11 +118,11 @@ void Simulator::update() {
         if(ImGui::IsKeyPressed(ImGuiKey_R))
         	_reset = true;
         if (ImGui::IsKeyPressed(ImGuiKey_P))
-            Properties::Get()->PAUSED = !Properties::Get()->PAUSED;
+        	SET_PROPERTY_B(PAUSED, !PROPERTY_B(PAUSED));
     	if (ImGui::IsKeyPressed(ImGuiKey_S))
-    		Properties::Get()->SIMULATION_STEPS++;
+    		ADD_PROPERTY_I(SIMULATION_STEPS, 1);
     	if (ImGui::IsKeyPressed(ImGuiKey_G))
-    		Properties::Get()->GRAVITY = !Properties::Get()->GRAVITY;
+    		SET_PROPERTY_B(GRAVITY_ENABLED, !PROPERTY_B(GRAVITY_ENABLED));
 
     	if (ImGui::IsKeyPressed(ImGuiKey_Keypad1)) {
     		if (!_views->getView("FieldViewerVel"))
@@ -234,7 +234,7 @@ void Simulator::rho_advect() {
 		if (boundary(x, y) == BOUNDARY)
 			continue;
 
-		auto prevPos = _grid->traceParticle(glm::vec2(x, y), -Properties::Get()->DT, 4);
+		auto prevPos = _grid->traceParticle(glm::vec2(x, y), -PROPERTY_F(DT), 4);
 		advectedGamma(x, y) = gamma.interpolate(prevPos);
 	}
 	gamma = advectedGamma;
@@ -244,7 +244,7 @@ void Simulator::rho_advect() {
 	auto& A = _grid->A();
 	A.clear();
 	LOOP_2D_GRID(x, y, 1) {
-		auto prevPos = _grid->traceParticle(glm::vec2(x, y), -Properties::Get()->DT, 4);
+		auto prevPos = _grid->traceParticle(glm::vec2(x, y), -PROPERTY_F(DT), 4);
 
 		int p0x = floor(prevPos.x);
 		int p0y = floor(prevPos.y);
@@ -287,7 +287,7 @@ void Simulator::rho_advect() {
 		const int j = idx(x, y);
 		if (beta[j] >= 1) continue;
 
-		auto nextPos = _grid->traceParticle(glm::vec2(x, y), +Properties::Get()->DT, 4);
+		auto nextPos = _grid->traceParticle(glm::vec2(x, y), +PROPERTY_F(DT), 4);
 
 		int p0x = floor(nextPos.x);
 		int p0y = floor(nextPos.y);
@@ -421,7 +421,7 @@ void Simulator::rho_sharpen() {
 	auto& rho   = _grid->rho();
 	auto& boundary = _grid->boundary();
 
-	float delT = Properties::Get()->DT * 3;
+	float delT = PROPERTY_F(DT) * 3;
 
 	auto del_rho = ScalField(_grid->width(), _grid->height());
 
@@ -608,20 +608,20 @@ void Simulator::add_force() const {
 	auto& boundary = _grid->boundary();
 
 	LOOP_2D_GRID(x, y, 1) {
-		if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
+		if (rho(x, y) < PROPERTY_F(LIQUID_THRESHOLD))
 			continue;
 
 		if (boundary(x, y) == BOUNDARY)
 			continue;
 
-		vel(x, y) += forces(x, y) *  Properties::Get()->DT;
+		vel(x, y) += forces(x, y) * PROPERTY_F(DT);
 
-		if(Properties::Get()->GRAVITY)
-			vel(x, y).y -= Properties::Get()->GRAVITY_FORCE * Properties::Get()->DT;
+		if (PROPERTY_B(GRAVITY_ENABLED))
+			vel(x, y).y -= PROPERTY_F(GRAVITY_FORCE) * PROPERTY_F(DT);
 
-		if (Properties::Get()->PUSH)
+		if (PROPERTY_B(PUSH_ENABLED))
 			if (x >= 30 && x < 42 && y > 50 && y < 60)
-				vel(x, y) += glm::vec2(0, -Properties::Get()->PUSH_FORCE);
+				vel(x, y) += glm::vec2(0, -PROPERTY_F(PUSH_FORCE));
 	}
 }
 
@@ -631,7 +631,7 @@ void Simulator::vel_advect() {
 	auto& boundary = _grid->boundary();
 
 	LOOP_2D_GRID(x, y, 1){
-		glm::vec2 prevPos = _grid->traceParticle(glm::vec2(x, y), -Properties::Get()->DT, 4);
+		glm::vec2 prevPos = _grid->traceParticle(glm::vec2(x, y), -PROPERTY_F(DT), 4);
 		newVel(x, y) = velField.interpolate(prevPos - glm::vec2(0.5f));
 	}
 
@@ -650,8 +650,8 @@ void Simulator::vel_advect() {
 
 void Simulator::diffuse() {
 	auto& field = _grid->vel();
-	float visc = Properties::Get()->VISCOSITY;
-	float dt   = Properties::Get()->DT;
+	const float visc = PROPERTY_F(VISCOSITY);
+	const float dt   = PROPERTY_F(DT);
 
 	if (visc == 0.0f) return;
 
@@ -672,11 +672,11 @@ void Simulator::diffuse() {
 			sol(x, y) = rhs(x, y);
 		}
 
-		int steps = Properties::Get()->MAX_STEPS;
+		int steps = PROPERTY_I(MAX_STEPS);
 		double err = ConjGrad(n, &diffMat, sol.data(), rhs.data(),
-							  Properties::Get()->THRESHOLD, &steps);
+							  PROPERTY_F(SOLVER_THRESHOLD), &steps);
 
-		if (err > Properties::Get()->THRESHOLD) {
+		if (err > PROPERTY_F(SOLVER_THRESHOLD)) {
 			fprintf(stderr, "diffuse did not converge! error: %f\n", err);
 			_reset = true;
 		}
@@ -727,7 +727,7 @@ void Simulator::project() {
 	enforce_wall_boundaries();
 
     LOOP_2D_GRID(x, y, 1){
-    	if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
+    	if (rho(x, y) < PROPERTY_F(LIQUID_THRESHOLD))
     		continue;
 		if (boundary(x, y) == 1)
 			continue;
@@ -737,22 +737,22 @@ void Simulator::project() {
     	divergence(x, y) = dx + dy;
 
 		if (rho(x, y) > 1.f) {
-			const float lambda = Properties::Get()->LAMBDA;
-			const float eta = Properties::Get()->ETA;
+			const float lambda = PROPERTY_F(LAMBDA_MINUS);
+			const float eta = PROPERTY_F(ETA);
 			divergence(x, y) -= std::min(lambda * (rho(x, y) - 1.f), eta);
 		}
 		if (rho(x, y) < 1.f) {
-			const float lambda = Properties::Get()->LAMBDA2;
-			const float eta = Properties::Get()->ETA;
+			const float lambda = PROPERTY_F(LAMBDA_PLUS);
+			const float eta = PROPERTY_F(ETA);
 			divergence(x, y) += std::min(lambda * (1.f - rho(x, y)), eta);
 		}
     }
 
-	const float err = ConjugateGradient2(pressure, divergence, rho, boundary, Properties::Get()->MAX_STEPS);
-    if (err > Properties::Get()->THRESHOLD) {
+	const float err = ConjugateGradient2(pressure, divergence, rho, boundary, PROPERTY_I(MAX_STEPS));
+    if (err > PROPERTY_F(SOLVER_THRESHOLD)) {
         fprintf(stderr, "solution for projection did not converge! error: %f\n", err);
     	_reset = true;
-    	Properties::Get()->PAUSED = true;
+    	SET_PROPERTY_B(PAUSED, true);
     }
 
     // Calculate the new velocity field as v - grad(p)
@@ -782,9 +782,9 @@ void Simulator::project() {
     	}
     }
 
-	if (Properties::Get()->RE_CALC_DIV) {
+	if (PROPERTY_B(RE_CALC_DIV)) {
 		LOOP_2D_GRID(x, y, 1){
-			if (rho(x, y) < Properties::Get()->LIQUID_THRESHOLD)
+			if (rho(x, y) < PROPERTY_F(LIQUID_THRESHOLD))
 				continue;
 
 			divergence(x, y) = vel(x + 1, y).x - vel(x, y).x
