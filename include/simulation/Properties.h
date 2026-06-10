@@ -65,6 +65,12 @@ public:
     PROP_TOKEN(MAX_VALUE, "Max Value")
     PROP_TOKEN(TOTAL_RHO, "Total Rho")
 
+    PROP_TOKEN(DISABLE_RHO_SHARPEN, "Disable Density Sharpen");
+    PROP_TOKEN(DISABLE_RHO_ADVECT, "Disable Density Advection");
+    PROP_TOKEN(DISABLE_VEL_ADVECT, "Disable Velocity Advection");
+    PROP_TOKEN(DISABLE_ADD_FORCE, "Disable Add Force");
+    PROP_TOKEN(DISABLE_PROJECT, "Disable Projection");
+
 private:
     static Properties* s_instance;
     Properties() {
@@ -103,6 +109,12 @@ private:
 
         auto& controls = add_category("Controls");
         ADD(controls, PAUSED, "If simulation is paused", false)
+        auto& controls_steps = add_sub_category(controls, "Steps");
+        ADD(controls_steps, DISABLE_RHO_SHARPEN, "", false);
+        ADD(controls_steps, DISABLE_RHO_ADVECT, "", false);
+        ADD(controls_steps, DISABLE_VEL_ADVECT, "", false);
+        ADD(controls_steps, DISABLE_ADD_FORCE, "", false);
+        ADD(controls_steps, DISABLE_PROJECT, "", false);
 
         ADD_HIDDEN(SIMULATION_STEPS, 0)
         ADD_HIDDEN(MAX_VALUE, 0)
@@ -114,6 +126,7 @@ private:
 #undef ADD_HIDDEN
 #undef PROP_TOKEN
 
+public:
     class IProperty {
     public:
         IProperty(const std::string &name, const std::string& description)
@@ -128,6 +141,7 @@ private:
         const std::string description;
     };
 
+private:
     template<typename T>
     class Property final : public IProperty{
     public:

@@ -10,6 +10,7 @@
 #include "solver/ConjugateGradient.h"
 #include "solver/LinearSolver.hpp"
 #include "util/Time.h"
+#include "views/DistributionView.h"
 #include "views/FieldViewerView.h"
 #include "views/FPSView.h"
 #include "views/PropertiesView.h"
@@ -22,6 +23,7 @@ Simulator::Simulator() {
 	_views->addView("Properties", new PropertiesView());
 	_views->addView("Performance", new FPSView());
 	_views->addView("Stats", new StatsView());
+	_views->addView("Distribution", new DistributionView());
 
 	recreate();
 
@@ -63,6 +65,7 @@ void Simulator::recreate() {
 	_views->getView<SimulationView>("Simulation")->recreate(
 		_renderer->getTexture2D()->get(), _grid);
 	_views->getView<StatsView>("Stats")->recreate(_grid);
+	_views->getView<DistributionView>("Distribution")->recreate(_grid);
 
 	switch (PROPERTY(INIT_SHAPE, Properties::InitShape)) {
 		case Properties::FULL:
@@ -115,46 +118,48 @@ void Simulator::update() {
         _views->render();
         _window->update();
 
-        if(ImGui::IsKeyPressed(ImGuiKey_R))
+		const bool searching = _views->getView<PropertiesView>("Properties")->searching();
+
+        if(ImGui::IsKeyPressed(ImGuiKey_R) && !searching)
         	_reset = true;
-        if (ImGui::IsKeyPressed(ImGuiKey_P))
+        if (ImGui::IsKeyPressed(ImGuiKey_P) && !searching)
         	SET_PROPERTY_B(PAUSED, !PROPERTY_B(PAUSED));
-    	if (ImGui::IsKeyPressed(ImGuiKey_S))
+    	if (ImGui::IsKeyPressed(ImGuiKey_S) && !searching)
     		ADD_PROPERTY_I(SIMULATION_STEPS, 1);
-    	if (ImGui::IsKeyPressed(ImGuiKey_G))
+    	if (ImGui::IsKeyPressed(ImGuiKey_G) && !searching)
     		SET_PROPERTY_B(GRAVITY_ENABLED, !PROPERTY_B(GRAVITY_ENABLED));
 
-    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad1)) {
+    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad1) && !searching) {
     		if (!_views->getView("FieldViewerVel"))
     			_views->addView("FieldViewerVel", new FieldViewerView(&_grid->vel(), "Velocity Viewer"));
     		else
     			_views->deleteView("FieldViewerVel");
     	}
-    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad2)) {
+    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad2) && !searching) {
     		if (!_views->getView("FieldViewerRho"))
     			_views->addView("FieldViewerRho", new FieldViewerView(&_grid->rho(), "Rho Viewer"));
     		else
     			_views->deleteView("FieldViewerRho");
     	}
-    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad3)) {
+    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad3) && !searching) {
     		if (!_views->getView("FieldViewerGamma"))
     			_views->addView("FieldViewerGamma", new FieldViewerView(&_grid->gamma(), "Gamma Viewer"));
     		else
     			_views->deleteView("FieldViewerGamma");
     	}
-    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad4)) {
+    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad4) && !searching) {
     		if (!_views->getView("FieldViewerBeta"))
     			_views->addView("FieldViewerBeta", new FieldViewerView(&_grid->beta(), "Beta Viewer"));
     		else
     			_views->deleteView("FieldViewerBeta");
     	}
-    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad5)) {
+    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad5) && !searching) {
     		if (!_views->getView("FieldViewerDiv"))
     			_views->addView("FieldViewerDiv", new FieldViewerView(&_grid->divergence(), "Divergence Viewer"));
     		else
     			_views->deleteView("FieldViewerDiv");
     	}
-    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad6)) {
+    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad6) && !searching) {
     		if (!_views->getView("FieldViewerPressure"))
     			_views->addView("FieldViewerPressure", new FieldViewerView(&_grid->pressure(), "Pressure Viewer"));
     		else
@@ -173,14 +178,12 @@ void Simulator::update() {
 void Simulator::simulate() {
 	//vel_extrapolate();
 	//diffuse();
-	rho_sharpen();
-	rho_advect();
-	vel_advect();
-	add_force();
-	project();
+	if (!PROPERTY_B(DISABLE_RHO_SHARPEN)) rho_sharpen();
+	if (!PROPERTY_B(DISABLE_RHO_ADVECT))  rho_advect();
+	if (!PROPERTY_B(DISABLE_VEL_ADVECT))  vel_advect();
+	if (!PROPERTY_B(DISABLE_ADD_FORCE))   add_force();
+	if (!PROPERTY_B(DISABLE_PROJECT))     project();
 }
-
-
 
 void Simulator::vel_extrapolate() {
 	return;

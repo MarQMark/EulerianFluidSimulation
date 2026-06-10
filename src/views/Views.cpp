@@ -7,8 +7,11 @@
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include <ranges>
 
+#include "util/GuiHelper.h"
+
 Views::Views(const Window* window) {
     ImGui::CreateContext();
+    Util::ApplyTheme();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;

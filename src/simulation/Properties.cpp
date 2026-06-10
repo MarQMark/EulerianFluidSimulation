@@ -43,27 +43,28 @@ void Properties::Property<T>::draw() {
 }
 template<>
 void Properties::Property<int>::draw(){
-    Util::AddTextField(name, value);
+    Util::AddTextField(name, value, description);
 }
 template<>
 void Properties::Property<float>::draw(){
-    Util::AddTextField(name, value);
+    Util::AddTextField(name, value, description);
 }
 template<>
 void Properties::Property<unsigned int>::draw(){
-    Util::AddTextField(name, value);
+    Util::AddTextField(name, value, description);
 }
 template<>
 void Properties::Property<bool>::draw(){
     ImGui::Checkbox(name.c_str(), &value);
+    Util::AddTooltip(description);
 }
 template<>
 void Properties::Property<Properties::InitShape>::draw(){
     const char* shapes[] = {"Full", "Half", "Square", "Empty"};
-    Util::AddCombo(name, value, shapes, IM_ARRAYSIZE(shapes));
+    Util::AddCombo(name, value, shapes, IM_ARRAYSIZE(shapes), description);
 }
 template<>
 void Properties::Property<Properties::DrawMode>::draw(){
     const char* shapes[] = {"Velocity", "Density", "Divergence", "Pressure", "Fluid", "Gamma", "Beta"};
-    Util::AddCombo(name, value, shapes, IM_ARRAYSIZE(shapes));
+    Util::AddCombo(name, value, shapes, IM_ARRAYSIZE(shapes), description);
 }
