@@ -57,10 +57,12 @@ void SimulationView::render() {
     if (ImGui::IsItemHovered()) {
         const ImVec2 mouse = ImGui::GetIO().MousePos;
 
+        const float multi = ImGui::IsKeyDown(ImGuiKey_LeftShift) ? 7.f : 2.f;
+        ADD_PROPERTY_F(BRUSH_SIZE, ImGui::GetIO().MouseWheel * multi);
+
         constexpr ImU32 color = IM_COL32(255, 0, 0, 255);
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         drawList->AddCircle(mouse, PROPERTY_F(BRUSH_SIZE), color, 32, 2.0f);
-
 
         if (ImGui::IsMouseDown(ImGuiMouseButton_Left) || ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
             const bool left = ImGui::IsMouseDown(ImGuiMouseButton_Left);

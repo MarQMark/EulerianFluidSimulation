@@ -12,14 +12,16 @@
 
 
 void PropertiesView::render() {
+    if (!_visible)
+        return;
+
     ImGui::Begin("Properties");
 
     if(ImGui::IsKeyPressed(ImGuiKey_Slash)) {
         _focus_search = true;
         _show_search = true;
-    }
-    if(ImGui::IsKeyPressed(ImGuiKey_Enter) && _show_search && _query.empty()) {
-        _show_search = false;
+        _search_shown = false;
+        ImGui::SetWindowFocus("Properties");
     }
 
     if (_show_search)
@@ -35,6 +37,8 @@ bool PropertiesView::searching() const {
 }
 
 void PropertiesView::render_categories() {
+    _focused = false;
+
     for (const auto& cat : Properties::Get()->getCategories()) {
         if (ImGui::CollapsingHeader(cat->name.c_str())) {
             for (const auto& sub : cat->sub_categories) {
@@ -56,11 +60,18 @@ void PropertiesView::render_search() {
         ImGui::SetKeyboardFocusHere();
         _focus_search = false;
     }
-    ImGui::InputText("##Search", &_query);
+    ImGui::InputText("##Search", &_query, ImGuiInputTextFlags_AutoSelectAll);
 
-    _focused = ImGui::IsItemFocused();
-    if (!_focused && _query.empty())
+    // This is buggy; ImGui sometimes loses IsItemActiveAsInputText randomly
+    // It has likely something to do with how tooltips are new windows and make it momentarily lose active id
+    _focused = ImGui::IsItemActiveAsInputText();
+    if (!_focused && _query.empty() && _search_shown)
         _show_search = false;
+
+    if (_focused)
+        _search_shown = true;
+    else if (!_search_shown)
+        _focus_search = true;
 
     ImGui::Separator();
 

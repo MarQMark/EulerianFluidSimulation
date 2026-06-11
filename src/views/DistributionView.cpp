@@ -19,7 +19,7 @@ void DistributionView::render() {
     auto& rho = _grid->rho();
     _y_level = std::clamp(_y_level, 0, (int)rho.height() - 1);
 
-    Util::SectionHeader("PERFORMANCE");
+    Util::SectionHeader("DISTRIBUTION");
 
     ImGui::PushStyleColor(ImGuiCol_PlotLines,        ImVec4{0.22f, 0.78f, 0.50f, 1.00f});
     ImGui::PushStyleColor(ImGuiCol_PlotLinesHovered, ImVec4{0.22f, 0.78f, 0.50f, 1.00f});

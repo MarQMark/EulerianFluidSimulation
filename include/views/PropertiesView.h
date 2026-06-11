@@ -8,7 +8,6 @@
 class PropertiesView : public Viewable {
 public:
     PropertiesView() = default;
-    ~PropertiesView() = default;
 
     void render() override;
 
@@ -18,6 +17,7 @@ private:
     bool _show_search = false;
     bool _focus_search = false;
     bool _focused = false;
+    bool _search_shown = false;
     std::string _query = "";
     const int _valid_threshold = 30;
 

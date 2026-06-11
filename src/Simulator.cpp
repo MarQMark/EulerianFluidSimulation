@@ -445,23 +445,23 @@ void Simulator::rho_sharpen() {
 	LOOP_2D_GRID(x, y, 1) {
 		max_inc(x, y) = std::sqrt(
 			std::max(
-				std::powf(std::max(del_plus(x, y).x, 0.f), 2),
-				std::powf(std::min(del_minus(x, y).x, 0.f), 2)
+				std::pow(std::max(del_plus(x, y).x, 0.f), 2),
+				std::pow(std::min(del_minus(x, y).x, 0.f), 2)
 			) +
 			std::max(
-				std::powf(std::max(del_plus(x, y).y, 0.f), 2),
-				std::powf(std::min(del_minus(x, y).y, 0.f), 2)
+				std::pow(std::max(del_plus(x, y).y, 0.f), 2),
+				std::pow(std::min(del_minus(x, y).y, 0.f), 2)
 			)
 		);
 
 		max_dec(x, y) = std::sqrt(
 			std::max(
-				std::powf(std::min(del_plus(x, y).x, 0.f), 2),
-				std::powf(std::max(del_minus(x, y).x, 0.f), 2)
+				std::pow(std::min(del_plus(x, y).x, 0.f), 2),
+				std::pow(std::max(del_minus(x, y).x, 0.f), 2)
 			) +
 			std::max(
-				std::powf(std::min(del_plus(x, y).y, 0.f), 2),
-				std::powf(std::max(del_minus(x, y).y, 0.f), 2)
+				std::pow(std::min(del_plus(x, y).y, 0.f), 2),
+				std::pow(std::max(del_minus(x, y).y, 0.f), 2)
 			)
 		);
 	}
@@ -474,7 +474,7 @@ void Simulator::rho_sharpen() {
 		max = std::max(max, std::abs(rho(x, y) - rho(x, y - 1)));
 		max = std::max(max, std::abs(rho(x, y) - rho(x, y + 1)));
 
-		w(x, y) = std::powf(rho(x, y) - 0.5f, 3.f) * (1 - std::min(1.f, max / 0.2f));
+		w(x, y) = std::pow(rho(x, y) - 0.5f, 3.f) * (1 - std::min(1.f, max / 0.2f));
 	}
 
 	LOOP_2D_GRID(x, y, 1) {

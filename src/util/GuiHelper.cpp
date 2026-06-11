@@ -9,9 +9,10 @@
 
 namespace {
     // Surfaces ───────────────────────────────────────────────────────────────────
-    static constexpr ImVec4 kBG_WIN    {0.07f, 0.07f, 0.09f, 1.00f};  // #111115
-    static constexpr ImVec4 kBG_CHILD  {0.10f, 0.10f, 0.12f, 1.00f};  // #19191E
-    static constexpr ImVec4 kBG_POPUP  {0.12f, 0.12f, 0.15f, 1.00f};  // #1E1E26
+    static constexpr ImVec4 kBG_WIN    {0.07f, 0.07f, 0.09f, 1.00f}; // #111115
+    static constexpr ImVec4 kBG_CHILD  {0.10f, 0.10f, 0.13f, 1.00f}; // #1A1A21
+    static constexpr ImVec4 kBG_POPUP  {0.12f, 0.12f, 0.16f, 1.00f}; // #1E1E29
+    static constexpr ImVec4 kBG_TITLE  {0.09f, 0.11f, 0.19f, 1.00f}; // #17 1C30  (active title tint)
 
     // Input frames ───────────────────────────────────────────────────────────────
     static constexpr ImVec4 kFRAME     {0.14f, 0.14f, 0.18f, 1.00f};
@@ -22,6 +23,17 @@ namespace {
     static constexpr ImVec4 kACC       {0.31f, 0.56f, 1.00f, 1.00f};  // #4F8FFF
     static constexpr ImVec4 kACC_DIM   {0.20f, 0.38f, 0.74f, 1.00f};  // #3360BD
     static constexpr ImVec4 kACC_DARK  {0.10f, 0.20f, 0.45f, 1.00f};  // #193373
+
+    // ── Headers — CollapsingHeader / TreeNode / Selectable ───────────────────────
+    //    Visually distinct from buttons: flatter, slate-blue family
+    static constexpr ImVec4 kHEADER    {0.16f, 0.18f, 0.28f, 1.00f}; // #282E47
+    static constexpr ImVec4 kHEADER_H  {0.20f, 0.26f, 0.46f, 1.00f}; // #334275
+    static constexpr ImVec4 kHEADER_A  {0.26f, 0.36f, 0.66f, 1.00f}; // #425CA8
+
+    // ── Buttons — higher saturation so they clearly read as "clickable" ──────────
+    static constexpr ImVec4 kBUTTON    {0.14f, 0.22f, 0.48f, 1.00f}; // #23387A
+    static constexpr ImVec4 kBUTTON_H  {0.20f, 0.34f, 0.68f, 1.00f}; // #3357AD
+    static constexpr ImVec4 kBUTTON_A  {0.28f, 0.48f, 0.88f, 1.00f}; // #477AE1
 
     // Data colours ───────────────────────────────────────────────────────────────
     static constexpr ImVec4 kTEAL      {0.19f, 0.80f, 0.60f, 1.00f};  // #30CC99  fluid
@@ -38,7 +50,6 @@ namespace {
     // Utility ────────────────────────────────────────────────────────────────────
     static ImU32 ToU32(const ImVec4 v) { return ImGui::ColorConvertFloat4ToU32(v); }
     static constexpr float kLabelFrac   = 0.44f; // label column: 44% of available width
-
 }
 
 void Util::parse_val(float& dest, std::string& src, bool reset){
@@ -50,7 +61,7 @@ void Util::parse_val(float& dest, std::string& src, bool reset){
         tmp = std::stof(src);
     }
     catch (const std::invalid_argument& e) {
-        std::cerr << "Invalid input: " << e.what() << std::endl;
+        std::cerr << "Invalid input: " << src << " - " << e.what() << std::endl;
     }
     catch (const std::out_of_range& e) {
         std::cerr << "Overflow/Underflow error: " << e.what() << std::endl;
@@ -131,86 +142,90 @@ void Util::ApplyTheme() {
     // ── Colours ───────────────────────────────────────────────────────────────
     ImVec4* c = s.Colors;
 
-    // Surfaces
+    // ── Text ──────────────────────────────────────────────────────────────────
+    c[ImGuiCol_Text]                  = kTEXT;
+    c[ImGuiCol_TextDisabled]          = kDIM;
+    c[ImGuiCol_TextSelectedBg]        = {kACC.x, kACC.y, kACC.z, 0.25f};
+
+    // ── Surfaces ──────────────────────────────────────────────────────────────
     c[ImGuiCol_WindowBg]              = kBG_WIN;
     c[ImGuiCol_ChildBg]               = kBG_CHILD;
     c[ImGuiCol_PopupBg]               = kBG_POPUP;
     c[ImGuiCol_Border]                = kBORDER;
     c[ImGuiCol_BorderShadow]          = {0, 0, 0, 0};
 
-    // Frames
+    // ── Input frames ──────────────────────────────────────────────────────────
     c[ImGuiCol_FrameBg]               = kFRAME;
     c[ImGuiCol_FrameBgHovered]        = kFRAME_H;
     c[ImGuiCol_FrameBgActive]         = kFRAME_A;
 
-    // Title bars
+    // ── Title bars ────────────────────────────────────────────────────────────
     c[ImGuiCol_TitleBg]               = kBG_WIN;
-    c[ImGuiCol_TitleBgActive]         = kBG_CHILD;
+    c[ImGuiCol_TitleBgActive]         = kBG_TITLE;  // subtle blue tint when focused
     c[ImGuiCol_TitleBgCollapsed]      = kBG_WIN;
     c[ImGuiCol_MenuBarBg]             = kBG_CHILD;
 
-    // Scrollbar
-    c[ImGuiCol_ScrollbarBg]           = kBG_WIN;
+    // ── Scrollbar ─────────────────────────────────────────────────────────────
+    c[ImGuiCol_ScrollbarBg]           = {kBG_WIN.x, kBG_WIN.y, kBG_WIN.z, 0.60f};
     c[ImGuiCol_ScrollbarGrab]         = kACC_DARK;
     c[ImGuiCol_ScrollbarGrabHovered]  = kACC_DIM;
     c[ImGuiCol_ScrollbarGrabActive]   = kACC;
 
-    // Checkboxes / sliders
+    // ── Checkboxes & sliders ──────────────────────────────────────────────────
     c[ImGuiCol_CheckMark]             = kACC;
     c[ImGuiCol_SliderGrab]            = kACC_DIM;
     c[ImGuiCol_SliderGrabActive]      = kACC;
 
-    // Buttons
-    c[ImGuiCol_Button]                = kACC_DARK;
-    c[ImGuiCol_ButtonHovered]         = kACC_DIM;
-    c[ImGuiCol_ButtonActive]          = kACC;
+    // ── Buttons ───────────────────────────────────────────────────────────────
+    c[ImGuiCol_Button]                = kBUTTON;
+    c[ImGuiCol_ButtonHovered]         = kBUTTON_H;
+    c[ImGuiCol_ButtonActive]          = kBUTTON_A;
 
-    // Headers (selectable rows, tree nodes, collapsibles)
-    c[ImGuiCol_Header]                = kACC_DARK;
-    c[ImGuiCol_HeaderHovered]         = kACC_DIM;
-    c[ImGuiCol_HeaderActive]          = kACC;
+    // ── Headers — CollapsingHeader / TreeNode / Selectable ────────────────────
+    c[ImGuiCol_Header]                = kHEADER;
+    c[ImGuiCol_HeaderHovered]         = kHEADER_H;
+    c[ImGuiCol_HeaderActive]          = kHEADER_A;
 
-    // Separators
+    // ── Separators ────────────────────────────────────────────────────────────
     c[ImGuiCol_Separator]             = kBORDER;
     c[ImGuiCol_SeparatorHovered]      = kACC_DIM;
     c[ImGuiCol_SeparatorActive]       = kACC;
 
-    // Resize grip
-    c[ImGuiCol_ResizeGrip]            = kACC_DARK;
-    c[ImGuiCol_ResizeGripHovered]     = kACC_DIM;
+    // ── Resize grip ───────────────────────────────────────────────────────────
+    c[ImGuiCol_ResizeGrip]            = {kACC.x, kACC.y, kACC.z, 0.12f};
+    c[ImGuiCol_ResizeGripHovered]     = {kACC.x, kACC.y, kACC.z, 0.45f};
     c[ImGuiCol_ResizeGripActive]      = kACC;
 
-    // Tabs
-    c[ImGuiCol_Tab]                   = kBG_CHILD;
-    c[ImGuiCol_TabHovered]            = kACC_DIM;
-    c[ImGuiCol_TabActive]             = kACC_DARK;
+    // ── Tabs ──────────────────────────────────────────────────────────────────
+    c[ImGuiCol_Tab]                   = {0.10f, 0.12f, 0.19f, 1.0f};
+    c[ImGuiCol_TabHovered]            = kHEADER_H;
+    c[ImGuiCol_TabActive]             = kHEADER;
     c[ImGuiCol_TabUnfocused]          = kBG_WIN;
     c[ImGuiCol_TabUnfocusedActive]    = kBG_CHILD;
 
-    // Plots — overridden per-call; these are safe defaults
+    // ── Docking ───────────────────────────────────────────────────────────────
+    c[ImGuiCol_DockingPreview]        = {kACC.x, kACC.y, kACC.z, 0.28f};
+    c[ImGuiCol_DockingEmptyBg]        = kBG_CHILD;
+
+    // ── Plots (safe defaults; overridden per-call in panel code) ──────────────
     c[ImGuiCol_PlotLines]             = kACC;
     c[ImGuiCol_PlotLinesHovered]      = kACC;
     c[ImGuiCol_PlotHistogram]         = kACC_DIM;
     c[ImGuiCol_PlotHistogramHovered]  = kACC;
 
-    // Tables
+    // ── Tables ────────────────────────────────────────────────────────────────
     c[ImGuiCol_TableHeaderBg]         = kBG_CHILD;
     c[ImGuiCol_TableBorderStrong]     = kBORDER;
-    c[ImGuiCol_TableBorderLight]      = {kBORDER.x, kBORDER.y, kBORDER.z, 0.4f};
+    c[ImGuiCol_TableBorderLight]      = {kBORDER.x, kBORDER.y, kBORDER.z, 0.40f};
     c[ImGuiCol_TableRowBg]            = {0, 0, 0, 0};
-    c[ImGuiCol_TableRowBgAlt]         = {1, 1, 1, 0.02f};
+    c[ImGuiCol_TableRowBgAlt]         = {1, 1, 1, 0.025f};
 
-    // Text
-    c[ImGuiCol_Text]                  = kTEXT;
-    c[ImGuiCol_TextDisabled]          = kDIM;
-    c[ImGuiCol_TextSelectedBg]        = {kACC.x, kACC.y, kACC.z, 0.25f};
-
-    // Navigation / drag-drop
+    // ── Navigation / drag-drop / modal ────────────────────────────────────────
     c[ImGuiCol_DragDropTarget]        = kACC;
     c[ImGuiCol_NavHighlight]          = kACC;
-    c[ImGuiCol_NavWindowingHighlight] = {1, 1, 1, 0.70f};
-    c[ImGuiCol_NavWindowingDimBg]     = {0.8f, 0.8f, 0.8f, 0.20f};
-    c[ImGuiCol_ModalWindowDimBg]      = {0.07f, 0.07f, 0.09f, 0.65f};
+    c[ImGuiCol_NavWindowingHighlight] = {1.0f, 1.0f, 1.0f, 0.70f};
+    c[ImGuiCol_NavWindowingDimBg]     = {0.8f, 0.8f, 0.8f, 0.15f};
+    c[ImGuiCol_ModalWindowDimBg]      = {0.06f, 0.06f, 0.09f, 0.65f};
 }
 
 void Util::SectionHeader(const char* title) {
@@ -331,8 +346,13 @@ void Util::AddTextField(const std::string& name, float& val, const std::string& 
     ImGui::PopStyleColor();
     ImGui::SameLine(label_width());
     ImGui::SetNextItemWidth(-FLT_MIN);
-    ImGui::InputFloat(("##" + name).c_str(), &val,
-                      0.0f, 0.0f, "%.6f", ImGuiInputTextFlags_CharsScientific);
+    //ImGui::InputFloat(("##" + name).c_str(), &val,
+    //                  0.0f, 0.0f, FloatFmt(val), ImGuiInputTextFlags_CharsScientific);
+    std::stringstream ss;
+    ss << val;
+    std::string buf(ss.str());
+    ImGui::InputText(name.c_str(), &buf);
+    parse_val(val, buf);
     AddTooltip(description);
 }
 
