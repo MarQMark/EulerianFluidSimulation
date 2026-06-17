@@ -1,12 +1,14 @@
 #ifndef EULERIANFLUIDSIMULATION_SIMULATOR_H
 #define EULERIANFLUIDSIMULATION_SIMULATOR_H
 
- #include <renderer/Renderer.h>
-
+#include <renderer/Renderer.h>
+#include "compute/ComputeShader.h"
 #include "renderer/Window.h"
 #include "simulation/Grid.h"
+#include "simulation/Solver.h"
 #include "simulation/VecField.h"
 #include "views/Views.h"
+
 
 class Simulator {
 public:
@@ -22,6 +24,14 @@ private:
     Views* _views{};
 
     Grid* _grid{};
+
+    Solver* _solver{};
+
+#ifdef USE_GPU
+    ComputeShader* _vel_pass_1{};
+    ComputeShader* _vel_pass_2{};
+    ComputeShader* _add_force{};
+#endif
 
     bool _reset = false;
 
@@ -41,6 +51,7 @@ private:
     void project();
 
     void enforce_wall_boundaries() const;
+
 };
 
 

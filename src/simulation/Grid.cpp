@@ -2,7 +2,21 @@
 
 #include <algorithm>
 
-Grid::Grid(const unsigned int nWidth, const unsigned int nHeight) : _n_width(nWidth), _n_height(nHeight) {
+#ifdef USE_GPU
+void Grid::gpuUpload() const {
+    gpuVel->upload(_vel->data());
+    gpuRho->upload(_rho->data());
+    gpuBoundary->upload(_boundary->data());
+    gpuForces->upload(_forces->data());
+}
+
+void Grid::gpuDownload() const {
+    gpuVel->download(_vel->data());
+}
+#endif
+
+Grid::Grid(const unsigned int nWidth, const unsigned int nHeight)
+    : _n_width(nWidth), _n_height(nHeight), _size(nWidth * nHeight) {
     _vel = new VecField(nWidth, nHeight);
     _v_tmp = new VecField(nWidth, nHeight);
     _rho = new ScalField(nWidth, nHeight);
@@ -20,6 +34,22 @@ Grid::Grid(const unsigned int nWidth, const unsigned int nHeight) : _n_width(nWi
     _pressure = new ScalField(nWidth, nHeight);
 
     *_gamma = 1.f;
+
+#ifdef USE_GPU
+    gpuVel        = new StorageBuffer(_size * sizeof(glm::vec2));
+    gpuTmpVel     = new StorageBuffer(_size * sizeof(glm::vec2));
+
+    gpuRho        = new StorageBuffer(_size * sizeof(float));
+    gpuTmpRho     = new StorageBuffer(_size * sizeof(float));
+    gpuGamma      = new StorageBuffer(_size * sizeof(float));
+    gpuBeta       = new StorageBuffer(_size * sizeof(float));
+
+    gpuDivergence = new StorageBuffer(_size * sizeof(float));
+    gpuPressure   = new StorageBuffer(_size * sizeof(float));
+
+    gpuForces     = new StorageBuffer(_size * sizeof(glm::vec2));
+    gpuBoundary   = new StorageBuffer(_size * sizeof(float));
+#endif
 }
 
 Grid::~Grid() {
@@ -36,6 +66,19 @@ Grid::~Grid() {
 
     delete _divergence;
     delete _pressure;
+
+#ifdef USE_GPU
+    delete gpuVel;
+    delete gpuTmpVel;
+    delete gpuRho;
+    delete gpuTmpRho;
+    delete gpuGamma;
+    delete gpuBeta;
+    delete gpuDivergence;
+    delete gpuPressure;
+    delete gpuForces;
+    delete gpuBoundary;
+#endif
 }
 
 glm::vec2 Grid::traceParticle(const glm::vec2 start, const float dt, const int substeps) const {
@@ -192,5 +235,5 @@ unsigned int Grid::height() const {
 }
 
 unsigned int Grid::size() const {
-    return _n_height * _n_width;
+    return _size;
 }

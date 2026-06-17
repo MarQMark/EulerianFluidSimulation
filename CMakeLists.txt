@@ -19,7 +19,6 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     endif()
 endif()
 
-
 add_executable(EulerianFluidSimulation
         src/main.cpp
         src/Simulator.cpp
@@ -34,19 +33,21 @@ add_executable(EulerianFluidSimulation
         src/views/FPSView.cpp
         src/views/DistributionView.cpp
         src/views/FieldViewerView.cpp
+        src/views/StatsView.cpp
+        src/views/ProfilerView.cpp
 
         src/simulation/Grid.cpp
         src/simulation/Properties.cpp
+        src/simulation/Solver.cpp
         src/simulation/VecField.cpp
         src/simulation/ScalField.cpp
 
-        src/solver/LinearSolver.cpp
-        src/solver/ConjugateGradient.cpp
-        src/solver/ConjugateGradient.h
+        src/compute/StorageBuffer.cpp
+        src/compute/ComputeShader.cpp
 
         src/util/Time.cpp
         src/util/GuiHelper.cpp
-        src/views/StatsView.cpp
+        src/util/Profiler.cpp
 )
 
 
@@ -79,9 +80,19 @@ target_include_directories(EulerianFluidSimulation
 
 add_compile_definitions(GLEW_STATIC)
 
+add_compile_definitions(USE_GPU)
+
 if (UNIX)
     find_package(OpenGL REQUIRED)
     find_package(GLEW REQUIRED)
     find_package(glfw3 REQUIRED)
     target_link_libraries(EulerianFluidSimulation GL GLEW imgui glut glfw dl X11 pthread)
 endif(UNIX)
+
+
+add_custom_target(copy_shaders ALL
+        COMMAND  ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+        ${PROJECT_BINARY_DIR}/shaders
+        COMMENT "Copying shaders into binary directory")
+add_dependencies(EulerianFluidSimulation copy_shaders)

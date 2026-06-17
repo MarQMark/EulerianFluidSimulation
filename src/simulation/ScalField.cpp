@@ -124,8 +124,4 @@ unsigned int ScalField::height() const {
     return _height;
 }
 
-float *ScalField::data() {
-    return _field.data();
-}
-
 

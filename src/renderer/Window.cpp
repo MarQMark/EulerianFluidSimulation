@@ -7,6 +7,8 @@ Window::Window(const int width, const int height, std::string title) : _width(wi
     if (glfwInit() != GLFW_TRUE)
         throw std::runtime_error("Failed to initialize GLFW");
 
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     _win = glfwCreateWindow(_width, _height, _title.c_str(), nullptr, nullptr);
 
     glfwMakeContextCurrent(_win);

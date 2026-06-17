@@ -7,12 +7,12 @@
 
 #include "simulation/Properties.h"
 #include "simulation/ScalField.h"
-#include "solver/ConjugateGradient.h"
-#include "solver/LinearSolver.hpp"
+#include "util/Profiler.h"
 #include "util/Time.h"
 #include "views/DistributionView.h"
 #include "views/FieldViewerView.h"
 #include "views/FPSView.h"
+#include "views/ProfilerView.h"
 #include "views/PropertiesView.h"
 #include "views/StatsView.h"
 
@@ -24,6 +24,7 @@ Simulator::Simulator() {
 	_views->addView("Performance", new FPSView());
 	_views->addView("Stats", new StatsView());
 	_views->addView("Distribution", new DistributionView());
+	_views->addView("Profiler", new ProfilerView());
 
 	recreate();
 
@@ -31,6 +32,12 @@ Simulator::Simulator() {
 }
 
 Simulator::~Simulator() {
+#ifdef USE_GPU
+	delete _vel_pass_1;
+	delete _vel_pass_2;
+	delete _add_force;
+#endif
+
 	delete _grid;
 	delete _renderer;
 	delete _views;
@@ -45,9 +52,22 @@ Simulator::~Simulator() {
 void Simulator::recreate() {
 	if (_grid) delete _grid;
 	if (_renderer) delete _renderer;
+	if (_solver) delete _solver;
 
 	_renderer = new Renderer(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
 	_grid = new Grid(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
+
+	switch (PROPERTY(SOVLER_TYPE, Properties::SolverType)) {
+		case Properties::EIGEN_CG:
+			_solver = new EigenCGSolver(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
+			break;
+		case Properties::EIGEN_BiCGSTAB:
+			_solver = new EigenBiCGSTABSolver(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
+			break;
+		case Properties::SELF_CG:
+		default:
+			_solver = new CGSolver(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
+	}
 
 	if (_views->getView("FieldViewerVel"))
 		_views->replaceView("FieldViewerVel", new FieldViewerView(&_grid->vel(), "Velocity Viewer"));
@@ -99,6 +119,12 @@ void Simulator::recreate() {
 	LOOP_2D_GRID(x, y, 0) {
 		ADD_PROPERTY_F(TOTAL_RHO, _grid->rho()(x, y));
 	}
+
+#ifdef USE_GPU
+	_vel_pass_1 = new ComputeShader(ComputeShader::LoadTextFile("shaders/vel_advect_pass1.comp"));
+	_vel_pass_2 = new ComputeShader(ComputeShader::LoadTextFile("shaders/vel_advect_pass2.comp"));
+	_add_force = new ComputeShader(ComputeShader::LoadTextFile("shaders/add_force.comp"));
+#endif
 }
 
 void Simulator::update() {
@@ -178,11 +204,23 @@ void Simulator::update() {
 void Simulator::simulate() {
 	//vel_extrapolate();
 	//diffuse();
+	ProfilerView* profiler = _views->getView<ProfilerView>("Profiler");
+
+	Profiler::Get()->start("1 Rho Sharpen");
 	if (!PROPERTY_B(DISABLE_RHO_SHARPEN)) rho_sharpen();
+	Profiler::Get()->stop();
+	Profiler::Get()->start("2 Rho Advect");
 	if (!PROPERTY_B(DISABLE_RHO_ADVECT))  rho_advect();
+	Profiler::Get()->stop();
+	Profiler::Get()->start("3 Vel Advect");
 	if (!PROPERTY_B(DISABLE_VEL_ADVECT))  vel_advect();
+	Profiler::Get()->stop();
+	Profiler::Get()->start("4 Add Force");
 	if (!PROPERTY_B(DISABLE_ADD_FORCE))   add_force();
+	Profiler::Get()->stop();
+	Profiler::Get()->start("5 Project");
 	if (!PROPERTY_B(DISABLE_PROJECT))     project();
+	Profiler::Get()->stop();
 }
 
 void Simulator::vel_extrapolate() {
@@ -605,6 +643,26 @@ void Simulator::scatterValue(
 }
 
 void Simulator::add_force() const {
+#ifdef USE_GPU
+	const int w     = _grid->width();
+	const int h     = _grid->height();
+	const int gx = (w - 2 + 15) / 16;
+	const int gy = (h - 2 + 15) / 16;
+
+	_add_force->bind();
+	_grid->gpuVel     ->bind(0);
+	_grid->gpuRho     ->bind(1);
+	_grid->gpuForces  ->bind(2);
+	_grid->gpuBoundary->bind(3);
+	_add_force->setInt  ("uWidth",    w);
+	_add_force->setInt  ("uHeight",   h);
+	_add_force->setFloat("uDt",       PROPERTY_F(DT));
+	_add_force->setFloat("uGravity", PROPERTY_B(GRAVITY_ENABLED) ? PROPERTY_F(GRAVITY_FORCE) : 0.f);
+	_add_force->dispatch(gx, gy);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	_grid->gpuDownload();
+#else
 	auto& forces = _grid->forces();
 	auto& vel = _grid->vel();
 	auto& rho = _grid->rho();
@@ -626,9 +684,39 @@ void Simulator::add_force() const {
 			if (x >= 30 && x < 42 && y > 50 && y < 60)
 				vel(x, y) += glm::vec2(0, -PROPERTY_F(PUSH_FORCE));
 	}
+#endif
 }
 
 void Simulator::vel_advect() {
+
+#ifdef USE_GPU
+	_grid->gpuUpload();
+
+	const int w     = _grid->width();
+	const int h     = _grid->height();
+	const int gx = (w - 2 + 15) / 16;
+	const int gy = (h - 2 + 15) / 16;
+
+	_vel_pass_1->bind();
+	_grid->gpuVel     ->bind(0);
+	_grid->gpuTmpVel  ->bind(1);
+	_grid->gpuBoundary->bind(2);
+	_vel_pass_1->setInt  ("uWidth",    w);
+	_vel_pass_1->setInt  ("uHeight",   h);
+	_vel_pass_1->setFloat("uDt",       PROPERTY_F(DT));
+	_vel_pass_1->setInt  ("uSubsteps", 4);
+	_vel_pass_1->dispatch(gx, gy);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	_vel_pass_2->bind();
+	_grid->gpuVel     ->bind(0);   // read-write output
+	_grid->gpuTmpVel  ->bind(1);   // read-only input from pass 1
+	_grid->gpuBoundary->bind(2);
+	_vel_pass_2->setInt("uWidth",  w);
+	_vel_pass_2->setInt("uHeight", h);
+	_vel_pass_2->dispatch(gx, gy);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+#else
 	auto& velField = _grid->vel();
 	auto& newVel = _grid->tmpVec();
 	auto& boundary = _grid->boundary();
@@ -649,6 +737,7 @@ void Simulator::vel_advect() {
 		else
 			velField(x, y).y = 0.5f * (newVel(x, y).y + newVel(x, y - 1).y);
 	}
+#endif
 }
 
 void Simulator::diffuse() {
@@ -662,7 +751,7 @@ void Simulator::diffuse() {
 	int h = field.height();
 	int n = w * h;
 
-	ImplicitMatrixDiff diffMat(w, h, visc, dt);
+	//ImplicitMatrixDiff diffMat(w, h, visc, dt);
 
 	// Solve for each velocity component separately
 	// (they decouple — ∇² acts independently on each)
@@ -676,13 +765,13 @@ void Simulator::diffuse() {
 		}
 
 		int steps = PROPERTY_I(MAX_STEPS);
-		double err = ConjGrad(n, &diffMat, sol.data(), rhs.data(),
+		/*double err = ConjGrad(n, &diffMat, sol.data(), rhs.data(),
 							  PROPERTY_F(SOLVER_THRESHOLD), &steps);
 
 		if (err > PROPERTY_F(SOLVER_THRESHOLD)) {
 			fprintf(stderr, "diffuse did not converge! error: %f\n", err);
 			_reset = true;
-		}
+		}*/
 
 		LOOP_2D_GRID(x, y, 0) {
 			if (c == 0) field(x, y).x = sol(x, y);
@@ -751,7 +840,7 @@ void Simulator::project() {
 		}
     }
 
-	const float err = ConjugateGradient2(pressure, divergence, rho, boundary, PROPERTY_I(MAX_STEPS));
+	const float err = _solver->solve(pressure, divergence, rho, boundary);
     if (err > PROPERTY_F(SOLVER_THRESHOLD)) {
         fprintf(stderr, "solution for projection did not converge! error: %f\n", err);
     	_reset = true;

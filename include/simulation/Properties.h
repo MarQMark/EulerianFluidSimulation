@@ -45,6 +45,7 @@ public:
     PROP_TOKEN(PUSH_FORCE, "Push Force")
     PROP_TOKEN(PUSH_ENABLED, "Push Enabled")
 
+    PROP_TOKEN(SOVLER_TYPE, "Solver")
     PROP_TOKEN(MAX_STEPS, "Max Steps")
     PROP_TOKEN(SOLVER_THRESHOLD, "Threshold")
 
@@ -86,11 +87,12 @@ private:
 
         auto& simulation_forces = add_sub_category(simulation, "Forces");
         ADD(simulation_forces, GRAVITY_FORCE, "", 0.02f)
-        ADD(simulation_forces, GRAVITY_ENABLED, "", false)
+        ADD(simulation_forces, GRAVITY_ENABLED, "", true)
         ADD(simulation_forces, PUSH_FORCE, "", 0.1f)
         ADD(simulation_forces, PUSH_ENABLED, "", false)
 
         auto& simulation_solver = add_sub_category(simulation, "Solver");
+        ADD(simulation_solver, SOVLER_TYPE, "Which algorithm is used to solve system of equations", SolverType::SELF_CG)
         ADD(simulation_solver, MAX_STEPS, "Maximum amount of iterations solver does", 2000)
         ADD(simulation_solver, SOLVER_THRESHOLD, "Threshold at which solver considers system solved", 1e-5f)
 
@@ -265,6 +267,11 @@ public:
         FLUID,
         GAMMA,
         BETA,
+    };
+    enum SolverType {
+        EIGEN_CG,
+        EIGEN_BiCGSTAB,
+        SELF_CG
     };
 };
 

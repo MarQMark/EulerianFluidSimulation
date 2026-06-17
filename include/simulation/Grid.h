@@ -6,6 +6,7 @@
 
 #include "ScalField.h"
 #include "VecField.h"
+#include "compute/StorageBuffer.h"
 #include "glm/glm.hpp"
 
 class Grid {
@@ -28,6 +29,26 @@ private:
             return *this;
         }
     } typedef DisAdvCell;
+
+#ifdef USE_GPU
+public:
+    StorageBuffer* gpuVel{};
+    StorageBuffer* gpuTmpVel{};
+
+    StorageBuffer* gpuRho{};
+    StorageBuffer* gpuTmpRho{};
+    StorageBuffer* gpuGamma{};
+    StorageBuffer* gpuBeta{};
+
+    StorageBuffer* gpuDivergence{};
+    StorageBuffer* gpuPressure{};
+
+    StorageBuffer* gpuForces{};
+    StorageBuffer* gpuBoundary{};
+
+    void gpuUpload() const;
+    void gpuDownload() const;
+#endif
 
 public:
     explicit Grid(unsigned int nWidth, unsigned int nHeight);
@@ -59,8 +80,9 @@ public:
     unsigned int size() const;
 
 private:
-    unsigned int _n_width;
-    unsigned int _n_height;
+    const unsigned int _n_width;
+    const unsigned int _n_height;
+    const unsigned int _size;
 
     VecField* _vel{};
     VecField* _v_tmp{};

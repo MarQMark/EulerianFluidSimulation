@@ -125,7 +125,8 @@ public:
     unsigned int width() const;
     unsigned int height() const;
 
-    float *data();
+    const float* data() const { return _field.data(); }
+    float* data(){ return _field.data(); }
 
 private:
     unsigned int _width = 0;
