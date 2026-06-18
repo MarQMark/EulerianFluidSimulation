@@ -10,14 +10,11 @@
 #include "util/Profiler.h"
 
 class ProfilerView : public Viewable{
-
 public:
-    void drawMultiLinePlot(const std::map<std::string, Profiler::Profile*>& profiles,
-                                         float scaleMax, ImVec2 size);
-
     void render() override;
 
 private:
+    void drawMultiLinePlot(const std::map<std::string, Profiler::Profile*>& profiles, float scaleMax, ImVec2 size);
 };
 
 

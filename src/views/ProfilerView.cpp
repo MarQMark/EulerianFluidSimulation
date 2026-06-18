@@ -110,7 +110,7 @@ void ProfilerView::drawMultiLinePlot(const std::map<std::string, Profiler::Profi
         std::vector<ImVec2> fill = pts;
         fill.push_back({p1.x, p1.y});
         fill.push_back({p0.x, p1.y});
-        //dl->AddConvexPolyFilled(fill.data(), (int)fill.size(), U32A(stage.color, 0.07f));
+        //dl->AddConvexPolyFilled(fill.data(), (int)fill.size(), U32A(kStageColors[i], 0.07f));
 
         // Line itself (1.5 px, anti-aliased by ImGui by default)
         dl->AddPolyline(pts.data(), PROFILER_SAMPLES, lineCol, ImDrawFlags_None, 1.5f);

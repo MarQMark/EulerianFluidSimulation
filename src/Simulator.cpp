@@ -204,7 +204,6 @@ void Simulator::update() {
 void Simulator::simulate() {
 	//vel_extrapolate();
 	//diffuse();
-	ProfilerView* profiler = _views->getView<ProfilerView>("Profiler");
 
 	Profiler::Get()->start("1 Rho Sharpen");
 	if (!PROPERTY_B(DISABLE_RHO_SHARPEN)) rho_sharpen();
@@ -840,11 +839,12 @@ void Simulator::project() {
 		}
     }
 
-	const float err = _solver->solve(pressure, divergence, rho, boundary);
+	const float err = _solver->solve(_grid);
     if (err > PROPERTY_F(SOLVER_THRESHOLD)) {
         fprintf(stderr, "solution for projection did not converge! error: %f\n", err);
     	_reset = true;
     	SET_PROPERTY_B(PAUSED, true);
+    	return;
     }
 
     // Calculate the new velocity field as v - grad(p)

@@ -5,6 +5,10 @@
 #include <eigen/Eigen/Sparse>
 #include <eigen/Eigen/IterativeLinearSolvers>
 
+#include "Grid.h"
+#include "compute/ComputeShader.h"
+#include "compute/StorageBuffer.h"
+
 class Solver {
 protected:
     Solver(int width, int height);
@@ -12,7 +16,7 @@ protected:
 public:
     virtual ~Solver() = default;
 
-    virtual float solve(ScalField& pressure, const ScalField& divergence, const ScalField& rho, const ScalField& boundary) = 0;
+    virtual float solve(Grid* grid) = 0;
 
 protected:
     int _width = 0;
@@ -24,7 +28,7 @@ class CGSolver : public Solver {
 public:
     CGSolver(int width, int height);
     ~CGSolver() override;
-    float solve(ScalField &pressure, const ScalField &divergence, const ScalField &rho, const ScalField &boundary) override;
+    float solve(Grid* grid) override;
 
 private:
     void impl_mat_mul(ScalField& result, const ScalField& x, const ScalField& rho, const ScalField& boundary) const;
@@ -33,6 +37,16 @@ private:
     ScalField* _tmp{};
     ScalField* _r{};
     ScalField* _d{};
+
+#ifdef USE_GPU
+    ComputeShader* _shader_as{};
+    ComputeShader* _shader_mm{};
+
+    StorageBuffer* _gpu_t{};
+    StorageBuffer* _gpu_tmp{};
+    StorageBuffer* _gpu_r{};
+    StorageBuffer* _gpu_d{};
+#endif
 };
 
 class EigenSolver : public Solver {
@@ -54,7 +68,7 @@ public:
     EigenCGSolver(int width, int height);
 
 protected:
-    float solve(ScalField &pressure, const ScalField &divergence, const ScalField &rho, const ScalField &boundary) override;
+    float solve(Grid* grid) override;
 };
 
 class EigenBiCGSTABSolver : public EigenSolver {
@@ -62,7 +76,7 @@ public:
     EigenBiCGSTABSolver(int width, int height);
 
 protected:
-    float solve(ScalField &pressure, const ScalField &divergence, const ScalField &rho, const ScalField &boundary) override;
+    float solve(Grid* grid) override;
 
 };
 

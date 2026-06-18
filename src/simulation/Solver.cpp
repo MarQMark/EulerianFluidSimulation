@@ -1,5 +1,7 @@
 #include "simulation/Solver.h"
 
+#include <GL/glew.h>
+
 #include "simulation/Properties.h"
 
 Solver::Solver(const int width, const int height) : _width(width), _height(height) {
@@ -11,6 +13,17 @@ CGSolver::CGSolver(const int width, const int height) : Solver(width, height) {
     _tmp = new ScalField(width, height);
     _r = new ScalField(width, height);
     _d = new ScalField(width, height);
+
+#ifdef USE_GPU
+    _shader_as = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_add_scaled.comp"));
+    _shader_mm = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_mat_mul.comp"));
+
+    const int n = width * height;
+    _gpu_t = new StorageBuffer(n * sizeof(float));
+    _gpu_tmp = new StorageBuffer(n * sizeof(float));
+    _gpu_r = new StorageBuffer(n * sizeof(float));
+    _gpu_d = new StorageBuffer(n * sizeof(float));
+#endif
 }
 
 CGSolver::~CGSolver() {
@@ -18,9 +31,100 @@ CGSolver::~CGSolver() {
     delete _tmp;
     delete _r;
     delete _d;
+
+#ifdef USE_GPU
+    delete _shader_as;
+    delete _shader_mm;
+
+    delete _gpu_t;
+    delete _gpu_tmp;
+    delete _gpu_r;
+    delete _gpu_d;
+#endif
 }
 
-float CGSolver::solve(ScalField &pressure, const ScalField &divergence, const ScalField &rho, const ScalField &boundary) {
+float CGSolver::solve(Grid* grid) {
+    const auto& divergence = grid->divergence();
+    const auto& rho = grid->rho();
+    const auto& boundary = grid->boundary();
+    auto& pressure = grid->pressure();
+
+#ifdef USE_GPU
+    const int steps = PROPERTY_I(MAX_STEPS);
+    const float errorThreshold = PROPERTY_F(SOLVER_THRESHOLD);
+
+    StorageBuffer buffer(pressure.size());
+
+    auto gpu_mat_mul = [&](
+        const StorageBuffer* result, const StorageBuffer* _x,
+        const StorageBuffer* _rho, const StorageBuffer* _boundary)
+    {
+        const int w     = grid->width();
+        const int h     = grid->height();
+        const int gx = (w - 2 + 15) / 16;
+        const int gy = (h - 2 + 15) / 16;
+
+        _shader_mm->bind();
+        result->bind(0);
+        _x->bind(1);
+        _rho->bind(2);
+        _boundary->bind(3);
+        buffer.bind(4);
+        _shader_mm->setInt("uWidth",  pressure.width());
+        _shader_mm->setInt("uHeight", pressure.height());
+        _shader_mm->dispatch(gx, gy);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    };
+
+    auto& t = *_t; t.clear();
+    auto& tmp = *_tmp; tmp.clear();
+    auto& r = *_r; r = divergence;
+
+    pressure = divergence;
+    impl_mat_mul(t, pressure, rho, boundary);
+    r -= t;
+    auto& d = *_d; d = r;
+
+    float sqrtLen = r.sqLen();
+    if (sqrtLen < errorThreshold)
+        return sqrtLen;
+
+
+    grid->gpuRho->upload(grid->rho().data());
+    grid->gpuBoundary->upload(grid->boundary().data());
+
+    for (int i = 0; i < steps; i++) {
+        _gpu_d->upload(d.data());
+        _gpu_t->upload(t.data());
+        gpu_mat_mul(_gpu_t, _gpu_d, grid->gpuRho, grid->gpuBoundary);
+        _gpu_t->download(t.data());
+
+
+        const float alpha = sqrtLen / d.dot(t);
+        pressure.addScaled(d, alpha);
+
+        if (i & 0x3F) {
+            r.addScaled(t, -alpha);
+        }
+        else {
+            impl_mat_mul(t, pressure, rho, boundary);
+            r = divergence;
+            r -= t;
+        }
+
+        const float oldSqrtLen = sqrtLen;
+        sqrtLen = r.sqLen();
+        if (sqrtLen < errorThreshold)
+            return sqrtLen;
+
+        const float beta = sqrtLen / oldSqrtLen;
+        d *= beta;
+        d += r;
+    }
+
+    return sqrtLen;
+
+#else
     const int steps = PROPERTY_I(MAX_STEPS);
     const float errorThreshold = PROPERTY_F(SOLVER_THRESHOLD);
 
@@ -62,6 +166,7 @@ float CGSolver::solve(ScalField &pressure, const ScalField &divergence, const Sc
     }
 
     return sqrtLen;
+#endif
 }
 
 void CGSolver::impl_mat_mul(ScalField &result, const ScalField &x, const ScalField &rho, const ScalField &boundary) const {
@@ -174,9 +279,14 @@ void EigenSolver::determine_equations(const ScalField &divergence, const ScalFie
 EigenCGSolver::EigenCGSolver(const int width, const int height) : EigenSolver(width, height){
 }
 
-float EigenCGSolver::solve(ScalField &pressure, const ScalField &divergence, const ScalField &rho, const ScalField &boundary) {
+float EigenCGSolver::solve(Grid* grid) {
     const int steps = PROPERTY_I(MAX_STEPS);
     const float errorThreshold = PROPERTY_F(SOLVER_THRESHOLD);
+
+    const auto& divergence = grid->divergence();
+    const auto& rho = grid->rho();
+    const auto& boundary = grid->boundary();
+    auto& pressure = grid->pressure();
 
     determine_equations(divergence, rho, boundary);
 
@@ -205,9 +315,14 @@ float EigenCGSolver::solve(ScalField &pressure, const ScalField &divergence, con
 EigenBiCGSTABSolver::EigenBiCGSTABSolver(const int width, const int height) : EigenSolver(width, height) {
 }
 
-float EigenBiCGSTABSolver::solve(ScalField &pressure, const ScalField &divergence, const ScalField &rho, const ScalField &boundary) {
+float EigenBiCGSTABSolver::solve(Grid* grid) {
     const int steps = PROPERTY_I(MAX_STEPS);
     const float errorThreshold = PROPERTY_F(SOLVER_THRESHOLD);
+
+    const auto& divergence = grid->divergence();
+    const auto& rho = grid->rho();
+    const auto& boundary = grid->boundary();
+    auto& pressure = grid->pressure();
 
     determine_equations(divergence, rho, boundary);
 
