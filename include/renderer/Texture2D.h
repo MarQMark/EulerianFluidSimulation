@@ -1,8 +1,7 @@
 #ifndef EULERIANFLUIDSIMULATION_TEXTURE2D_H
 #define EULERIANFLUIDSIMULATION_TEXTURE2D_H
 
-#include "GL/glew.h"
-#include "GLFW/glfw3.h"
+#include "glad/gl.h"
 
 class Texture2D {
 public:

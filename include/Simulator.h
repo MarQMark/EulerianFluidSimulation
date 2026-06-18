@@ -9,7 +9,6 @@
 #include "simulation/VecField.h"
 #include "views/Views.h"
 
-
 class Simulator {
 public:
     Simulator();

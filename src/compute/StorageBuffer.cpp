@@ -1,6 +1,5 @@
 #include "compute/StorageBuffer.h"
-
-#include <GL/glew.h>
+#include "glad/gl.h"
 
 StorageBuffer::StorageBuffer(const unsigned int size) : _size(size){
     glGenBuffers(1, &_id);

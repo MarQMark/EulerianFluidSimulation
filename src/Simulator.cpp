@@ -1,10 +1,7 @@
 #include "Simulator.h"
-
 #include <algorithm>
-#include <iostream>
 #include <ranges>
 #include <views/SimulationView.h>
-
 #include "simulation/Properties.h"
 #include "simulation/ScalField.h"
 #include "util/Profiler.h"
@@ -15,6 +12,7 @@
 #include "views/ProfilerView.h"
 #include "views/PropertiesView.h"
 #include "views/StatsView.h"
+#include "glad/gl.h"
 
 Simulator::Simulator() {
 	_window = new Window(1280, 720, "StableFluids");

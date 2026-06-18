@@ -1,7 +1,6 @@
 #ifndef EULERIANFLUIDSIMULATION_STORAGEBUFFER_H
 #define EULERIANFLUIDSIMULATION_STORAGEBUFFER_H
 
-
 class StorageBuffer {
 public:
     StorageBuffer(unsigned int size);

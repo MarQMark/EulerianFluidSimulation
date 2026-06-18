@@ -76,17 +76,15 @@ target_include_directories(EulerianFluidSimulation
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/glm
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include
 )
-
-add_compile_definitions(GLEW_STATIC)
 
 add_compile_definitions(USE_GPU)
 
 if (UNIX)
     find_package(OpenGL REQUIRED)
-    find_package(GLEW REQUIRED)
     find_package(glfw3 REQUIRED)
-    target_link_libraries(EulerianFluidSimulation GL GLEW imgui glut glfw dl X11 pthread)
+    target_link_libraries(EulerianFluidSimulation GL imgui glut glfw dl X11 pthread)
 endif(UNIX)
 
 

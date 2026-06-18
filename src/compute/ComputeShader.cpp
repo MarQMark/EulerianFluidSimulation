@@ -1,7 +1,6 @@
 #include "compute/ComputeShader.h"
-
 #include <iostream>
-#include <GL/glew.h>
+#include "glad/gl.h"
 
 ComputeShader::ComputeShader(const std::string& code) {
 

@@ -1,7 +1,6 @@
 #include "renderer/Renderer.h"
-
 #include <iostream>
-
+#include "renderer/Texture2D.h"
 #include "simulation/Properties.h"
 #include "simulation/ScalField.h"
 

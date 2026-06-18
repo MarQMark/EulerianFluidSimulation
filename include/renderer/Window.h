@@ -1,8 +1,9 @@
 #ifndef EULERIANFLUIDSIMULATION_WINDOW_H
 #define EULERIANFLUIDSIMULATION_WINDOW_H
+
 #include <string>
 
-#include "Texture2D.h"
+struct GLFWwindow;
 
 class Window {
 public:

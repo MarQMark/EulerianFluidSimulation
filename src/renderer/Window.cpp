@@ -1,7 +1,10 @@
 #include "renderer/Window.h"
-
 #include <stdexcept>
 #include <utility>
+
+#define GLAD_GL_IMPLEMENTATION
+#include <glad/gl.h>
+#include <GLFW/glfw3.h>
 
 Window::Window(const int width, const int height, std::string title) : _width(width), _height(height), _title(std::move(title)){
     if (glfwInit() != GLFW_TRUE)
@@ -13,7 +16,7 @@ Window::Window(const int width, const int height, std::string title) : _width(wi
 
     glfwMakeContextCurrent(_win);
 
-    if (glewInit() != GLEW_OK)
+    if (!gladLoadGL(glfwGetProcAddress))
         throw std::runtime_error("Failed to initialize GLEW");
 
     glfwSwapInterval(0);

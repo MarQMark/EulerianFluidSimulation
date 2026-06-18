@@ -2,7 +2,6 @@
 #define EULERIANFLUIDSIMULATION_COMPUTESHADER_H
 #include <string>
 
-
 class ComputeShader {
 public:
     ComputeShader(const std::string& code);

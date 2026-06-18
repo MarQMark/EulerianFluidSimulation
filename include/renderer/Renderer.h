@@ -1,10 +1,10 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
-#include "Texture2D.h"
 #include "simulation/Grid.h"
 #include "simulation/ScalField.h"
 
+class Texture2D;
 
 class Renderer {
 public:
