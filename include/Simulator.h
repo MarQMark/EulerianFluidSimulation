@@ -2,7 +2,8 @@
 #define EULERIANFLUIDSIMULATION_SIMULATOR_H
 
 #include <renderer/Renderer.h>
-#include "compute/ComputeShader.h"
+
+#include "assets/Shader.h"
 #include "renderer/Window.h"
 #include "simulation/Grid.h"
 #include "simulation/Solver.h"
@@ -27,9 +28,9 @@ private:
     Solver* _solver{};
 
 #ifdef USE_GPU
-    ComputeShader* _vel_pass_1{};
-    ComputeShader* _vel_pass_2{};
-    ComputeShader* _add_force{};
+    Shader* _vel_pass_1{};
+    Shader* _vel_pass_2{};
+    Shader* _add_force{};
 #endif
 
     bool _reset = false;

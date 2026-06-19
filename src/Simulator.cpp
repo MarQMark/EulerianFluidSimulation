@@ -13,6 +13,7 @@
 #include "views/PropertiesView.h"
 #include "views/StatsView.h"
 #include "glad/gl.h"
+#include "util/Logger.h"
 
 Simulator::Simulator() {
 	_window = new Window(1280, 720, "StableFluids");
@@ -26,7 +27,7 @@ Simulator::Simulator() {
 
 	recreate();
 
-	Time::Get()->targetFps = 600;
+	Time::Get()->targetFps = 165;
 }
 
 Simulator::~Simulator() {
@@ -119,9 +120,9 @@ void Simulator::recreate() {
 	}
 
 #ifdef USE_GPU
-	_vel_pass_1 = new ComputeShader(ComputeShader::LoadTextFile("shaders/vel_advect_pass1.comp"));
-	_vel_pass_2 = new ComputeShader(ComputeShader::LoadTextFile("shaders/vel_advect_pass2.comp"));
-	_add_force = new ComputeShader(ComputeShader::LoadTextFile("shaders/add_force.comp"));
+	_vel_pass_1 = new Shader({{ "assets/shaders/vel_advect_pass1.comp", Shader::COMPUTE }});
+	_vel_pass_2 = new Shader({{ "assets/shaders/vel_advect_pass2.comp", Shader::COMPUTE }});
+	_add_force = new Shader({{ "assets/shaders/add_force.comp", Shader::COMPUTE }});
 #endif
 }
 

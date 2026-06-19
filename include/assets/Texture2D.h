@@ -1,9 +1,13 @@
 #ifndef EULERIANFLUIDSIMULATION_TEXTURE2D_H
 #define EULERIANFLUIDSIMULATION_TEXTURE2D_H
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <string>
+
+#include "ITexture.h"
 #include "glad/gl.h"
 
-class Texture2D {
+class Texture2D : public ITexture {
 public:
     struct Options {
         GLint level = 0;
@@ -17,15 +21,16 @@ public:
         GLint warpT = GL_CLAMP_TO_EDGE;
     };
 
+    Texture2D(const std::string& path, Options *opt = nullptr);
     Texture2D(GLsizei width, GLsizei height, uint8_t* data, Options* opt = nullptr);
-    ~Texture2D();
+    ~Texture2D() override;
 
-    GLuint get() const;
+    GLuint get() const override;
 
     void update(uint8_t* data);
 
-    void bind(GLuint slot = 0) const;
-    static void unbind();
+    void bind(GLuint slot) const override;
+    void unbind() override;
 
     GLsizei getWidth() const;
     GLsizei getHeight() const;
@@ -33,6 +38,7 @@ private:
     GLuint _id;
     GLsizei _width;
     GLsizei _height;
+    int _nrChannels;
 
     Options* _opt{};
 };

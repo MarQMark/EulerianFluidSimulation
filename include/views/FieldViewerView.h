@@ -4,7 +4,7 @@
 #include <string>
 
 #include "Viewable.h"
-#include "renderer/Texture2D.h"
+#include "../assets/Texture2D.h"
 #include "simulation/ScalField.h"
 #include "simulation/VecField.h"
 

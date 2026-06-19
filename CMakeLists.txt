@@ -3,7 +3,6 @@ project(EulerianFluidSimulation)
 
 set(CMAKE_CXX_STANDARD 20)
 
-
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     # Update submodules as needed
@@ -19,78 +18,69 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     endif()
 endif()
 
-add_executable(EulerianFluidSimulation
-        src/main.cpp
-        src/Simulator.cpp
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
-        src/renderer/Window.cpp
-        src/renderer/Renderer.cpp
-        src/renderer/Texture2D.cpp
-
-        src/views/Views.cpp
-        src/views/SimulationView.cpp
-        src/views/PropertiesView.cpp
-        src/views/FPSView.cpp
-        src/views/DistributionView.cpp
-        src/views/FieldViewerView.cpp
-        src/views/StatsView.cpp
-        src/views/ProfilerView.cpp
-
-        src/simulation/Grid.cpp
-        src/simulation/Properties.cpp
-        src/simulation/Solver.cpp
-        src/simulation/VecField.cpp
-        src/simulation/ScalField.cpp
-
-        src/compute/StorageBuffer.cpp
-        src/compute/ComputeShader.cpp
-
-        src/util/Time.cpp
-        src/util/GuiHelper.cpp
-        src/util/Profiler.cpp
-)
-
+add_executable(EulerianFluidSimulation ${SOURCES}
+        include/simulation/scene/ForceField.h)
 
 # DearImGUI
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
 
 add_library(imgui
-        ${IMGUI_DIR}/imgui.cpp
-        ${IMGUI_DIR}/imgui_draw.cpp
-        ${IMGUI_DIR}/imgui_tables.cpp
-        ${IMGUI_DIR}/imgui_widgets.cpp
-        ${IMGUI_DIR}/imgui_demo.cpp
-        ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
-        ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
-        ${IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+    ${IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp
+
+    external/ImGuiFileDialog/ImGuiFileDialog.cpp
 )
+
 target_include_directories(imgui PUBLIC
-        ${IMGUI_DIR}
-        ${IMGUI_DIR}/backends
+    ${IMGUI_DIR}
+    ${IMGUI_DIR}/backends
+    external/ImGuiFileDialog
 )
 
 target_include_directories(imgui PUBLIC ${IMGUI_DIR})
 
-
 target_include_directories(EulerianFluidSimulation
-        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
-        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/glm
-        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external
-        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/glm
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/tinyobjloader
 )
 
 add_compile_definitions(USE_GPU)
 
+add_subdirectory("external/tinyobjloader")
+add_subdirectory("external/json")
+
 if (UNIX)
     find_package(OpenGL REQUIRED)
     find_package(glfw3 REQUIRED)
-    target_link_libraries(EulerianFluidSimulation GL imgui glut glfw dl X11 pthread)
+    target_link_libraries(EulerianFluidSimulation
+        PRIVATE GL
+        PRIVATE imgui
+        PRIVATE glut
+        PRIVATE glfw
+        PRIVATE dl
+        PRIVATE X11
+        PRIVATE pthread
+        PRIVATE tinyobjloader
+        PRIVATE nlohmann_json::nlohmann_json
+    )
 endif(UNIX)
 
+# --- Copy assets to build directory ---
+add_custom_target(CopyAssets ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/assets
+    ${CMAKE_BINARY_DIR}/assets
+)
 
-add_custom_target(copy_shaders ALL
-        COMMAND  ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_CURRENT_SOURCE_DIR}/shaders
-        ${PROJECT_BINARY_DIR}/shaders
-        COMMENT "Copying shaders into binary directory")
-add_dependencies(EulerianFluidSimulation copy_shaders)
+add_dependencies(EulerianFluidSimulation CopyAssets)
