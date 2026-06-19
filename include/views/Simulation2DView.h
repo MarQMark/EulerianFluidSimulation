@@ -1,5 +1,5 @@
-#ifndef SIMULATIONVIEW_H
-#define SIMULATIONVIEW_H
+#ifndef SIMULATION2DVIEW_H
+#define SIMULATION2DVIEW_H
 
 #include <vector>
 #include <glm/vec2.hpp>
@@ -12,7 +12,7 @@
 #include "simulation/VecField.h"
 
 
-class SimulationView : public Viewable {
+class Simulation2DView : public Viewable {
 private:
     enum Mode{
         FORCE = 0,
@@ -21,7 +21,7 @@ private:
         END
     };
 public:
-    explicit SimulationView() = default;
+    explicit Simulation2DView() = default;
 
     void render() override;
 
@@ -48,4 +48,4 @@ private:
 
 
 
-#endif //SIMULATIONVIEW_H
+#endif //SIMULATION2DVIEW_H

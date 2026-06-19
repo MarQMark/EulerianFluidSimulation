@@ -6,10 +6,10 @@
 
 class Texture2D;
 
-class Renderer {
+class Renderer2D {
 public:
-    Renderer(int width, int height);
-    ~Renderer();
+    Renderer2D(int width, int height);
+    ~Renderer2D();
 
     void render(const Grid* grid);
 

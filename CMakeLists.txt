@@ -20,8 +20,7 @@ endif()
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
-add_executable(EulerianFluidSimulation ${SOURCES}
-        include/simulation/scene/ForceField.h)
+add_executable(EulerianFluidSimulation ${SOURCES})
 
 # DearImGUI
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)
@@ -53,12 +52,15 @@ target_include_directories(EulerianFluidSimulation
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/tinyobjloader
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/ImGuizmo/src
 )
 
 add_compile_definitions(USE_GPU)
 
 add_subdirectory("external/tinyobjloader")
 add_subdirectory("external/json")
+add_subdirectory("external/ImGuizmo")
+target_link_libraries(imguizmo PUBLIC imgui)
 
 if (UNIX)
     find_package(OpenGL REQUIRED)
@@ -73,6 +75,7 @@ if (UNIX)
         PRIVATE pthread
         PRIVATE tinyobjloader
         PRIVATE nlohmann_json::nlohmann_json
+        PRIVATE imguizmo
     )
 endif(UNIX)
 

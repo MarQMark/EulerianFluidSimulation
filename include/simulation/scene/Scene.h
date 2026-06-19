@@ -18,6 +18,8 @@ class SceneNode;
 
 class Scene {
 public:
+    Scene(Window* window);
+
     void update(float deltaTime) const;
 
     void addSceneNode(std::unique_ptr<SceneNode> node);

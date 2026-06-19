@@ -1,7 +1,11 @@
 #include "Simulator.h"
 #include <algorithm>
 #include <ranges>
-#include <views/SimulationView.h>
+#include <views/Simulation2DView.h>
+#include <views/Simulation3DView.h>
+
+#include "core/Editor.h"
+#include "core/InputManager.h"
 #include "simulation/Properties.h"
 #include "simulation/ScalField.h"
 #include "util/Profiler.h"
@@ -13,12 +17,24 @@
 #include "views/PropertiesView.h"
 #include "views/StatsView.h"
 #include "glad/gl.h"
-#include "util/Logger.h"
+#include "renderer/Renderer3D.h"
 
 Simulator::Simulator() {
 	_window = new Window(1280, 720, "StableFluids");
+	Input.addInputWindow(_window);
+
+	// --- Setup Simulator ---
+	_renderer3D = new Renderer3D;
+
+	_editor = new Editor;
+
+	_scene = new Scene(_window);
+	_editor->setScene(_scene);
+
+	// --- Setup UI ---
 	_views = new Views(_window);
-	_views->addView("Simulation", new SimulationView());
+	_views->addView("Simulation2D", new Simulation2DView());
+	_views->addView("Simulation3D", new Simulation3DView(_editor, _renderer3D));
 	_views->addView("Properties", new PropertiesView());
 	_views->addView("Performance", new FPSView());
 	_views->addView("Stats", new StatsView());
@@ -38,7 +54,8 @@ Simulator::~Simulator() {
 #endif
 
 	delete _grid;
-	delete _renderer;
+	delete _renderer2D;
+	delete _renderer3D;
 	delete _views;
 	delete _window;
 }
@@ -50,10 +67,10 @@ Simulator::~Simulator() {
 
 void Simulator::recreate() {
 	if (_grid) delete _grid;
-	if (_renderer) delete _renderer;
+	if (_renderer2D) delete _renderer2D;
 	if (_solver) delete _solver;
 
-	_renderer = new Renderer(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
+	_renderer2D = new Renderer2D(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
 	_grid = new Grid(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
 
 	switch (PROPERTY(SOVLER_TYPE, Properties::SolverType)) {
@@ -81,8 +98,8 @@ void Simulator::recreate() {
 	if (_views->getView("FieldViewerPressure"))
 		_views->replaceView("FieldViewerPressure", new FieldViewerView(&_grid->pressure(), "Pressure Viewer"));
 
-	_views->getView<SimulationView>("Simulation")->recreate(
-		_renderer->getTexture2D()->get(), _grid);
+	_views->getView<Simulation2DView>("Simulation2D")->recreate(
+		_renderer2D->getTexture2D()->get(), _grid);
 	_views->getView<StatsView>("Stats")->recreate(_grid);
 	_views->getView<DistributionView>("Distribution")->recreate(_grid);
 
@@ -137,9 +154,12 @@ void Simulator::update() {
     			ADD_PROPERTY_I(SIMULATION_STEPS, -1);
     	}
 
-    	_views->getView<SimulationView>("Simulation")->setVelField(&_grid->vel());
+    	_views->getView<Simulation2DView>("Simulation2D")->setVelField(&_grid->vel());
 
-        _renderer->render(_grid);
+    	_scene->update(Time::Get()->dt);
+
+        _renderer2D->render(_grid);
+    	_renderer3D->render(_scene);
         _views->render();
         _window->update();
 
@@ -197,6 +217,7 @@ void Simulator::update() {
     	}
 
     	Time::Get()->limitFPS();
+    	Input.reset();
     }
 }
 

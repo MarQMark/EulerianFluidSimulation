@@ -9,6 +9,17 @@
 #include "simulation/scene/nodes/ModelParticleSpawnNode.h"
 #include "core/Config.h"
 #include <algorithm>
+#include "simulation/scene/nodes/SkyboxNode.h"
+
+Scene::Scene(Window* window) {
+    // --- Skybox ---
+    auto skyboxNode = std::make_unique<SkyboxNode>();
+    addSceneNode(std::move(skyboxNode));
+
+    // --- Camera ---
+    auto cameraNode = std::make_unique<CameraNode>(window, glm::vec3(0.0f, 0.0, 1.0f));
+    addSceneNode(std::move(cameraNode));
+}
 
 void Scene::update(float deltaTime) const {
     for (auto& node : sceneNodes)

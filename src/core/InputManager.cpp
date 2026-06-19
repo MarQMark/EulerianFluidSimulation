@@ -3,6 +3,9 @@
 //
 
 #include "core/InputManager.h"
+
+#include <iostream>
+
 #include "renderer/Window.h"
 
 void InputManager::addInputWindow(Window* window) {

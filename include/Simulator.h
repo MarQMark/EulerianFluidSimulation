@@ -1,7 +1,7 @@
 #ifndef EULERIANFLUIDSIMULATION_SIMULATOR_H
 #define EULERIANFLUIDSIMULATION_SIMULATOR_H
 
-#include <renderer/Renderer.h>
+#include <renderer/Renderer2D.h>
 
 #include "assets/Shader.h"
 #include "renderer/Window.h"
@@ -9,6 +9,10 @@
 #include "simulation/Solver.h"
 #include "simulation/VecField.h"
 #include "views/Views.h"
+
+class Scene;
+class Editor;
+class Renderer3D;
 
 class Simulator {
 public:
@@ -18,8 +22,11 @@ public:
     void update();
 
 private:
+    Scene* _scene{};
     Window* _window{};
-    Renderer* _renderer{};
+    Editor* _editor{};
+    Renderer2D* _renderer2D{};
+    Renderer3D* _renderer3D{};
 
     Views* _views{};
 

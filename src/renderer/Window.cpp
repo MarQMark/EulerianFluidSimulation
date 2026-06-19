@@ -17,6 +17,7 @@ Window::Window(const int width, const int height, std::string title) : _width(wi
     _win = glfwCreateWindow(_width, _height, _title.c_str(), nullptr, nullptr);
 
     glfwMakeContextCurrent(_win);
+    glfwSetWindowUserPointer(_win, this);
 
     glfwSetErrorCallback([](int error, const char* description) {
         LOG_ERROR(description)
@@ -26,6 +27,59 @@ Window::Window(const int width, const int height, std::string title) : _width(wi
         throw std::runtime_error("Failed to initialize GLEW");
 
     glfwSwapInterval(0);
+
+    // Cursor Callback
+    glfwSetCursorPosCallback(_win, [](GLFWwindow* window, double x, double y) {
+        auto win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+        if (!win)
+            return;
+
+        for (auto &callback : win->mouseCallback)
+            callback(win, x, y);
+    });
+
+    // Mouse Button Callback
+    glfwSetMouseButtonCallback(_win, [](GLFWwindow* window, int button, int action, int mods) {
+        auto win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+        if (!win)
+            return;
+
+        for (auto &callback : win->mouseButtonCallback)
+            callback(win, static_cast<MouseButton>(button), static_cast<Action>(action), mods);
+    });
+
+    // Scroll Callback
+    glfwSetScrollCallback(_win, [](GLFWwindow* window, double x, double y) {
+        auto win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+        if (!win)
+            return;
+
+        for (auto &callback : win->mouseScrollCallback)
+            callback(win, x, y);
+    });
+
+    // Key Callback
+    glfwSetKeyCallback(_win, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+        auto win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+        if (!win)
+            return;
+
+        for (auto &callback : win->keyCallback)
+            callback(win, static_cast<Key>(key), static_cast<Action>(action), mods);
+    });
+
+    // Resize Callback
+    glfwSetFramebufferSizeCallback(_win, [](GLFWwindow* window, int width, int height) {
+        auto w = static_cast<Window*>(glfwGetWindowUserPointer(window));
+        if (!w)
+            return;
+
+        w->_width = width;
+        w->_height = height;
+
+        for (auto &callback : w->resizeCallback)
+            callback(w, width, height);
+    });
 }
 
 Window::~Window() {
@@ -65,6 +119,6 @@ void Window::addResizeCallback(const std::function<void(Window*, int, int)>& cal
     resizeCallback.push_back(callback);
 }
 
-GLFWwindow * Window::getWindow() const {
+GLFWwindow* Window::getWindow() const {
     return _win;
 }
