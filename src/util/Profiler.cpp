@@ -36,6 +36,12 @@ std::map<std::string, Profiler::Profile *>& Profiler::profiles() {
     return _profiles;
 }
 
+void Profiler::resetMax() {
+    for (const auto &profile: _profiles | std::views::values) {
+        profile->resetMax();
+    }
+}
+
 Profiler::Profile::Profile() {
     _data = (float*)malloc(PROFILER_SAMPLES * sizeof(float));
     memset(_data, 0, PROFILER_SAMPLES * sizeof(float));
@@ -81,6 +87,10 @@ float Profiler::Profile::avg() const {
 
 unsigned int Profiler::Profile::idx() const {
     return _idx;
+}
+
+void Profiler::Profile::resetMax() {
+    _max = _data[_idx];
 }
 
 Profiler::~Profiler() {

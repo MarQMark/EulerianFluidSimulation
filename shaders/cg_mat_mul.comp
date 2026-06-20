@@ -5,7 +5,6 @@ layout(std430, binding = 0) writeonly buffer BufResult   { float result[];   };
 layout(std430, binding = 1) readonly  buffer BufX        { float xField[];   };
 layout(std430, binding = 2) readonly  buffer BufRho      { float rho[];      };
 layout(std430, binding = 3) readonly  buffer BufBoundary { float boundary[]; };
-layout(std430, binding = 4) buffer BufTmp { float tmp[]; };
 
 uniform int uWidth;
 uniform int uHeight;
@@ -25,12 +24,11 @@ void sampleNeighbor(int nx, int ny, inout float sum, inout int nCount) {
     }
 }
 
+// r = Ax
 void main(){
     int x = int(gl_GlobalInvocationID.x);
     int y = int(gl_GlobalInvocationID.y);
 
-
-    tmp[idx(x, y)] = y;
     if (x >= uWidth|| y >= uHeight) return;
 
     if (rho[idx(x, y)] <= 0.5 || boundary[idx(x, y)] > .5) {
@@ -46,7 +44,6 @@ void main(){
     sampleNeighbor(x, y - 1, sum, nCount);
     sampleNeighbor(x, y + 1, sum, nCount);
 
-    //tmp[idx(x, y)] = float(nCount);
     result[idx(x, y)] = sum - float(nCount) * xField[idx(x, y)];
 }
 

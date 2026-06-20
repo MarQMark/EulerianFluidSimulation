@@ -9,7 +9,7 @@ public:
 
     void bind() const;
 
-    void dispatch (int gx, int gy, int gz = 1) const;
+    void dispatch (int gx, int gy = 1, int gz = 1) const;
 
     void setInt   (const std::string& name, int   v) const;
     void setFloat (const std::string& name, float v) const;

@@ -178,7 +178,10 @@ void ProfilerView::render() {
         ImGuiTableFlags_BordersInnerH  |
         ImGuiTableFlags_NoHostExtendX;
 
-    if (!ImGui::BeginTable("##prof", 4, kTbl)) return;
+    if (!ImGui::BeginTable("##prof", 4, kTbl)) {
+        ImGui::End();
+        return;
+    }
 
     ImGui::TableSetupColumn("##name",  ImGuiTableColumnFlags_WidthStretch);
     ImGui::TableSetupColumn("##cur",   ImGuiTableColumnFlags_WidthFixed, 68.0f);
@@ -245,6 +248,10 @@ void ProfilerView::render() {
     ImGui::PushStyleColor(ImGuiCol_Text, kPEAK);
     ImGui::Text("~%.0f fps", 1000.0f / std::max(total, 0.001f));
     ImGui::PopStyleColor();
+
+    ImGui::TableSetColumnIndex(3);
+    if (ImGui::Button("Reset"))
+        Profiler::Get()->resetMax();
 
     ImGui::EndTable();
 

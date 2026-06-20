@@ -17,12 +17,19 @@ CGSolver::CGSolver(const int width, const int height) : Solver(width, height) {
 #ifdef USE_GPU
     _shader_as = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_add_scaled.comp"));
     _shader_mm = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_mat_mul.comp"));
+    _shader_ss = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_set_subtract.comp"));
+    _shader_sa = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_scale_add.comp"));
+    _shader_dp = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_dot_pass.comp"));
 
     const int n = width * height;
     _gpu_t = new StorageBuffer(n * sizeof(float));
     _gpu_tmp = new StorageBuffer(n * sizeof(float));
     _gpu_r = new StorageBuffer(n * sizeof(float));
     _gpu_d = new StorageBuffer(n * sizeof(float));
+
+    const int dotN = (n + 255) / 256;
+    _dot.resize(dotN);
+    _gpu_dot = new StorageBuffer(dotN * sizeof(float));
 #endif
 }
 
@@ -35,11 +42,16 @@ CGSolver::~CGSolver() {
 #ifdef USE_GPU
     delete _shader_as;
     delete _shader_mm;
+    delete _shader_ss;
+    delete _shader_sa;
+    delete _shader_dp;
 
     delete _gpu_t;
     delete _gpu_tmp;
     delete _gpu_r;
     delete _gpu_d;
+
+    delete _gpu_dot;
 #endif
 }
 
@@ -51,75 +63,123 @@ float CGSolver::solve(Grid* grid) {
 
 #ifdef USE_GPU
     const int steps = PROPERTY_I(MAX_STEPS);
-    const float errorThreshold = PROPERTY_F(SOLVER_THRESHOLD);
+    const auto errorThreshold = PROPERTY_F(SOLVER_THRESHOLD);
 
-    StorageBuffer buffer(pressure.size());
 
     auto gpu_mat_mul = [&](
         const StorageBuffer* result, const StorageBuffer* _x,
         const StorageBuffer* _rho, const StorageBuffer* _boundary)
     {
-        const int w     = grid->width();
-        const int h     = grid->height();
-        const int gx = (w - 2 + 15) / 16;
-        const int gy = (h - 2 + 15) / 16;
+        const int w = grid->width();
+        const int h = grid->height();
+        const int gx = (w + 15) / 16;
+        const int gy = (h + 15) / 16;
 
         _shader_mm->bind();
         result->bind(0);
         _x->bind(1);
         _rho->bind(2);
         _boundary->bind(3);
-        buffer.bind(4);
-        _shader_mm->setInt("uWidth",  pressure.width());
-        _shader_mm->setInt("uHeight", pressure.height());
+        _shader_mm->setInt("uWidth",  w);
+        _shader_mm->setInt("uHeight", h);
         _shader_mm->dispatch(gx, gy);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     };
+    auto gpu_add_scaled = [&](const StorageBuffer* result, const StorageBuffer* _x, const float factor) {
+        const int n = grid->size();
+        const int gx = (n + 255) / 256;
 
-    auto& t = *_t; t.clear();
-    auto& tmp = *_tmp; tmp.clear();
-    auto& r = *_r; r = divergence;
+        _shader_as->bind();
+        result->bind(0);
+        _x->bind(1);
+        _shader_as->setInt("uCount", n);
+        _shader_as->setFloat("uFactor", factor);
+        _shader_as->dispatch(gx);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    };
+    auto gpu_set_subtract = [&](const StorageBuffer* result, const StorageBuffer* _x, const StorageBuffer* d) {
+        const int n = grid->size();
+        const int gx = (n + 255) / 256;
 
-    pressure = divergence;
-    impl_mat_mul(t, pressure, rho, boundary);
-    r -= t;
-    auto& d = *_d; d = r;
+        _shader_ss->bind();
+        result->bind(0);
+        _x->bind(1);
+        d->bind(2);
+        _shader_ss->setInt("uCount", n);
+        _shader_ss->dispatch(gx);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    };
+    auto gpu_scale_add = [&](const StorageBuffer* result, const StorageBuffer* _x, const float factor) {
+        const int n = grid->size();
+        const int gx = (n + 255) / 256;
 
-    float sqrtLen = r.sqLen();
-    if (sqrtLen < errorThreshold)
-        return sqrtLen;
+        _shader_sa->bind();
+        result->bind(0);
+        _x->bind(1);
+        _shader_sa->setInt("uCount", n);
+        _shader_sa->setFloat("uFactor", factor);
+        _shader_sa->dispatch(gx);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    };
+    auto gpu_dot_pass = [&](const StorageBuffer* _a, const StorageBuffer* _b) {
+        const int n = grid->size();
+        const int gx = (n + 255) / 256;
 
+        _shader_dp->bind();
+        _gpu_dot->bind(0);
+        _a->bind(1);
+        _b->bind(2);
+        _shader_dp->setInt("uCount", n);
+        _shader_dp->dispatch(gx);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+        _gpu_dot->download(_dot.data());
+        float retVal = 0;
+        for (const float v : _dot)
+            retVal += v;
+
+        return retVal;
+    };
 
     grid->gpuRho->upload(grid->rho().data());
-    grid->gpuBoundary->upload(grid->boundary().data());
+    //grid->gpuBoundary->upload(grid->boundary().data());
+    grid->gpuDivergence->upload(divergence.data());
+    grid->gpuPressure->upload(divergence.data());
+
+    gpu_mat_mul(_gpu_t, grid->gpuPressure, grid->gpuRho, grid->gpuBoundary);
+
+    gpu_set_subtract(_gpu_r, grid->gpuDivergence, _gpu_t);
+    gpu_set_subtract(_gpu_d, grid->gpuDivergence, _gpu_t);
+
+    float sqrtLen = gpu_dot_pass(_gpu_r, _gpu_r);
+    if (sqrtLen < errorThreshold) {
+        grid->gpuPressure->download(grid->pressure().data());
+        return sqrtLen;
+    }
 
     for (int i = 0; i < steps; i++) {
-        _gpu_d->upload(d.data());
-        _gpu_t->upload(t.data());
         gpu_mat_mul(_gpu_t, _gpu_d, grid->gpuRho, grid->gpuBoundary);
-        _gpu_t->download(t.data());
 
-
-        const float alpha = sqrtLen / d.dot(t);
-        pressure.addScaled(d, alpha);
+        const float alpha = sqrtLen / gpu_dot_pass(_gpu_d, _gpu_t);
+        gpu_add_scaled(grid->gpuPressure, _gpu_d, alpha);
 
         if (i & 0x3F) {
-            r.addScaled(t, -alpha);
+            gpu_add_scaled(_gpu_r, _gpu_t, -alpha);
         }
         else {
-            impl_mat_mul(t, pressure, rho, boundary);
-            r = divergence;
-            r -= t;
+            gpu_mat_mul(_gpu_t, grid->gpuPressure, grid->gpuRho, grid->gpuBoundary);
+            gpu_set_subtract(_gpu_r, grid->gpuDivergence, _gpu_t);
         }
 
         const float oldSqrtLen = sqrtLen;
-        sqrtLen = r.sqLen();
-        if (sqrtLen < errorThreshold)
+        sqrtLen = gpu_dot_pass(_gpu_r, _gpu_r);
+        if (sqrtLen < errorThreshold) {
+            grid->gpuPressure->download(grid->pressure().data());
             return sqrtLen;
+        }
 
         const float beta = sqrtLen / oldSqrtLen;
-        d *= beta;
-        d += r;
+        gpu_scale_add(_gpu_d, _gpu_r, beta);
     }
 
     return sqrtLen;

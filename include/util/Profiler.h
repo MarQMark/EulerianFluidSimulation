@@ -27,6 +27,7 @@ public:
         float avg() const;
         unsigned int idx() const;
 
+        void resetMax();
     private:
         float* _data{};
         float _max = 0;
@@ -46,6 +47,8 @@ public:
     void stop(const std::string& name = "");
 
     std::map<std::string, Profile *>& profiles();
+
+    void resetMax();
 
 private:
 

@@ -155,37 +155,37 @@ void Simulator::update() {
     	if (ImGui::IsKeyPressed(ImGuiKey_G) && !searching)
     		SET_PROPERTY_B(GRAVITY_ENABLED, !PROPERTY_B(GRAVITY_ENABLED));
 
-    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad1) && !searching) {
+    	if (ImGui::IsKeyPressed(ImGuiKey_F1) && !searching) {
     		if (!_views->getView("FieldViewerVel"))
     			_views->addView("FieldViewerVel", new FieldViewerView(&_grid->vel(), "Velocity Viewer"));
     		else
     			_views->deleteView("FieldViewerVel");
     	}
-    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad2) && !searching) {
+    	if (ImGui::IsKeyPressed(ImGuiKey_F2) && !searching) {
     		if (!_views->getView("FieldViewerRho"))
     			_views->addView("FieldViewerRho", new FieldViewerView(&_grid->rho(), "Rho Viewer"));
     		else
     			_views->deleteView("FieldViewerRho");
     	}
-    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad3) && !searching) {
+    	if (ImGui::IsKeyPressed(ImGuiKey_F3) && !searching) {
     		if (!_views->getView("FieldViewerGamma"))
     			_views->addView("FieldViewerGamma", new FieldViewerView(&_grid->gamma(), "Gamma Viewer"));
     		else
     			_views->deleteView("FieldViewerGamma");
     	}
-    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad4) && !searching) {
+    	if (ImGui::IsKeyPressed(ImGuiKey_F4) && !searching) {
     		if (!_views->getView("FieldViewerBeta"))
     			_views->addView("FieldViewerBeta", new FieldViewerView(&_grid->beta(), "Beta Viewer"));
     		else
     			_views->deleteView("FieldViewerBeta");
     	}
-    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad5) && !searching) {
+    	if (ImGui::IsKeyPressed(ImGuiKey_F5) && !searching) {
     		if (!_views->getView("FieldViewerDiv"))
     			_views->addView("FieldViewerDiv", new FieldViewerView(&_grid->divergence(), "Divergence Viewer"));
     		else
     			_views->deleteView("FieldViewerDiv");
     	}
-    	if (ImGui::IsKeyPressed(ImGuiKey_Keypad6) && !searching) {
+    	if (ImGui::IsKeyPressed(ImGuiKey_F6) && !searching) {
     		if (!_views->getView("FieldViewerPressure"))
     			_views->addView("FieldViewerPressure", new FieldViewerView(&_grid->pressure(), "Pressure Viewer"));
     		else
@@ -202,60 +202,98 @@ void Simulator::update() {
 }
 
 void Simulator::simulate() {
-	//vel_extrapolate();
+	Profiler* profiler = Profiler::Get();
+
+	profiler->start("1 Vel Extrapolate");
+	if (!PROPERTY_B(DISABLE_VEL_EXTRAPOLATE)) vel_extrapolate();
+	profiler->stop();
+
 	//diffuse();
 
-	Profiler::Get()->start("1 Rho Sharpen");
+	profiler->start("2 Rho Sharpen");
 	if (!PROPERTY_B(DISABLE_RHO_SHARPEN)) rho_sharpen();
-	Profiler::Get()->stop();
-	Profiler::Get()->start("2 Rho Advect");
+	profiler->stop();
+	profiler->start("3 Rho Advect");
 	if (!PROPERTY_B(DISABLE_RHO_ADVECT))  rho_advect();
-	Profiler::Get()->stop();
-	Profiler::Get()->start("3 Vel Advect");
+	profiler->stop();
+	profiler->start("4 Vel Advect");
 	if (!PROPERTY_B(DISABLE_VEL_ADVECT))  vel_advect();
-	Profiler::Get()->stop();
-	Profiler::Get()->start("4 Add Force");
+	profiler->stop();
+	profiler->start("5 Add Force");
 	if (!PROPERTY_B(DISABLE_ADD_FORCE))   add_force();
-	Profiler::Get()->stop();
-	Profiler::Get()->start("5 Project");
+	profiler->stop();
+	profiler->start("6 Project");
 	if (!PROPERTY_B(DISABLE_PROJECT))     project();
-	Profiler::Get()->stop();
+	profiler->stop();
 }
 
-void Simulator::vel_extrapolate() {
-	return;
+void Simulator::vel_extrapolate()
+{
 	auto& vel = _grid->vel();
 	auto& rho = _grid->rho();
 
-	// A few passes is enough to push velocity a few cells into the air
-	const int PASSES = 10;
+	const int w = _grid->width();
+	const int h = _grid->height();
 
-	for (int pass = 0; pass < PASSES; pass++) {
-		auto& tmp = _grid->tmpVec();
+	// Cells that already have valid velocities
+	ScalField known(w, h);
 
-		LOOP_2D_GRID(x, y, 1) {
-			// Only fill air cells (rho < 0.5) that have at least one liquid neighbor
-			if (rho(x, y) >= 0.5f) {
-				tmp(x, y) = vel(x, y); // liquid cells stay unchanged
-				continue;
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			if (rho(x, y) > 0.5f)
+				known(x, y) = 1;
+		}
+	}
+
+	constexpr int extrapolationIterations = 15;
+
+	for (int iter = 0; iter < extrapolationIterations; ++iter)
+	{
+		auto velTmp = vel;
+		auto knownTmp = known;
+
+		bool addedCells = false;
+
+		for (int y = 1; y < h - 1; ++y)
+		{
+			for (int x = 1; x < w - 1; ++x)
+			{
+				if (known(x, y))
+					continue;
+
+				glm::vec2 sum(0.0f);
+				int count = 0;
+
+				auto sampleNeighbor = [&](int nx, int ny)
+				{
+					if (known(nx, ny))
+					{
+						sum += vel(nx, ny);
+						++count;
+					}
+				};
+
+				sampleNeighbor(x - 1, y);
+				sampleNeighbor(x + 1, y);
+				sampleNeighbor(x, y - 1);
+				sampleNeighbor(x, y + 1);
+
+				if (count > 0)
+				{
+					velTmp(x, y) = sum / static_cast<float>(count);
+					knownTmp(x, y) = 1;
+					addedCells = true;
+				}
 			}
-
-			glm::vec2 sum(0.f);
-			int count = 0;
-
-			// Average over neighbors that are inside the liquid
-			auto sample = [&](int nx, int ny) {
-				if (rho(nx, ny) >= 0.5f) { sum += vel(nx, ny); count++; }
-			};
-			sample(x-1, y); sample(x+1, y);
-			sample(x, y-1); sample(x, y+1);
-
-			tmp(x, y) = (count > 0) ? sum / float(count) : vel(x, y);
 		}
 
-		LOOP_2D_GRID(x, y, 1) {
-			vel(x, y) = tmp(x, y);
-		}
+		vel = std::move(velTmp);
+		known = std::move(knownTmp);
+
+		if (!addedCells)
+			break;
 	}
 }
 
@@ -537,7 +575,7 @@ void Simulator::rho_sharpen() {
 		// Step 2: scatter −Δρ toward the 0.5 iso-contour (Algorithm 2)
 		// Since dr < 0 for air cells (mass was removed), −dr > 0 is deposited
 		// at the interface — mass is conserved locally.
-		glm::vec2 p = traceAlongField(glm::vec2(x, y), rho, boundary, 3.f, 10);
+		glm::vec2 p = traceAlongField(glm::vec2(x, y), rho, boundary, PROPERTY_F(RHO_D), 10);
 		scatterValue(rho, boundary, p, -dr);
 	}
 }
@@ -817,8 +855,12 @@ void Simulator::project() {
 
 	enforce_wall_boundaries();
 
+	const float liquidThreshold = PROPERTY_F(LIQUID_THRESHOLD);
+	const float lambdaP = PROPERTY_F(LAMBDA_PLUS);
+	const float lambdaM = PROPERTY_F(LAMBDA_MINUS);
+	const float eta = PROPERTY_F(ETA);
     LOOP_2D_GRID(x, y, 1){
-    	if (rho(x, y) < PROPERTY_F(LIQUID_THRESHOLD))
+    	if (rho(x, y) < liquidThreshold)
     		continue;
 		if (boundary(x, y) == 1)
 			continue;
@@ -828,14 +870,10 @@ void Simulator::project() {
     	divergence(x, y) = dx + dy;
 
 		if (rho(x, y) > 1.f) {
-			const float lambda = PROPERTY_F(LAMBDA_MINUS);
-			const float eta = PROPERTY_F(ETA);
-			divergence(x, y) -= std::min(lambda * (rho(x, y) - 1.f), eta);
+			divergence(x, y) -= std::min(lambdaM * (rho(x, y) - 1.f), eta);
 		}
 		if (rho(x, y) < 1.f) {
-			const float lambda = PROPERTY_F(LAMBDA_PLUS);
-			const float eta = PROPERTY_F(ETA);
-			divergence(x, y) += std::min(lambda * (1.f - rho(x, y)), eta);
+			divergence(x, y) += std::min(lambdaP * (1.f - rho(x, y)), eta);
 		}
     }
 
@@ -876,7 +914,7 @@ void Simulator::project() {
 
 	if (PROPERTY_B(RE_CALC_DIV)) {
 		LOOP_2D_GRID(x, y, 1){
-			if (rho(x, y) < PROPERTY_F(LIQUID_THRESHOLD))
+			if (rho(x, y) < liquidThreshold)
 				continue;
 
 			divergence(x, y) = vel(x + 1, y).x - vel(x, y).x

@@ -39,6 +39,7 @@ public:
     PROP_TOKEN(LAMBDA_PLUS, "Lambda+")
     PROP_TOKEN(ETA, "Eta")
     PROP_TOKEN(LIQUID_THRESHOLD, "Liquid Threshold")
+    PROP_TOKEN(RHO_D, "D")
 
     PROP_TOKEN(GRAVITY_FORCE, "Gravity Force")
     PROP_TOKEN(GRAVITY_ENABLED, "Gravity Enabled")
@@ -66,6 +67,7 @@ public:
     PROP_TOKEN(MAX_VALUE, "Max Value")
     PROP_TOKEN(TOTAL_RHO, "Total Rho")
 
+    PROP_TOKEN(DISABLE_VEL_EXTRAPOLATE, "Disable Velocity Extrapolation");
     PROP_TOKEN(DISABLE_RHO_SHARPEN, "Disable Density Sharpen");
     PROP_TOKEN(DISABLE_RHO_ADVECT, "Disable Density Advection");
     PROP_TOKEN(DISABLE_VEL_ADVECT, "Disable Velocity Advection");
@@ -84,6 +86,7 @@ private:
         ADD(simulation_rho, LAMBDA_PLUS, "Control how much expansion is penalized", .1f)
         ADD(simulation_rho, ETA, "", 1.f)
         ADD(simulation_rho, LIQUID_THRESHOLD, "", 0.5f)
+        ADD(simulation_rho, RHO_D, "", 3.f)
 
         auto& simulation_forces = add_sub_category(simulation, "Forces");
         ADD(simulation_forces, GRAVITY_FORCE, "", 0.02f)
@@ -112,6 +115,7 @@ private:
         auto& controls = add_category("Controls");
         ADD(controls, PAUSED, "If simulation is paused", false)
         auto& controls_steps = add_sub_category(controls, "Steps");
+        ADD(controls_steps, DISABLE_VEL_EXTRAPOLATE, "", false);
         ADD(controls_steps, DISABLE_RHO_SHARPEN, "", false);
         ADD(controls_steps, DISABLE_RHO_ADVECT, "", false);
         ADD(controls_steps, DISABLE_VEL_ADVECT, "", false);

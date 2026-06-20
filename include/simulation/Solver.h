@@ -41,11 +41,18 @@ private:
 #ifdef USE_GPU
     ComputeShader* _shader_as{};
     ComputeShader* _shader_mm{};
+    ComputeShader* _shader_ss{};
+    ComputeShader* _shader_sa{};
+    ComputeShader* _shader_dp{};
 
     StorageBuffer* _gpu_t{};
     StorageBuffer* _gpu_tmp{};
     StorageBuffer* _gpu_r{};
     StorageBuffer* _gpu_d{};
+
+    std::vector<float> _dot;
+    StorageBuffer* _gpu_dot{};
+    StorageBuffer* _gpu_sqrt_len{};
 #endif
 };
 

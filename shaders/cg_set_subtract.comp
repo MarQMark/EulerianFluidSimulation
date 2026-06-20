@@ -1,0 +1,17 @@
+#version 430
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 0) buffer          BufResult   { float result[];   };
+layout(std430, binding = 1) readonly buffer BufX        { float xField[];   };
+layout(std430, binding = 2) readonly buffer BufD        { float dField[];   };
+
+uniform int uCount;
+
+// r = x - d
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i >= uCount)
+    return;
+
+    result[i] = xField[i] - dField[i];
+}
