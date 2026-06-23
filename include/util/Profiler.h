@@ -15,7 +15,7 @@ private:
 public:
     class Profile {
     public:
-        Profile();
+        Profile(const std::string& name);
         ~Profile();
 
         void start();
@@ -25,10 +25,12 @@ public:
         float max() const;
         float cur() const;
         float avg(int count = 20) const;
+        std::string name();
         unsigned int idx() const;
 
         void resetMax();
     private:
+        std::string _name{};
         float* _data{};
         float _max = 0;
         unsigned int _idx = PROFILER_SAMPLES;
@@ -44,19 +46,19 @@ public:
     }
 
     void start(const std::string& name);
-    void stop(const std::string& name = "");
+    void stop();
 
-    std::map<std::string, Profile *>& profiles();
+    std::vector<Profile*>& profiles();
 
-    void resetMax();
+    void resetMax() const;
 
 private:
 
     Profiler() = default;
     ~Profiler();
 
-    std::map<std::string, Profile*> _profiles{};
-    std::stack<std::string> _profiling{};
+    std::vector<Profile*> _profiles{};
+    std::stack<Profile*> _profiling{};
 };
 
 

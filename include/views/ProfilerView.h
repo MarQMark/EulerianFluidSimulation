@@ -17,7 +17,7 @@ private:
     std::map<std::string, bool> _disabled_profiles;
     int _avg_samples = 20;
 
-    void draw_plot(const std::map<std::string, Profiler::Profile*>& profiles, float scaleMax, ImVec2 size);
+    void draw_plot(const std::vector<Profiler::Profile*>& profiles, float scaleMax, ImVec2 size);
 };
 
 

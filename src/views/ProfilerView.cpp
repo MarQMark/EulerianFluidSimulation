@@ -69,7 +69,7 @@ static ImU32 COLOR_A(const int idx, const float a) {
 //       • Y-axis labels: full scale at top, midpoint at centre
 //       • Thin border
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-void ProfilerView::draw_plot(const std::map<std::string, Profiler::Profile*>& profiles,
+void ProfilerView::draw_plot(const std::vector<Profiler::Profile*>& profiles,
                                      float scaleMax, ImVec2 size)
 {
     ImDrawList* dl = ImGui::GetWindowDrawList();
@@ -91,8 +91,8 @@ void ProfilerView::draw_plot(const std::map<std::string, Profiler::Profile*>& pr
     std::vector<ImVec2> pts;
     pts.reserve(PROFILER_SAMPLES);
 
-    for (int i = 0; const auto [name, profile]: profiles) {
-        if (_disabled_profiles.contains(name) && _disabled_profiles[name]) {
+    for (int i = 0; const auto profile : profiles) {
+        if (_disabled_profiles.contains(profile->name()) && _disabled_profiles[profile->name()]) {
             i++;
             continue;
         }
@@ -172,8 +172,8 @@ void ProfilerView::render() {
     float scaleMax = 0.0f;
     float total = 0;
     float avg[profiles.size()];
-    for (int i = 0; auto [name, profile] : profiles) {
-        if (_disabled_profiles.contains(name) && _disabled_profiles[name]);
+    for (int i = 0; const auto profile : profiles) {
+        if (_disabled_profiles.contains(profile->name()) && _disabled_profiles[profile->name()]);
         else scaleMax = std::max(scaleMax, profile->max());
 
         avg[i] = profile->avg(_avg_samples);
@@ -206,7 +206,7 @@ void ProfilerView::render() {
     ImDrawList* dl = ImGui::GetWindowDrawList();
 
     // ── One row per stage ─────────────────────────────────────────────────────
-    for (int i = 0; const auto [name, profile]: profiles) {
+    for (int i = 0; const auto profile : profiles) {
 
         ImGui::TableNextRow();
 
@@ -222,7 +222,7 @@ void ProfilerView::render() {
 
             ImGui::SetCursorScreenPos(cell_start);
             auto color = COLOR(i);
-            if (_disabled_profiles.contains(name) && _disabled_profiles[name])
+            if (_disabled_profiles.contains(profile->name()) && _disabled_profiles[profile->name()])
                 color = U32({0.7f, 0.70f, 0.70f, 1.0f});
             dl->AddCircleFilled(
                 {cell_start.x + 5.0f, cell_start.y + h * 0.5f},
@@ -231,14 +231,14 @@ void ProfilerView::render() {
 
             ImGui::SetCursorScreenPos({cell_start.x + 13.0f, cell_start.y});
             ImGui::PushStyleColor(ImGuiCol_Text, kDIM);
-            ImGui::TextUnformatted(name.c_str());
+            ImGui::TextUnformatted(profile->name().c_str());
             ImGui::PopStyleColor();
 
             if (clicked) {
-                if (!_disabled_profiles.contains(name))
-                    _disabled_profiles[name] = true;
+                if (!_disabled_profiles.contains(profile->name()))
+                    _disabled_profiles[profile->name()] = true;
                 else
-                    _disabled_profiles[name] = !_disabled_profiles[name];
+                    _disabled_profiles[profile->name()] = !_disabled_profiles[profile->name()];
             }
         }
 

@@ -6,43 +6,43 @@
 Profiler* Profiler::s_instance = nullptr;
 
 void Profiler::start(const std::string &name) {
-    if (!_profiles.contains(name))
-        _profiles[name] = new Profile;
+    Profile* profile = nullptr;
+    for (const auto p : _profiles) {
+        if (name == p->name()) {
+            profile = p;
+            break;
+        }
+    }
 
-    _profiles[name]->start();
-    _profiling.push(name);
+    if (!profile) {
+        profile = new Profile(name);
+        _profiles.push_back(profile);
+    }
+
+    profile->start();
+    _profiling.push(profile);
 }
 
-void Profiler::stop(const std::string &name) {
-    Profile* profile{};
-    if (name.empty()) {
-        if (_profiling.empty())
-            return;
+void Profiler::stop() {
+    if (_profiling.empty())
+        return;
 
-        profile = _profiles[_profiling.top()];
-        _profiling.pop();
-    }
-    else {
-        if (!_profiles.contains(name))
-            return;
-
-        profile = _profiles[name];
-    }
-
+    Profile* profile = _profiling.top();
     profile->stop();
+    _profiling.pop();
 }
 
-std::map<std::string, Profiler::Profile *>& Profiler::profiles() {
+std::vector<Profiler::Profile*>& Profiler::profiles() {
     return _profiles;
 }
 
-void Profiler::resetMax() {
-    for (const auto &profile: _profiles | std::views::values) {
+void Profiler::resetMax() const {
+    for (const auto &profile: _profiles) {
         profile->resetMax();
     }
 }
 
-Profiler::Profile::Profile() {
+Profiler::Profile::Profile(const std::string& name) : _name(std::move(name)){
     _data = (float*)malloc(PROFILER_SAMPLES * sizeof(float));
     memset(_data, 0, PROFILER_SAMPLES * sizeof(float));
 }
@@ -85,6 +85,10 @@ float Profiler::Profile::avg(const int count) const {
     return a / nSamples;
 }
 
+std::string Profiler::Profile::name() {
+    return _name;
+}
+
 unsigned int Profiler::Profile::idx() const {
     return _idx;
 }
@@ -94,6 +98,6 @@ void Profiler::Profile::resetMax() {
 }
 
 Profiler::~Profiler() {
-    for (const auto profile: _profiles | std::views::values)
+    for (const auto profile: _profiles)
         delete profile;
 }
