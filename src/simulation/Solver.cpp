@@ -3,33 +3,73 @@
 #include <GL/glew.h>
 
 #include "simulation/Properties.h"
+#include "util/Profiler.h"
 
 Solver::Solver(const int width, const int height) : _width(width), _height(height) {
     _size = _width * _height;
 }
 
+static constexpr int SCALAR_GAMMA     = 0;
+static constexpr int SCALAR_DELTA     = 1;
+static constexpr int SCALAR_ALPHA     = 2;
+static constexpr int SCALAR_BETA      = 3;
+static constexpr int SCALAR_GAMMA_OLD = 4;
+static constexpr int SCALAR_COUNT     = 5;
+
 CGSolver::CGSolver(const int width, const int height) : Solver(width, height) {
-    _t = new ScalField(width, height);
+    _t   = new ScalField(width, height);
     _tmp = new ScalField(width, height);
-    _r = new ScalField(width, height);
-    _d = new ScalField(width, height);
+    _r   = new ScalField(width, height);
+    _d   = new ScalField(width, height);
 
 #ifdef USE_GPU
-    _shader_as = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_add_scaled.comp"));
-    _shader_mm = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_mat_mul.comp"));
-    _shader_ss = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_set_subtract.comp"));
-    _shader_sa = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_scale_add.comp"));
-    _shader_dp = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_dot_pass.comp"));
+    _shader_as  = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_add_scaled.comp"));
+    _shader_mm  = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_mat_mul.comp"));
+    _shader_ss  = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_set_subtract.comp"));
+    _shader_sa  = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_scale_add.comp"));
+
+    _shader_asg = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_add_scaled_gpu.comp"));
+    _shader_sag = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_scale_add_gpu.comp"));
+
+    _shader_dp2 = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_dot2_pass.comp"));
+    _shader_r2  = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_reduce2.comp"));
+
+    _shader_us  = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_update_scalars.comp"));
 
     const int n = width * height;
-    _gpu_t = new StorageBuffer(n * sizeof(float));
-    _gpu_tmp = new StorageBuffer(n * sizeof(float));
-    _gpu_r = new StorageBuffer(n * sizeof(float));
-    _gpu_d = new StorageBuffer(n * sizeof(float));
+    _gpu_r   = new StorageBuffer(n * sizeof(float));
+    _gpu_d   = new StorageBuffer(n * sizeof(float));
+    _gpu_t   = new StorageBuffer(n * sizeof(float));   // semantic: z  (direction image A*d)
+    _gpu_tmp = new StorageBuffer(n * sizeof(float));   // semantic: w  (w = A*r each iter)
 
-    const int dotN = (n + 255) / 256;
-    _dot.resize(dotN);
-    _gpu_dot = new StorageBuffer(dotN * sizeof(float));
+    // GPU-resident scalar state: [gamma, delta, alpha, beta, gamma_old]
+    _gpu_scalars = new StorageBuffer(SCALAR_COUNT * sizeof(float));
+    _scalars_cpu.resize(SCALAR_COUNT, 0.0f);
+
+    // Build the reduction chain.
+    // _reduceChain[i] is the output pair-count of the i-th reduce2 pass.
+    // The final entry is always 1 (a single pair written to _gpu_scalars).
+    _numGroups = (n + 255) / 256;
+    _gpu_dot2  = new StorageBuffer(2 * _numGroups * sizeof(float));
+
+    int count = _numGroups;
+    while (count > 1) {
+        count = (count + 255) / 256;
+        _reduceChain.push_back(count);
+    }
+
+    // Allocate one intermediate buffer if the chain needs more than one reduce2 pass.
+    // For grids up to 2048×2048 (numGroups ≤ 16384), a single intermediate pass
+    // produces ≤ 64 pairs → one more pass reaches 1.  Two intermediate buffers would
+    // only be needed at 4096×4096 (numGroups = 65536), which is exceptional.
+    if (_reduceChain.size() > 1) {
+        // Only the first intermediate output needs a buffer; subsequent passes may
+        // also need one if the chain is longer, but that would take a grid of
+        // 4096×4096 or larger.  Allocate for each stage except the last (→ scalars).
+        for (int i = 0; i + 1 < (int)_reduceChain.size(); i++) {
+            _gpu_reduce_chain.push_back(new StorageBuffer(2 * _reduceChain[i] * sizeof(float)));
+        }
+    }
 #endif
 }
 
@@ -44,153 +84,267 @@ CGSolver::~CGSolver() {
     delete _shader_mm;
     delete _shader_ss;
     delete _shader_sa;
-    delete _shader_dp;
+
+    delete _shader_asg;
+    delete _shader_sag;
+    delete _shader_dp2;
+    delete _shader_r2;
+    delete _shader_us;
 
     delete _gpu_t;
     delete _gpu_tmp;
     delete _gpu_r;
     delete _gpu_d;
 
-    delete _gpu_dot;
+    delete _gpu_scalars;
+    delete _gpu_dot2;
+    for (const auto* buf : _gpu_reduce_chain)
+        delete buf;
 #endif
 }
 
 float CGSolver::solve(Grid* grid) {
     const auto& divergence = grid->divergence();
-    const auto& rho = grid->rho();
-    const auto& boundary = grid->boundary();
-    auto& pressure = grid->pressure();
+    const auto& rho        = grid->rho();
+    const auto& boundary   = grid->boundary();
+    auto&       pressure   = grid->pressure();
 
 #ifdef USE_GPU
-    const int steps = PROPERTY_I(MAX_STEPS);
-    const auto errorThreshold = PROPERTY_F(SOLVER_THRESHOLD);
+    Profiler* profiler = Profiler::Get();
 
-
-    auto gpu_mat_mul = [&](
-        const StorageBuffer* result, const StorageBuffer* _x,
-        const StorageBuffer* _rho, const StorageBuffer* _boundary)
-    {
-        const int w = grid->width();
-        const int h = grid->height();
-        const int gx = (w + 15) / 16;
-        const int gy = (h + 15) / 16;
-
-        _shader_mm->bind();
-        result->bind(0);
-        _x->bind(1);
-        _rho->bind(2);
-        _boundary->bind(3);
-        _shader_mm->setInt("uWidth",  w);
-        _shader_mm->setInt("uHeight", h);
-        _shader_mm->dispatch(gx, gy);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    };
-    auto gpu_add_scaled = [&](const StorageBuffer* result, const StorageBuffer* _x, const float factor) {
-        const int n = grid->size();
-        const int gx = (n + 255) / 256;
-
-        _shader_as->bind();
-        result->bind(0);
-        _x->bind(1);
-        _shader_as->setInt("uCount", n);
-        _shader_as->setFloat("uFactor", factor);
-        _shader_as->dispatch(gx);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    };
-    auto gpu_set_subtract = [&](const StorageBuffer* result, const StorageBuffer* _x, const StorageBuffer* d) {
-        const int n = grid->size();
-        const int gx = (n + 255) / 256;
-
-        _shader_ss->bind();
-        result->bind(0);
-        _x->bind(1);
-        d->bind(2);
-        _shader_ss->setInt("uCount", n);
-        _shader_ss->dispatch(gx);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    };
-    auto gpu_scale_add = [&](const StorageBuffer* result, const StorageBuffer* _x, const float factor) {
-        const int n = grid->size();
-        const int gx = (n + 255) / 256;
-
-        _shader_sa->bind();
-        result->bind(0);
-        _x->bind(1);
-        _shader_sa->setInt("uCount", n);
-        _shader_sa->setFloat("uFactor", factor);
-        _shader_sa->dispatch(gx);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    };
-    auto gpu_dot_pass = [&](const StorageBuffer* _a, const StorageBuffer* _b) {
-        const int n = grid->size();
-        const int gx = (n + 255) / 256;
-
-        _shader_dp->bind();
-        _gpu_dot->bind(0);
-        _a->bind(1);
-        _b->bind(2);
-        _shader_dp->setInt("uCount", n);
-        _shader_dp->dispatch(gx);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-        _gpu_dot->download(_dot.data());
-        float retVal = 0;
-        for (const float v : _dot)
-            retVal += v;
-
-        return retVal;
-    };
-
-    grid->gpuRho->upload(grid->rho().data());
-    //grid->gpuBoundary->upload(grid->boundary().data());
-    grid->gpuDivergence->upload(divergence.data());
-    grid->gpuPressure->upload(divergence.data());
-
-    gpu_mat_mul(_gpu_t, grid->gpuPressure, grid->gpuRho, grid->gpuBoundary);
-
-    gpu_set_subtract(_gpu_r, grid->gpuDivergence, _gpu_t);
-    gpu_set_subtract(_gpu_d, grid->gpuDivergence, _gpu_t);
-
-    float sqrtLen = gpu_dot_pass(_gpu_r, _gpu_r);
-    if (sqrtLen < errorThreshold) {
-        grid->gpuPressure->download(grid->pressure().data());
-        return sqrtLen;
-    }
-
-    for (int i = 0; i < steps; i++) {
-        gpu_mat_mul(_gpu_t, _gpu_d, grid->gpuRho, grid->gpuBoundary);
-
-        const float alpha = sqrtLen / gpu_dot_pass(_gpu_d, _gpu_t);
-        gpu_add_scaled(grid->gpuPressure, _gpu_d, alpha);
-
-        if (i & 0x3F) {
-            gpu_add_scaled(_gpu_r, _gpu_t, -alpha);
-        }
-        else {
-            gpu_mat_mul(_gpu_t, grid->gpuPressure, grid->gpuRho, grid->gpuBoundary);
-            gpu_set_subtract(_gpu_r, grid->gpuDivergence, _gpu_t);
-        }
-
-        const float oldSqrtLen = sqrtLen;
-        sqrtLen = gpu_dot_pass(_gpu_r, _gpu_r);
-        if (sqrtLen < errorThreshold) {
-            grid->gpuPressure->download(grid->pressure().data());
-            return sqrtLen;
-        }
-
-        const float beta = sqrtLen / oldSqrtLen;
-        gpu_scale_add(_gpu_d, _gpu_r, beta);
-    }
-
-    return sqrtLen;
-
-#else
-    const int steps = PROPERTY_I(MAX_STEPS);
+    profiler->start("6.1 Solver Start");
+    const int   steps          = PROPERTY_I(MAX_STEPS);
+    const int   convCheck      = PROPERTY_I(SOLVER_CHECK_INTERVAL);
     const float errorThreshold = PROPERTY_F(SOLVER_THRESHOLD);
 
-    auto& t = *_t; t.clear();
+    const int w    = grid->width();
+    const int h    = grid->height();
+    const int n    = grid->size();
+    const int gx1d = (n + 255) / 256;
+    const int gx2d = (w + 15) / 16;
+    const int gy2d = (h + 15) / 16;
+
+    auto barrier = []() {
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    };
+
+    // result = A * x  (Laplacian mat-vec)
+    auto gpu_mat_mul = [&](const StorageBuffer* result, const StorageBuffer* x) {
+        _shader_mm->bind();
+        result->bind(0);  x->bind(1);
+        grid->gpuRho->bind(2);  grid->gpuBoundary->bind(3);
+        _shader_mm->setInt("uWidth", w);
+        _shader_mm->setInt("uHeight", h);
+        _shader_mm->dispatch(gx2d, gy2d);
+        barrier();
+    };
+
+    // result[i] = x[i] - d[i]
+    auto gpu_set_subtract = [&](const StorageBuffer* result,
+                                const StorageBuffer* x,
+                                const StorageBuffer* d) {
+        _shader_ss->bind();
+        result->bind(0);  x->bind(1);  d->bind(2);
+        _shader_ss->setInt("uCount", n);
+        _shader_ss->dispatch(gx1d);
+        barrier();
+    };
+
+    // result[i] = factor * result[i] + x[i]   (CPU-scalar, used for init only)
+    auto gpu_scale_add_cpu = [&](const StorageBuffer* result,
+                                 const StorageBuffer* x, float factor) {
+        _shader_sa->bind();
+        result->bind(0);  x->bind(1);
+        _shader_sa->setInt("uCount", n);
+        _shader_sa->setFloat("uFactor", factor);
+        _shader_sa->dispatch(gx1d);
+        barrier();
+    };
+
+    // ── Full reduction: dot(r,r) and dot(r,w) → _gpu_scalars[0..1] ────────
+    //
+    // Runs the dot2 pass followed by as many reduce2 passes as the chain
+    // requires.  No CPU download; the final pair lands in _gpu_scalars.
+    // Dispatches are fire-and-forget separated only by SSBO barriers.
+    //
+    auto gpu_full_reduce = [&]() {
+        _shader_dp2->bind();
+        _gpu_dot2->bind(0);
+        _gpu_r->bind(1);
+        _gpu_tmp->bind(2);   // w = A*r
+        _shader_dp2->setInt("uCount", n);
+        _shader_dp2->dispatch(_numGroups);
+        barrier();
+
+        StorageBuffer* src      = _gpu_dot2;
+        int            inCount  = _numGroups;
+
+        for (int stage = 0; stage < (int)_reduceChain.size(); stage++) {
+            const int outCount = _reduceChain[stage];
+
+            StorageBuffer* dst = (stage < (int)_gpu_reduce_chain.size())
+                               ? _gpu_reduce_chain[stage]   // intermediate
+                               : _gpu_scalars;              // final → scalars[0..1]
+
+            _shader_r2->bind();
+            dst->bind(0);
+            src->bind(1);
+            _shader_r2->setInt("uCount", inCount);
+            _shader_r2->dispatch(outCount);
+            barrier();
+
+            src     = dst;
+            inCount = outCount;
+        }
+    };
+
+    // result[i] += sign * scalars[idx] * x[i]
+    auto gpu_add_scaled_gpu = [&](const StorageBuffer* result,
+                                  const StorageBuffer* x,
+                                  float sign, int idx) {
+        _shader_asg->bind();
+        result->bind(0);  x->bind(1);  _gpu_scalars->bind(2);
+        _shader_asg->setInt("uCount", n);
+        _shader_asg->setInt("uScalarIdx", idx);
+        _shader_asg->setFloat("uSign", sign);
+        _shader_asg->dispatch(gx1d);
+        barrier();
+    };
+
+    // result[i] = scalars[idx] * result[i] + x[i]
+    auto gpu_scale_add_gpu = [&](const StorageBuffer* result,
+                                 const StorageBuffer* x, int idx) {
+        _shader_sag->bind();
+        result->bind(0);  x->bind(1);  _gpu_scalars->bind(2);
+        _shader_sag->setInt("uCount", n);
+        _shader_sag->setInt("uScalarIdx", idx);
+        _shader_sag->dispatch(gx1d);
+        barrier();
+    };
+
+    // Single-invocation scalar update on GPU: reads gamma/delta from scalars[0..1],
+    // writes alpha/beta to scalars[2..3], saves gamma_old to scalars[4].
+    auto gpu_update_scalars = [&]() {
+        _shader_us->bind();
+        _gpu_scalars->bind(0);
+        _shader_us->dispatch(1);
+        barrier();
+    };
+
+    grid->gpuRho->upload(rho.data());
+    grid->gpuBoundary->upload(boundary.data());
+    grid->gpuDivergence->upload(divergence.data());
+    grid->gpuPressure->upload(pressure.data());
+
+    // r = b − A*x₀  Reuse _gpu_tmp (the w slot) as a temporary to hold A*x₀, then overwrite.
+    gpu_mat_mul(_gpu_tmp, grid->gpuPressure);                         // tmp  = A*x₀
+    gpu_set_subtract(_gpu_r, grid->gpuDivergence, _gpu_tmp);         // r    = b − A*x₀
+
+    // w = A*r  (first w, needed for both the initial dot and d/z init)
+    gpu_mat_mul(_gpu_tmp, _gpu_r);
+
+    // Full reduction → _gpu_scalars[0] = γ₀,  _gpu_scalars[1] = δ₀
+    gpu_full_reduce();
+
+    // This is the only mandatory CPU stall per frame.  We need γ₀ to check the
+    // initial residual and compute α₀ = γ₀/δ₀ to seed the GPU scalar state.
+    _gpu_scalars->download(_scalars_cpu.data(), 2 * sizeof(float));
+    const float gamma0 = _scalars_cpu[SCALAR_GAMMA];
+    const float delta0 = _scalars_cpu[SCALAR_DELTA];
+
+    if (gamma0 < errorThreshold) {
+        grid->gpuPressure->download(pressure.data());
+        return gamma0;
+    }
+
+    // Seed the full GPU scalar state.
+    _scalars_cpu[SCALAR_GAMMA]     = gamma0;
+    _scalars_cpu[SCALAR_DELTA]     = delta0;
+    _scalars_cpu[SCALAR_ALPHA]     = gamma0 / delta0;   // α₀ = γ₀/δ₀
+    _scalars_cpu[SCALAR_BETA]      = 0.0f;              // β₀ = 0 (first iter uses β=0)
+    _scalars_cpu[SCALAR_GAMMA_OLD] = gamma0;            // for next β = γ_new/γ_old
+    _gpu_scalars->upload(_scalars_cpu.data());
+
+    // d = r,  z = w  (scale_add with 0: result = 0*result + src = src)
+    gpu_scale_add_cpu(_gpu_d, _gpu_r,   0.0f);   // d = r
+    gpu_scale_add_cpu(_gpu_t, _gpu_tmp, 0.0f);   // z = w  (_gpu_t is the z slot)
+
+    float gamma_last = gamma0;
+
+    profiler->stop();
+    profiler->start("6.2 Solver Loop");
+    int i = 0;
+    for (i = 0; i < steps; i++)
+    {
+        // x += alpha * d           (alpha = scalars[SCALAR_ALPHA])
+        profiler->start("6.2.1");
+        gpu_add_scaled_gpu(grid->gpuPressure, _gpu_d,  +1.0f, SCALAR_ALPHA);
+        profiler->stop();
+
+        // r -= alpha * z
+        profiler->start("6.2.2");
+        gpu_add_scaled_gpu(_gpu_r, _gpu_t, -1.0f, SCALAR_ALPHA);
+        profiler->stop();
+
+        // ── Residual replacement every 64 iterations ──────────────────────
+        // Resets the accumulated floating-point error in r by recomputing
+        // r = b − A*x directly.  Reuses _gpu_tmp (w slot) as a temp.
+        profiler->start("6.2.3");
+        if ((i & 0x3F) == 0x3F) {
+            gpu_mat_mul(_gpu_tmp, grid->gpuPressure);                 // tmp  = A*x
+            gpu_set_subtract(_gpu_r, grid->gpuDivergence, _gpu_tmp); // r    = b − A*x
+        }
+        profiler->stop();
+
+        // w = A*r  (always needed for the reduction)
+        profiler->start("6.2.4");
+        gpu_mat_mul(_gpu_tmp, _gpu_r);
+        profiler->stop();
+
+        // Full reduction: dot(r,r), dot(r,w) → scalars[0..1]
+        profiler->start("6.2.5");
+        gpu_full_reduce();
+        profiler->stop();
+
+        // alpha, beta update on GPU: scalars[2..4] ← f(scalars[0..4])
+        profiler->start("6.2.6");
+        gpu_update_scalars();
+        profiler->stop();
+
+        // d = beta*d + r   (beta = scalars[SCALAR_BETA])
+        profiler->start("6.2.7");
+        gpu_scale_add_gpu(_gpu_d, _gpu_r,   SCALAR_BETA);
+        profiler->stop();
+
+        // z = beta*z + w
+        profiler->start("6.2.8");
+        gpu_scale_add_gpu(_gpu_t, _gpu_tmp, SCALAR_BETA);
+        profiler->stop();
+
+        profiler->start("6.2.9");
+        if ((i % convCheck) == (convCheck - 1))
+        {
+            _gpu_scalars->download(&gamma_last, sizeof(float));
+            if (gamma_last < errorThreshold)
+                break;
+        }
+        profiler->stop();
+    }
+    profiler->stop();
+    profiler->start("6.3 Solver End");
+
+    SET_PROPERTY_I(SOLVE_STEPS, i + 1);
+    grid->gpuPressure->download(pressure.data());
+    profiler->stop();
+    return gamma_last;
+
+#else
+    const int   steps          = PROPERTY_I(MAX_STEPS);
+    const float errorThreshold = PROPERTY_F(SOLVER_THRESHOLD);
+
+    auto& t   = *_t;   t.clear();
     auto& tmp = *_tmp; tmp.clear();
-    auto& r = *_r; r = divergence;
+    auto& r   = *_r;   r = divergence;
 
     pressure = divergence;
     impl_mat_mul(t, pressure, rho, boundary);
@@ -229,41 +383,29 @@ float CGSolver::solve(Grid* grid) {
 #endif
 }
 
-void CGSolver::impl_mat_mul(ScalField &result, const ScalField &x, const ScalField &rho, const ScalField &boundary) const {
+void CGSolver::impl_mat_mul(ScalField &result, const ScalField &x,
+                             const ScalField &rho, const ScalField &boundary) const
+{
     for (int y = 0; y < _height; y++) {
         for (int x_ = 0; x_ < _width; x_++) {
-
-            // Air cell OR boundary of domain: p = 0, identity row
             if (rho(x_, y) <= 0.5f || boundary(x_, y) == 1) {
                 result(x_, y) = x(x_, y);
                 continue;
             }
-
-            // Fluid cell (rho > 0.5): build Laplacian row
             float sum    = 0.0f;
             int   nCount = 0;
 
             auto sampleNeighbor = [&](const int nx, const int ny) {
-                // Out of bounds: already Neumann (never reached with border cells in domain)
                 if (nx < 0 || nx >= _width || ny < 0 || ny >= _height) return;
-
-                // Border cells are solid walls → Neumann (dp/dn = 0): exclude entirely
-                // Previously these were treated as air (Dirichlet p=0) which inflated
-                // the diagonal and caused the pressure to be too small to cancel divergence
                 if (nx == 0 || nx == _width-1 || ny == 0 || ny == _height-1) return;
                 if (boundary(nx, ny) > 0.5f) return;
-
                 nCount++;
                 if (rho(nx, ny) > 0.5f)
                     sum += x(nx, ny);
-                // Interior air cell: Dirichlet p=0 (correct — counts in nCount, not sum)
             };
 
-            sampleNeighbor(x_ - 1, y);
-            sampleNeighbor(x_ + 1, y);
-            sampleNeighbor(x_, y - 1);
-            sampleNeighbor(x_, y + 1);
-
+            sampleNeighbor(x_-1, y); sampleNeighbor(x_+1, y);
+            sampleNeighbor(x_, y-1); sampleNeighbor(x_, y+1);
             result(x_, y) = sum - (float)nCount * x(x_, y);
         }
     }
@@ -272,138 +414,69 @@ void CGSolver::impl_mat_mul(ScalField &result, const ScalField &x, const ScalFie
 using SpMat = Eigen::SparseMatrix<float, Eigen::RowMajor>;
 using VecXf = Eigen::VectorXf;
 
-EigenSolver::~EigenSolver() {
-    delete _A;
-    delete _b;
-    delete _x0;
-}
-
 EigenSolver::EigenSolver(const int width, const int height) : Solver(width, height) {
-    _A = new Eigen::SparseMatrix<float, Eigen::RowMajor>(_size, _size);
-    _b = new Eigen::VectorXf(_size);
+    _A  = new Eigen::SparseMatrix<float, Eigen::RowMajor>(_size, _size);
+    _b  = new Eigen::VectorXf(_size);
     _x0 = new Eigen::VectorXf(_size);
 }
 
-void EigenSolver::determine_equations(const ScalField &divergence, const ScalField &rho, const ScalField &boundary) const {
-    auto idx = [&](const int x, const int y){ return y * _width + x; };
+EigenSolver::~EigenSolver() { delete _A; delete _b; delete _x0; }
 
-    // ── Build sparse matrix ──────────────────────────────────────────────────
-    // Reserve 5 slots per row (diagonal + 4 neighbours).
+void EigenSolver::determine_equations(const ScalField &divergence, const ScalField &rho, const ScalField &boundary) const
+{
+    auto idx = [&](int x, int y){ return y * _width + x; };
     std::vector<Eigen::Triplet<float>> triplets;
     triplets.reserve(_size * 5);
-    auto& b = *_b;
-    b.setZero();
+    _b->setZero();
 
     for (int y = 0; y < _height; y++) {
         for (int x = 0; x < _width; x++) {
             const int i = idx(x, y);
+            const bool liquid = rho(x,y) > 0.5f && boundary(x,y) < 0.5f
+                             && x > 0 && x < _width-1 && y > 0 && y < _height-1;
+            if (!liquid) { triplets.emplace_back(i, i, 1.f); continue; }
 
-            // Air, wall, or domain border → identity row, p = 0
-            const bool liquid = rho(x, y)      >  0.5f
-                             && boundary(x, y)  <  0.5f
-                             && x > 0 && x < _width-1
-                             && y > 0 && y < _height-1;
-
-            if (!liquid) {
-                triplets.emplace_back(i, i, 1.f);
-                // b[i] already 0 — Dirichlet p = 0 for air/wall
-                continue;
-            }
-
-            // Liquid cell — positive-definite form: +nCount on diagonal, -1 off-diagonal
             int nCount = 0;
-
-            auto addNeighbour = [&](const int nx, const int ny) {
-                if (nx < 0 || nx >= _width || ny < 0 || ny >= _height) return;
-                if (nx == 0 || nx == _width-1 || ny == 0 || ny == _height-1) return; // Neumann border
-                if (boundary(nx, ny) > 0.5f) return;                             // Neumann wall
-
+            auto addN = [&](int nx, int ny) {
+                if (nx<0||nx>=_width||ny<0||ny>=_height) return;
+                if (nx==0||nx==_width-1||ny==0||ny==_height-1) return;
+                if (boundary(nx,ny) > 0.5f) return;
                 nCount++;
-                if (rho(nx, ny) > 0.5f)
-                    triplets.emplace_back(i, idx(nx, ny), -1.f); // liquid neighbour
-                // Air neighbour: Dirichlet p=0, counted in nCount but no off-diagonal
+                if (rho(nx,ny) > 0.5f) triplets.emplace_back(i, idx(nx,ny), -1.f);
             };
-
-            addNeighbour(x-1, y); addNeighbour(x+1, y);
-            addNeighbour(x, y-1); addNeighbour(x, y+1);
-
-            triplets.emplace_back(i, i, (float)nCount); // +nCount diagonal
-            b[i] = -divergence(x, y);                     // negated RHS
+            addN(x-1,y); addN(x+1,y); addN(x,y-1); addN(x,y+1);
+            triplets.emplace_back(i, i, (float)nCount);
+            (*_b)[i] = -divergence(x, y);
         }
     }
-
-    auto& A = *_A;
-    A.setFromTriplets(triplets.begin(), triplets.end());
+    _A->setFromTriplets(triplets.begin(), triplets.end());
 }
 
-EigenCGSolver::EigenCGSolver(const int width, const int height) : EigenSolver(width, height){
-}
-
+EigenCGSolver::EigenCGSolver(const int w, const int h) : EigenSolver(w, h) {}
 float EigenCGSolver::solve(Grid* grid) {
-    const int steps = PROPERTY_I(MAX_STEPS);
-    const float errorThreshold = PROPERTY_F(SOLVER_THRESHOLD);
-
-    const auto& divergence = grid->divergence();
-    const auto& rho = grid->rho();
-    const auto& boundary = grid->boundary();
-    auto& pressure = grid->pressure();
-
-    determine_equations(divergence, rho, boundary);
-
-    Eigen::ConjugateGradient<SpMat, Eigen::Lower | Eigen::Upper, Eigen::DiagonalPreconditioner<float>> solver;
-
-    const auto& A = *_A;
-    const auto& b = *_b;
-
-    solver.setMaxIterations(steps);
-    solver.setTolerance(errorThreshold);
-    solver.compute(A);
-
-    // Warm start: previous frame's pressure is a good initial guess
-    auto& x0 = *_x0;
-    for (int i = 0; i < _size; i++)
-        x0[i] = pressure[i];
-
-    VecXf sol = solver.solveWithGuess(b, x0);
-
-    for (int i = 0; i < _size; i++)
-        pressure[i] = sol[i];
-
+    determine_equations(grid->divergence(), grid->rho(), grid->boundary());
+    Eigen::ConjugateGradient<SpMat,Eigen::Lower|Eigen::Upper,
+                             Eigen::DiagonalPreconditioner<float>> solver;
+    solver.setMaxIterations(PROPERTY_I(MAX_STEPS));
+    solver.setTolerance(PROPERTY_F(SOLVER_THRESHOLD));
+    solver.compute(*_A);
+    auto& x0 = *_x0; auto& p = grid->pressure();
+    for (int i = 0; i < _size; i++) x0[i] = p[i];
+    VecXf sol = solver.solveWithGuess(*_b, x0);
+    for (int i = 0; i < _size; i++) p[i] = sol[i];
     return (float)solver.error();
 }
 
-EigenBiCGSTABSolver::EigenBiCGSTABSolver(const int width, const int height) : EigenSolver(width, height) {
-}
-
+EigenBiCGSTABSolver::EigenBiCGSTABSolver(const int w, const int h) : EigenSolver(w, h) {}
 float EigenBiCGSTABSolver::solve(Grid* grid) {
-    const int steps = PROPERTY_I(MAX_STEPS);
-    const float errorThreshold = PROPERTY_F(SOLVER_THRESHOLD);
-
-    const auto& divergence = grid->divergence();
-    const auto& rho = grid->rho();
-    const auto& boundary = grid->boundary();
-    auto& pressure = grid->pressure();
-
-    determine_equations(divergence, rho, boundary);
-
+    determine_equations(grid->divergence(), grid->rho(), grid->boundary());
     Eigen::BiCGSTAB<SpMat, Eigen::DiagonalPreconditioner<float>> solver;
-
-    const auto& A = *_A;
-    const auto& b = *_b;
-
-    solver.setMaxIterations(steps);
-    solver.setTolerance(errorThreshold);
-    solver.compute(A);
-
-    // Warm start: previous frame's pressure is a good initial guess
-    auto& x0 = *_x0;
-    for (int i = 0; i < _size; i++)
-        x0[i] = pressure[i];
-
-    VecXf sol = solver.solveWithGuess(b, x0);
-
-    for (int i = 0; i < _size; i++)
-        pressure[i] = sol[i];
-
+    solver.setMaxIterations(PROPERTY_I(MAX_STEPS));
+    solver.setTolerance(PROPERTY_F(SOLVER_THRESHOLD));
+    solver.compute(*_A);
+    auto& x0 = *_x0; auto& p = grid->pressure();
+    for (int i = 0; i < _size; i++) x0[i] = p[i];
+    VecXf sol = solver.solveWithGuess(*_b, x0);
+    for (int i = 0; i < _size; i++) p[i] = sol[i];
     return (float)solver.error();
 }

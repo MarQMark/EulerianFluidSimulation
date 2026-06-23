@@ -1,0 +1,47 @@
+#version 430
+layout(local_size_x = 256) in;
+
+// Interleaved output: [gamma_0, delta_0, gamma_1, delta_1, ...]
+// gamma_i = partial sum of dot(a, a)
+// delta_i = partial sum of dot(a, b)
+// One pair written per workgroup.
+layout(std430, binding = 0) writeonly buffer BufResult { float result[]; };
+layout(std430, binding = 1) readonly  buffer BufA      { float a[];      };
+layout(std430, binding = 2) readonly  buffer BufB      { float b[];      };
+
+uniform int uCount;
+
+shared float s_gamma[256];
+shared float s_delta[256];
+
+void main()
+{
+    uint gid   = gl_GlobalInvocationID.x;
+    uint lid   = gl_LocalInvocationID.x;
+    uint group = gl_WorkGroupID.x;
+
+    float ai = (gid < uCount) ? a[gid] : 0.0;
+    float bi = (gid < uCount) ? b[gid] : 0.0;
+
+    s_gamma[lid] = ai * ai;
+    s_delta[lid] = ai * bi;
+
+    barrier();
+
+    // Standard parallel reduction — both accumulators in one pass.
+    for (uint stride = 128u; stride > 0u; stride >>= 1u)
+    {
+        if (lid < stride)
+        {
+            s_gamma[lid] += s_gamma[lid + stride];
+            s_delta[lid] += s_delta[lid + stride];
+        }
+        barrier();
+    }
+
+    if (lid == 0u)
+    {
+        result[2u * group     ] = s_gamma[0];
+        result[2u * group + 1u] = s_delta[0];
+    }
+}

@@ -6,6 +6,8 @@ StorageBuffer::StorageBuffer(const unsigned int size) : _size(size){
     glGenBuffers(1, &_id);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _id);
     glBufferData(GL_SHADER_STORAGE_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
+    constexpr float zero = 0.0f;
+    glClearBufferData(GL_SHADER_STORAGE_BUFFER, GL_R32F, GL_RED, GL_FLOAT, &zero);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 

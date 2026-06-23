@@ -14,6 +14,7 @@
 #include "views/FPSView.h"
 #include "views/ProfilerView.h"
 #include "views/PropertiesView.h"
+#include "views/SolverStepsView.h"
 #include "views/StatsView.h"
 
 Simulator::Simulator() {
@@ -25,6 +26,7 @@ Simulator::Simulator() {
 	_views->addView("Stats", new StatsView());
 	_views->addView("Distribution", new DistributionView());
 	_views->addView("Profiler", new ProfilerView());
+	_views->addView("SolverSteps", new SolverStepsView());
 
 	recreate();
 
@@ -42,6 +44,7 @@ Simulator::~Simulator() {
 	delete _renderer;
 	delete _views;
 	delete _window;
+	delete _solver;
 }
 
 #define BOUNDARY 1.f
@@ -57,7 +60,7 @@ void Simulator::recreate() {
 	_renderer = new Renderer(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
 	_grid = new Grid(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
 
-	switch (PROPERTY(SOVLER_TYPE, Properties::SolverType)) {
+	switch (PROPERTY(SOLVER_TYPE, Properties::SolverType)) {
 		case Properties::EIGEN_CG:
 			_solver = new EigenCGSolver(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
 			break;
@@ -121,6 +124,10 @@ void Simulator::recreate() {
 	}
 
 #ifdef USE_GPU
+	if (_vel_pass_1) delete _vel_pass_1;
+	if (_vel_pass_2) delete _vel_pass_2;
+	if (_add_force) delete _add_force;
+
 	_vel_pass_1 = new ComputeShader(ComputeShader::LoadTextFile("shaders/vel_advect_pass1.comp"));
 	_vel_pass_2 = new ComputeShader(ComputeShader::LoadTextFile("shaders/vel_advect_pass2.comp"));
 	_add_force = new ComputeShader(ComputeShader::LoadTextFile("shaders/add_force.comp"));

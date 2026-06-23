@@ -46,7 +46,8 @@ public:
     PROP_TOKEN(PUSH_FORCE, "Push Force")
     PROP_TOKEN(PUSH_ENABLED, "Push Enabled")
 
-    PROP_TOKEN(SOVLER_TYPE, "Solver")
+    PROP_TOKEN(SOLVER_TYPE, "Solver")
+    PROP_TOKEN(SOLVER_CHECK_INTERVAL, "Check Interval")
     PROP_TOKEN(MAX_STEPS, "Max Steps")
     PROP_TOKEN(SOLVER_THRESHOLD, "Threshold")
 
@@ -66,6 +67,7 @@ public:
     PROP_TOKEN(SIMULATION_STEPS, "Simulation Steps")
     PROP_TOKEN(MAX_VALUE, "Max Value")
     PROP_TOKEN(TOTAL_RHO, "Total Rho")
+    PROP_TOKEN(SOLVE_STEPS, "Solve Steps")
 
     PROP_TOKEN(DISABLE_VEL_EXTRAPOLATE, "Disable Velocity Extrapolation");
     PROP_TOKEN(DISABLE_RHO_SHARPEN, "Disable Density Sharpen");
@@ -95,7 +97,8 @@ private:
         ADD(simulation_forces, PUSH_ENABLED, "", false)
 
         auto& simulation_solver = add_sub_category(simulation, "Solver");
-        ADD(simulation_solver, SOVLER_TYPE, "Which algorithm is used to solve system of equations", SolverType::SELF_CG)
+        ADD(simulation_solver, SOLVER_TYPE, "Which algorithm is used to solve system of equations", SolverType::SELF_CG)
+        ADD(simulation_solver, SOLVER_CHECK_INTERVAL, "Amount of steps CG takes before checking for convergence", 100)
         ADD(simulation_solver, MAX_STEPS, "Maximum amount of iterations solver does", 2000)
         ADD(simulation_solver, SOLVER_THRESHOLD, "Threshold at which solver considers system solved", 1e-5f)
 
@@ -125,6 +128,7 @@ private:
         ADD_HIDDEN(SIMULATION_STEPS, 0)
         ADD_HIDDEN(MAX_VALUE, 0)
         ADD_HIDDEN(TOTAL_RHO, 0.f)
+        ADD_HIDDEN(SOLVE_STEPS, 0)
     }
     ~Properties();
 

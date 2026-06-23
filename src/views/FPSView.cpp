@@ -1,6 +1,7 @@
 #include "views/FPSView.h"
 
 #include "imgui.h"
+#include "simulation/Properties.h"
 #include "util/GuiHelper.h"
 #include "util/Time.h"
 

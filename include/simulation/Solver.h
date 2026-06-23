@@ -43,16 +43,25 @@ private:
     ComputeShader* _shader_mm{};
     ComputeShader* _shader_ss{};
     ComputeShader* _shader_sa{};
-    ComputeShader* _shader_dp{};
+
+    ComputeShader* _shader_asg{};
+    ComputeShader* _shader_sag{};
+    ComputeShader* _shader_dp2{};
+    ComputeShader* _shader_r2{};
+    ComputeShader* _shader_us{};
 
     StorageBuffer* _gpu_t{};
     StorageBuffer* _gpu_tmp{};
     StorageBuffer* _gpu_r{};
     StorageBuffer* _gpu_d{};
 
-    std::vector<float> _dot;
-    StorageBuffer* _gpu_dot{};
-    StorageBuffer* _gpu_sqrt_len{};
+    StorageBuffer* _gpu_scalars{};
+    StorageBuffer* _gpu_dot2{};
+    std::vector<StorageBuffer*> _gpu_reduce_chain;
+
+    std::vector<int> _reduceChain;
+    std::vector<float> _scalars_cpu;
+    int _numGroups = 0;
 #endif
 };
 

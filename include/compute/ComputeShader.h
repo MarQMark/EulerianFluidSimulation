@@ -6,6 +6,7 @@
 class ComputeShader {
 public:
     ComputeShader(const std::string& code);
+    ~ComputeShader();
 
     void bind() const;
 

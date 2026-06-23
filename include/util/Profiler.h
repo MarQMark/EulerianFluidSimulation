@@ -24,7 +24,7 @@ public:
         float* data() const;
         float max() const;
         float cur() const;
-        float avg() const;
+        float avg(int count = 20) const;
         unsigned int idx() const;
 
         void resetMax();

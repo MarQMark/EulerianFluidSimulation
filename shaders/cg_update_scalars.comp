@@ -1,0 +1,35 @@
+#version 430
+layout(local_size_x = 1) in;
+
+// GPU-resident CG scalar state. Layout:
+//   [0] gamma     — <r,r>       written by reduce2 each iter, read here + CPU convergence
+//   [1] delta     — <r,Ar>      written by reduce2 each iter, read here
+//   [2] alpha     — step size   written here, read by add_scaled_gpu
+//   [3] beta      — direction   written here, read by scale_add_gpu
+//   [4] gamma_old — previous γ  written here, read here next iter
+layout(std430, binding = 0) buffer CgScalars { float s[]; };
+
+void main()
+{
+    // Single invocation — no races, reads before writes are safe.
+    float gamma_new = s[0];
+    float delta_new = s[1];
+    float alpha_old = s[2];   // read before overwrite
+    float beta_old  = s[3];   // (unused in formula but conceptually the prior beta)
+    float gamma_old = s[4];
+
+    // Chronopoulos-Gear scalar updates:
+    //   beta  = gamma_new / gamma_old
+    //   alpha = gamma_new / ( delta_new - (beta / alpha_old) * gamma_new )
+    //
+    // The denominator is the C-G identity for <d, Ad> — no explicit A*d needed.
+    // On the very first call beta_old is uploaded as 0 by the CPU, so the
+    // beta/alpha_old term vanishes and alpha = gamma_new/delta_new (correct for k=0).
+    float b = gamma_new / gamma_old;
+    float a = gamma_new / (delta_new - (b / alpha_old) * gamma_new);
+
+    s[2] = a;
+    s[3] = b;
+    s[4] = gamma_new;   // becomes gamma_old next iteration
+    // s[0] and s[1] are left intact for the CPU convergence download
+}

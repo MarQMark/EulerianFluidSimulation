@@ -74,8 +74,8 @@ float Profiler::Profile::cur() const {
     return _data[_idx];
 }
 
-float Profiler::Profile::avg() const {
-    constexpr int nSamples = PROFILER_SAMPLES / 20;
+float Profiler::Profile::avg(const int count) const {
+    const int nSamples = PROFILER_SAMPLES / count;
     float a = cur();
     unsigned int idx = _idx;
     for (int i = 0; i < nSamples - 1; ++i) {

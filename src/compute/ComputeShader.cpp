@@ -32,6 +32,10 @@ ComputeShader::ComputeShader(const std::string& code) {
     glDeleteShader(compute);
 }
 
+ComputeShader::~ComputeShader() {
+    glDeleteProgram(_id);
+}
+
 void ComputeShader::bind() const {
     glUseProgram(_id);
 }
@@ -55,8 +59,10 @@ std::string ComputeShader::LoadTextFile(const std::string& path)
 {
     std::ifstream file(path);
 
-    if (!file)
+    if (!file) {
+        std::cout << "File (" << path << ") not found" << std::endl;
         return {};
+    }
 
     file.seekg(0, std::ios::end);
     const std::streamsize size = file.tellg();
