@@ -1,22 +1,21 @@
 #include "util/Profiler.h"
 
 #include <cstring>
+#include <iostream>
 #include <ranges>
 
 Profiler* Profiler::s_instance = nullptr;
 
 void Profiler::start(const std::string &name) {
-    Profile* profile = nullptr;
-    for (const auto p : _profiles) {
-        if (name == p->name()) {
-            profile = p;
-            break;
-        }
-    }
+    Profile* profile = get_profile(_profiles,  name);
 
     if (!profile) {
         profile = new Profile(name);
-        _profiles.push_back(profile);
+        //std::cout << "New Profile " << name << "\n";
+        if (!_profiling.empty())
+            _profiling.top()->profiles().push_back(profile);
+        else
+            _profiles.push_back(profile);
     }
 
     profile->start();
@@ -28,12 +27,23 @@ void Profiler::stop() {
         return;
 
     Profile* profile = _profiling.top();
-    profile->stop();
     _profiling.pop();
+    if (!_profiling.empty())
+        profile->stop(_profiling.top()->idx());
+    else
+        profile->stop();
 }
 
 std::vector<Profiler::Profile*>& Profiler::profiles() {
     return _profiles;
+}
+
+int Profiler::profileCount(const std::vector<Profile*> &profiles) {
+    int count = profiles.size();
+    for (const auto p : profiles) {
+        count += profileCount(p->profiles());
+    }
+    return count;
 }
 
 void Profiler::resetMax() const {
@@ -49,16 +59,25 @@ Profiler::Profile::Profile(const std::string& name) : _name(std::move(name)){
 
 Profiler::Profile::~Profile() {
     free(_data);
+    for (const auto p : _profiles)
+        delete p;
 }
 
 void Profiler::Profile::start() {
     _start = std::chrono::high_resolution_clock::now();
 }
 
-void Profiler::Profile::stop() {
+void Profiler::Profile::stop(const int idx) {
     const auto elapsed = std::chrono::high_resolution_clock::now() - _start;
-    _idx = (_idx + 1) % PROFILER_SAMPLES;
-    _data[_idx] = std::chrono::duration<float, std::milli>(elapsed).count();
+
+    if (idx != _idx) {
+        _idx = (_idx + 1) % PROFILER_SAMPLES;
+        _data[_idx] = std::chrono::duration<float, std::milli>(elapsed).count();
+    }
+    else {
+        _data[_idx] += std::chrono::duration<float, std::milli>(elapsed).count();
+    }
+
     _max = std::max(_max, _data[_idx]);
 }
 
@@ -95,9 +114,26 @@ unsigned int Profiler::Profile::idx() const {
 
 void Profiler::Profile::resetMax() {
     _max = _data[_idx];
+    for (const auto profile : _profiles)
+        profile->resetMax();
+}
+
+std::vector<Profiler::Profile *> & Profiler::Profile::profiles() {
+    return _profiles;
 }
 
 Profiler::~Profiler() {
     for (const auto profile: _profiles)
         delete profile;
+}
+
+Profiler::Profile * Profiler::get_profile(const std::vector<Profile*>& profiles, const std::string &name) {
+    for (const auto p : profiles) {
+        if (p->name() == name)
+            return p;
+        if (auto* result = get_profile(p->profiles(), name))
+            return result;
+    }
+
+    return nullptr;
 }

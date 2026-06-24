@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "util/GuiHelper.h"
 #include "util/Profiler.h"
 
@@ -55,22 +56,7 @@ static ImU32 COLOR_A(const int idx, const float a) {
 
 } // anonymous namespace
 
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// §3  MULTI-LINE PLOT
-//
-//     Draws one polyline per stage on a shared canvas using ImDrawList so
-//     all lines share the same Y axis and can be compared directly.
-//
-//     Canvas layout:
-//       • Dark bg rect
-//       • Horizontal grid lines at 25 / 50 / 75 % of scale
-//       • Per stage: anti-aliased polyline + filled dot at current sample
-//       • Y-axis labels: full scale at top, midpoint at centre
-//       • Thin border
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-void ProfilerView::draw_plot(const std::vector<Profiler::Profile*>& profiles,
-                                     float scaleMax, ImVec2 size)
+void ProfilerView::draw_plot(const std::vector<Profiler::Profile*>& profiles, const float scaleMax, const ImVec2 size)
 {
     ImDrawList* dl = ImGui::GetWindowDrawList();
     ImVec2 p0      = ImGui::GetCursorScreenPos();
@@ -87,52 +73,8 @@ void ProfilerView::draw_plot(const std::vector<Profiler::Profile*>& profiles,
         dl->AddLine({p0.x, y}, {p1.x, y}, IM_COL32(30, 32, 44, 255), 1.0f);
     }
 
-    // ── One polyline per stage ────────────────────────────────────────────────
-    std::vector<ImVec2> pts;
-    pts.reserve(PROFILER_SAMPLES);
-
     for (int i = 0; const auto profile : profiles) {
-        if (_disabled_profiles.contains(profile->name()) && _disabled_profiles[profile->name()]) {
-            i++;
-            continue;
-        }
-
-        pts.clear();
-        for (int i2 = 0; i2 < PROFILER_SAMPLES; ++i2) {
-            int   idx  = (profile->idx() + i2) % PROFILER_SAMPLES;
-            float v    = profile->data()[idx];
-            for (int iAvg = 0; iAvg < (_avg_samples - 1); iAvg++) {
-                if (idx == 0)
-                    idx = PROFILER_SAMPLES - 1;
-                else
-                    idx--;
-
-                v += profile->data()[idx];
-            }
-            v /= (_avg_samples + 1);
-
-            float x    = p0.x + (float)i2 / (float)(PROFILER_SAMPLES - 1) * size.x;
-            float frac = (scaleMax > 0.0f) ? v / scaleMax : 0.0f;
-            float y    = p0.y + size.y * (1.0f - frac);
-            pts.push_back({x, y});
-        }
-
-        ImU32 lineCol = COLOR(i);
-
-        // Faint area fill under the line
-        std::vector<ImVec2> fill = pts;
-        fill.push_back({p1.x, p1.y});
-        fill.push_back({p0.x, p1.y});
-        //dl->AddConvexPolyFilled(fill.data(), (int)fill.size(), U32A(kStageColors[i], 0.07f));
-
-        // Line itself (1.5 px, anti-aliased by ImGui by default)
-        dl->AddPolyline(pts.data(), PROFILER_SAMPLES, lineCol, ImDrawFlags_None, 1.5f);
-
-        // Filled ring at current (rightmost) sample
-        dl->AddCircleFilled(pts.back(), 3.5f, lineCol);
-        dl->AddCircleFilled(pts.back(), 1.5f, IM_COL32(9, 9, 12, 255));
-
-        i++;
+        draw_line(profile, i, scaleMax, p0, p1, size);
     }
 
     dl->PopClipRect();
@@ -154,6 +96,161 @@ void ProfilerView::draw_plot(const std::vector<Profiler::Profile*>& profiles,
     ImGui::Dummy(size);
 }
 
+void ProfilerView::draw_line(Profiler::Profile *profile, int &id, const float scaleMax, ImVec2 p0, ImVec2 p1, const ImVec2 size) {
+    if (_disabled_profiles.contains(profile->name()) && _disabled_profiles[profile->name()]) {
+        id++;
+    }
+    else {
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        std::vector<ImVec2> pts;
+        pts.reserve(PROFILER_SAMPLES);
+
+        for (int i2 = 0; i2 < PROFILER_SAMPLES; ++i2) {
+            int   idx  = (profile->idx() + i2) % PROFILER_SAMPLES;
+            float v    = profile->data()[idx];
+            for (int iAvg = 0; iAvg < (_avg_samples - 1); iAvg++) {
+                if (idx == 0)
+                    idx = PROFILER_SAMPLES - 1;
+                else
+                    idx--;
+
+                v += profile->data()[idx];
+            }
+            v /= (_avg_samples + 1);
+
+            float x    = p0.x + (float)i2 / (float)(PROFILER_SAMPLES - 1) * size.x;
+            float frac = (scaleMax > 0.0f) ? v / scaleMax : 0.0f;
+            float y    = p0.y + size.y * (1.0f - frac);
+            pts.push_back({x, y});
+        }
+
+        ImU32 lineCol = COLOR(id);
+
+        // Faint area fill under the line
+        std::vector<ImVec2> fill = pts;
+        fill.push_back({p1.x, p1.y});
+        fill.push_back({p0.x, p1.y});
+        //dl->AddConvexPolyFilled(fill.data(), (int)fill.size(), U32A(kStageColors[i], 0.07f));
+
+        // Line itself (1.5 px, anti-aliased by ImGui by default)
+        dl->AddPolyline(pts.data(), PROFILER_SAMPLES, lineCol, ImDrawFlags_None, 1.5f);
+
+        // Filled ring at current (rightmost) sample
+        dl->AddCircleFilled(pts.back(), 3.5f, lineCol);
+        dl->AddCircleFilled(pts.back(), 1.5f, IM_COL32(9, 9, 12, 255));
+
+        id++;
+    }
+
+    for (const auto p : profile->profiles())
+        draw_line(p, id, scaleMax, p0, p1, size);
+}
+
+
+void ProfilerView::draw_table_entry(Profiler::Profile *profile, int& id, const float* avg, const float total) {
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+
+    ImGui::TableNextRow();
+
+    ImGui::TableSetColumnIndex(0);
+    {
+        ImVec2 cell_start = ImGui::GetCursorScreenPos();
+        const float h = ImGui::GetTextLineHeight();
+        ImGui::InvisibleButton(
+            ("##cell" + std::to_string(id)).c_str(),
+            ImVec2(ImGui::GetContentRegionAvail().x, h));
+
+        const bool clickedL = ImGui::IsItemClicked(ImGuiMouseButton_Left);
+        const bool clickedR = ImGui::IsItemClicked(ImGuiMouseButton_Right);
+
+        ImGui::SetCursorScreenPos(cell_start);
+        auto color = COLOR(id);
+        if (_disabled_profiles.contains(profile->name()) && _disabled_profiles[profile->name()])
+            color = U32({0.7f, 0.70f, 0.70f, 1.0f});
+        dl->AddCircleFilled(
+            {cell_start.x + 5.0f, cell_start.y + h * 0.5f},
+            3.5f,
+            color);
+
+        ImGui::SetCursorScreenPos({cell_start.x + 13.0f, cell_start.y});
+        ImGui::PushStyleColor(ImGuiCol_Text, kDIM);
+        ImGui::TextUnformatted(profile->name().c_str());
+        ImGui::PopStyleColor();
+
+        if (clickedL || clickedR) {
+            if (!_disabled_profiles.contains(profile->name()))
+                set_disabled(profile, true, clickedR);
+            else
+                set_disabled(profile, !_disabled_profiles[profile->name()], clickedR);
+        }
+    }
+
+    ImGui::TableSetColumnIndex(1);
+    ImGui::Text("%.3f ms", avg[id]);
+
+    ImGui::TableSetColumnIndex(2);
+    ImGui::PushStyleColor(ImGuiCol_Text, kPEAK);
+    ImGui::Text("%.3f ms", profile->max());
+    ImGui::PopStyleColor();
+
+    ImGui::TableSetColumnIndex(3);
+    {
+        ImVec2 b0 = ImGui::GetCursorScreenPos();
+        const float bW = ImGui::GetContentRegionAvail().x;
+        const float bH = ImGui::GetTextLineHeight() + ImGui::GetStyle().FramePadding.y;
+
+        dl->AddRectFilled(b0, {b0.x + bW, b0.y + bH},
+                          IM_COL32(18, 18, 26, 255), 3.0f);
+        dl->AddRectFilled(
+            b0, {b0.x + bW * (avg[id] / total), b0.y + bH},
+            COLOR_A(id, .5f), 3.0f);
+    }
+    ImGui::PushStyleColor(ImGuiCol_Text, COLOR(id));
+    ImGui::Text("%.1f%%", (avg[id] / total) * 100.0f);
+    ImGui::PopStyleColor();
+
+    id++;
+
+    if (!profile->profiles().empty()) {
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        if (ImGui::TreeNode(("###tree" + std::to_string(id)).c_str())) {
+            for (const auto p : profile->profiles()) {
+                draw_table_entry(p, id, avg, total);
+            }
+            ImGui::TreePop();
+        }
+    }
+}
+
+void ProfilerView::get_sub_avg(float *avg, const std::vector<Profiler::Profile*> &subProfiles, int &i) {
+    for (const auto p : subProfiles) {
+        avg[i] = p->avg(_avg_samples);
+        i++;
+        get_sub_avg(avg, p->profiles(), i);
+    }
+}
+
+float ProfilerView::get_max(Profiler::Profile *profile) {
+    float max = 0;
+    if (_disabled_profiles.contains(profile->name()) && _disabled_profiles[profile->name()]);
+    else {
+        max = std::max(max, profile->max());
+    }
+    for (const auto p : profile->profiles())
+        max = std::max(max, get_max(p));
+
+    return max;
+}
+
+void ProfilerView::set_disabled(Profiler::Profile *profile, const bool disabled, const bool recursive) {
+    _disabled_profiles[profile->name()] = disabled;
+    if (recursive)
+        return;
+    for (const auto p : profile->profiles())
+        set_disabled(p, disabled);
+}
+
 
 void ProfilerView::render() {
     ImGui::Begin("Profiler");
@@ -168,17 +265,18 @@ void ProfilerView::render() {
         return;
     }
 
-    // ── Dynamic scale: max across all history, 20 % headroom, floor 1 ms ─────
     float scaleMax = 0.0f;
     float total = 0;
-    float avg[profiles.size()];
+    float avg[Profiler::profileCount(profiles)];
+
     for (int i = 0; const auto profile : profiles) {
-        if (_disabled_profiles.contains(profile->name()) && _disabled_profiles[profile->name()]);
-        else scaleMax = std::max(scaleMax, profile->max());
+        scaleMax = std::max(scaleMax, get_max(profile));
 
         avg[i] = profile->avg(_avg_samples);
         total += avg[i];
         i++;
+
+        get_sub_avg(avg, profile->profiles(), i);
     }
     scaleMax = std::max(scaleMax * 1.2f, 1.0f);
 
@@ -203,70 +301,9 @@ void ProfilerView::render() {
     ImGui::TableSetupColumn("##peak",  ImGuiTableColumnFlags_WidthFixed, 72.0f);
     ImGui::TableSetupColumn("##pct",   ImGuiTableColumnFlags_WidthFixed, 46.0f);
 
-    ImDrawList* dl = ImGui::GetWindowDrawList();
-
     // ── One row per stage ─────────────────────────────────────────────────────
     for (int i = 0; const auto profile : profiles) {
-
-        ImGui::TableNextRow();
-
-        ImGui::TableSetColumnIndex(0);
-        {
-            ImVec2 cell_start = ImGui::GetCursorScreenPos();
-            const float h = ImGui::GetTextLineHeight();
-            ImGui::InvisibleButton(
-                ("##cell" + std::to_string(i)).c_str(),
-                ImVec2(ImGui::GetContentRegionAvail().x, h));
-
-            const bool clicked = ImGui::IsItemClicked();
-
-            ImGui::SetCursorScreenPos(cell_start);
-            auto color = COLOR(i);
-            if (_disabled_profiles.contains(profile->name()) && _disabled_profiles[profile->name()])
-                color = U32({0.7f, 0.70f, 0.70f, 1.0f});
-            dl->AddCircleFilled(
-                {cell_start.x + 5.0f, cell_start.y + h * 0.5f},
-                3.5f,
-                color);
-
-            ImGui::SetCursorScreenPos({cell_start.x + 13.0f, cell_start.y});
-            ImGui::PushStyleColor(ImGuiCol_Text, kDIM);
-            ImGui::TextUnformatted(profile->name().c_str());
-            ImGui::PopStyleColor();
-
-            if (clicked) {
-                if (!_disabled_profiles.contains(profile->name()))
-                    _disabled_profiles[profile->name()] = true;
-                else
-                    _disabled_profiles[profile->name()] = !_disabled_profiles[profile->name()];
-            }
-        }
-
-        ImGui::TableSetColumnIndex(1);
-        ImGui::Text("%.3f ms", avg[i]);
-
-        ImGui::TableSetColumnIndex(2);
-        ImGui::PushStyleColor(ImGuiCol_Text, kPEAK);
-        ImGui::Text("%.3f ms", profile->max());
-        ImGui::PopStyleColor();
-
-        ImGui::TableSetColumnIndex(3);
-        {
-            ImVec2 b0 = ImGui::GetCursorScreenPos();
-            const float bW = ImGui::GetContentRegionAvail().x;
-            const float bH = ImGui::GetTextLineHeight() + ImGui::GetStyle().FramePadding.y;
-
-            dl->AddRectFilled(b0, {b0.x + bW, b0.y + bH},
-                              IM_COL32(18, 18, 26, 255), 3.0f);
-            dl->AddRectFilled(
-                b0, {b0.x + bW * (avg[i] / total), b0.y + bH},
-                COLOR_A(i, .5f), 3.0f);
-        }
-        ImGui::PushStyleColor(ImGuiCol_Text, COLOR(i));
-        ImGui::Text("%.1f%%", (avg[i] / total) * 100.0f);
-        ImGui::PopStyleColor();
-
-        i++;
+        draw_table_entry(profile, i, avg, total);
     }
 
     ImGui::TableNextRow();
@@ -285,12 +322,16 @@ void ProfilerView::render() {
     ImGui::PopStyleColor();
 
     ImGui::TableSetColumnIndex(3);
-    if (ImGui::Button("Reset"))
+    if (ImGui::Button("Reset") || _maintain_max)
         Profiler::Get()->resetMax();
 
     ImGui::EndTable();
 
     ImGui::SliderInt("Avg Samples", &_avg_samples, 1, 30);
+    ImGui::SameLine();
+    ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+    ImGui::SameLine();
+    ImGui::Checkbox("M Max", &_maintain_max);
 
     ImGui::End();
 }

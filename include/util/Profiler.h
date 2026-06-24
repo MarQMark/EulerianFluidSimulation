@@ -19,7 +19,7 @@ public:
         ~Profile();
 
         void start();
-        void stop();
+        void stop(int idx = -1);
 
         float* data() const;
         float max() const;
@@ -29,12 +29,17 @@ public:
         unsigned int idx() const;
 
         void resetMax();
+
+        std::vector<Profile*>& profiles();
+
     private:
         std::string _name{};
         float* _data{};
         float _max = 0;
         unsigned int _idx = PROFILER_SAMPLES;
         std::chrono::high_resolution_clock::time_point _start;
+
+        std::vector<Profile*> _profiles{};
     };
 
 public:
@@ -50,6 +55,8 @@ public:
 
     std::vector<Profile*>& profiles();
 
+    static int profileCount(const std::vector<Profile*>& profiles);
+
     void resetMax() const;
 
 private:
@@ -59,6 +66,8 @@ private:
 
     std::vector<Profile*> _profiles{};
     std::stack<Profile*> _profiling{};
+
+    static Profile* get_profile(const std::vector<Profile*>& profiles, const std::string& name);
 };
 
 
