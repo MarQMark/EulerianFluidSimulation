@@ -31,6 +31,8 @@ public:
         void resetMax();
 
         std::vector<Profile*>& profiles();
+        void addProfile(Profile* profile);
+        void updateSum() const;
 
     private:
         std::string _name{};

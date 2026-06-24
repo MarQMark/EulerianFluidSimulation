@@ -13,7 +13,7 @@ void Profiler::start(const std::string &name) {
         profile = new Profile(name);
         //std::cout << "New Profile " << name << "\n";
         if (!_profiling.empty())
-            _profiling.top()->profiles().push_back(profile);
+            _profiling.top()->addProfile(profile);
         else
             _profiles.push_back(profile);
     }
@@ -120,6 +120,35 @@ void Profiler::Profile::resetMax() {
 
 std::vector<Profiler::Profile *> & Profiler::Profile::profiles() {
     return _profiles;
+}
+
+void Profiler::Profile::addProfile(Profile *profile) {
+    if (_profiles.empty()) {
+        _profiles.push_back(profile);
+        _profiles.push_back(new Profile("Sum"));
+    }
+    else {
+        _profiles.push_back(_profiles[_profiles.size() - 1]);
+        _profiles[_profiles.size() - 2] = profile;
+    }
+}
+
+void Profiler::Profile::updateSum() const {
+    if (_profiles.empty())
+        return;
+
+    Profile* sum = _profiles[_profiles.size() - 1];
+    memset(sum->data(), 0, PROFILER_SAMPLES * sizeof(float));
+
+    for (int i = 0; i < _profiles.size() - 1; i++) {
+        for (int j = 0; j < PROFILER_SAMPLES; j++) {
+            sum->data()[j] += _profiles[i]->data()[j];
+            sum->_max = std::max(sum->_max, sum->data()[j]);
+        }
+
+        _profiles[i]->updateSum();
+    }
+    sum->_idx = _profiles[0]->_idx;
 }
 
 Profiler::~Profiler() {

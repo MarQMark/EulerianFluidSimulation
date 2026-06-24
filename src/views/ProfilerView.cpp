@@ -258,6 +258,8 @@ void ProfilerView::render() {
     Util::SectionHeader("PIPELINE PROFILER");
 
     const auto& profiles = Profiler::Get()->profiles();
+    for (const auto p : profiles)
+        p->updateSum();
 
     if (profiles.empty()) {
         ImGui::TextDisabled("(no profiler data yet)");
