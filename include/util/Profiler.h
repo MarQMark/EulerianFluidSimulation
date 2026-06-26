@@ -11,6 +11,7 @@
 class Profiler {
 private:
     static Profiler* s_instance;
+    static int s_id;
 
 public:
     class Profile {
@@ -27,6 +28,7 @@ public:
         float avg(int count = 20) const;
         std::string name();
         unsigned int idx() const;
+        int id() const ;
 
         void resetMax();
 
@@ -38,6 +40,7 @@ public:
         std::string _name{};
         float* _data{};
         float _max = 0;
+        int _id;
         unsigned int _idx = PROFILER_SAMPLES;
         std::chrono::high_resolution_clock::time_point _start;
 
@@ -54,6 +57,8 @@ public:
 
     void start(const std::string& name);
     void stop();
+
+    void reset();
 
     std::vector<Profile*>& profiles();
 

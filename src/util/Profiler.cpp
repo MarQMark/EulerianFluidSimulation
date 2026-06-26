@@ -5,13 +5,13 @@
 #include <ranges>
 
 Profiler* Profiler::s_instance = nullptr;
+int Profiler::s_id = 0;
 
 void Profiler::start(const std::string &name) {
     Profile* profile = get_profile(_profiles,  name);
 
     if (!profile) {
         profile = new Profile(name);
-        //std::cout << "New Profile " << name << "\n";
         if (!_profiling.empty())
             _profiling.top()->addProfile(profile);
         else
@@ -32,6 +32,17 @@ void Profiler::stop() {
         profile->stop(_profiling.top()->idx());
     else
         profile->stop();
+}
+
+void Profiler::reset() {
+    while (!_profiling.empty())
+        _profiling.pop();
+
+    for (const auto p : _profiles)
+        delete p;
+
+    _profiles.clear();
+    s_id = 0;
 }
 
 std::vector<Profiler::Profile*>& Profiler::profiles() {
@@ -55,6 +66,9 @@ void Profiler::resetMax() const {
 Profiler::Profile::Profile(const std::string& name) : _name(std::move(name)){
     _data = (float*)malloc(PROFILER_SAMPLES * sizeof(float));
     memset(_data, 0, PROFILER_SAMPLES * sizeof(float));
+
+    _id = s_id;
+    s_id++;
 }
 
 Profiler::Profile::~Profile() {
@@ -112,6 +126,10 @@ unsigned int Profiler::Profile::idx() const {
     return _idx;
 }
 
+int Profiler::Profile::id() const {
+    return _id;
+}
+
 void Profiler::Profile::resetMax() {
     _max = _data[_idx];
     for (const auto profile : _profiles)
@@ -125,7 +143,7 @@ std::vector<Profiler::Profile *> & Profiler::Profile::profiles() {
 void Profiler::Profile::addProfile(Profile *profile) {
     if (_profiles.empty()) {
         _profiles.push_back(profile);
-        _profiles.push_back(new Profile("Sum"));
+        _profiles.push_back(new Profile("Sum: " + _name));
     }
     else {
         _profiles.push_back(_profiles[_profiles.size() - 1]);

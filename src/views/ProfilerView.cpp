@@ -73,8 +73,8 @@ void ProfilerView::draw_plot(const std::vector<Profiler::Profile*>& profiles, co
         dl->AddLine({p0.x, y}, {p1.x, y}, IM_COL32(30, 32, 44, 255), 1.0f);
     }
 
-    for (int i = 0; const auto profile : profiles) {
-        draw_line(profile, i, scaleMax, p0, p1, size);
+    for (const auto profile : profiles) {
+        draw_line(profile, scaleMax, p0, p1, size);
     }
 
     dl->PopClipRect();
@@ -96,9 +96,8 @@ void ProfilerView::draw_plot(const std::vector<Profiler::Profile*>& profiles, co
     ImGui::Dummy(size);
 }
 
-void ProfilerView::draw_line(Profiler::Profile *profile, int &id, const float scaleMax, ImVec2 p0, ImVec2 p1, const ImVec2 size) {
+void ProfilerView::draw_line(Profiler::Profile *profile, const float scaleMax, ImVec2 p0, ImVec2 p1, const ImVec2 size) {
     if (_disabled_profiles.contains(profile->name()) && _disabled_profiles[profile->name()]) {
-        id++;
     }
     else {
         ImDrawList* dl = ImGui::GetWindowDrawList();
@@ -124,7 +123,7 @@ void ProfilerView::draw_line(Profiler::Profile *profile, int &id, const float sc
             pts.push_back({x, y});
         }
 
-        ImU32 lineCol = COLOR(id);
+        ImU32 lineCol = COLOR(profile->id());
 
         // Faint area fill under the line
         std::vector<ImVec2> fill = pts;
@@ -138,16 +137,14 @@ void ProfilerView::draw_line(Profiler::Profile *profile, int &id, const float sc
         // Filled ring at current (rightmost) sample
         dl->AddCircleFilled(pts.back(), 3.5f, lineCol);
         dl->AddCircleFilled(pts.back(), 1.5f, IM_COL32(9, 9, 12, 255));
-
-        id++;
     }
 
     for (const auto p : profile->profiles())
-        draw_line(p, id, scaleMax, p0, p1, size);
+        draw_line(p, scaleMax, p0, p1, size);
 }
 
 
-void ProfilerView::draw_table_entry(Profiler::Profile *profile, int& id, const float* avg, const float total) {
+void ProfilerView::draw_table_entry(Profiler::Profile *profile, const float* avg, const float total) {
     ImDrawList* dl = ImGui::GetWindowDrawList();
 
     ImGui::TableNextRow();
@@ -157,14 +154,14 @@ void ProfilerView::draw_table_entry(Profiler::Profile *profile, int& id, const f
         ImVec2 cell_start = ImGui::GetCursorScreenPos();
         const float h = ImGui::GetTextLineHeight();
         ImGui::InvisibleButton(
-            ("##cell" + std::to_string(id)).c_str(),
+            ("##cell" + std::to_string(profile->id())).c_str(),
             ImVec2(ImGui::GetContentRegionAvail().x, h));
 
         const bool clickedL = ImGui::IsItemClicked(ImGuiMouseButton_Left);
         const bool clickedR = ImGui::IsItemClicked(ImGuiMouseButton_Right);
 
         ImGui::SetCursorScreenPos(cell_start);
-        auto color = COLOR(id);
+        auto color = COLOR(profile->id());
         if (_disabled_profiles.contains(profile->name()) && _disabled_profiles[profile->name()])
             color = U32({0.7f, 0.70f, 0.70f, 1.0f});
         dl->AddCircleFilled(
@@ -186,7 +183,7 @@ void ProfilerView::draw_table_entry(Profiler::Profile *profile, int& id, const f
     }
 
     ImGui::TableSetColumnIndex(1);
-    ImGui::Text("%.3f ms", avg[id]);
+    ImGui::Text("%.3f ms", avg[profile->id()]);
 
     ImGui::TableSetColumnIndex(2);
     ImGui::PushStyleColor(ImGuiCol_Text, kPEAK);
@@ -202,32 +199,29 @@ void ProfilerView::draw_table_entry(Profiler::Profile *profile, int& id, const f
         dl->AddRectFilled(b0, {b0.x + bW, b0.y + bH},
                           IM_COL32(18, 18, 26, 255), 3.0f);
         dl->AddRectFilled(
-            b0, {b0.x + bW * (avg[id] / total), b0.y + bH},
-            COLOR_A(id, .5f), 3.0f);
+            b0, {b0.x + bW * (avg[profile->id()] / total), b0.y + bH},
+            COLOR_A(profile->id(), .5f), 3.0f);
     }
-    ImGui::PushStyleColor(ImGuiCol_Text, COLOR(id));
-    ImGui::Text("%.1f%%", (avg[id] / total) * 100.0f);
+    ImGui::PushStyleColor(ImGuiCol_Text, COLOR(profile->id()));
+    ImGui::Text("%.1f%%", (avg[profile->id()] / total) * 100.0f);
     ImGui::PopStyleColor();
-
-    id++;
 
     if (!profile->profiles().empty()) {
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
-        if (ImGui::TreeNode(("###tree" + std::to_string(id)).c_str())) {
+        if (ImGui::TreeNode(("###tree" + std::to_string(profile->id())).c_str())) {
             for (const auto p : profile->profiles()) {
-                draw_table_entry(p, id, avg, total);
+                draw_table_entry(p, avg, total);
             }
             ImGui::TreePop();
         }
     }
 }
 
-void ProfilerView::get_sub_avg(float *avg, const std::vector<Profiler::Profile*> &subProfiles, int &i) {
+void ProfilerView::get_sub_avg(float *avg, const std::vector<Profiler::Profile*> &subProfiles) {
     for (const auto p : subProfiles) {
-        avg[i] = p->avg(_avg_samples);
-        i++;
-        get_sub_avg(avg, p->profiles(), i);
+        avg[p->id()] = p->avg(_avg_samples);
+        get_sub_avg(avg, p->profiles());
     }
 }
 
@@ -271,14 +265,13 @@ void ProfilerView::render() {
     float total = 0;
     float avg[Profiler::profileCount(profiles)];
 
-    for (int i = 0; const auto profile : profiles) {
+    for (const auto profile : profiles) {
         scaleMax = std::max(scaleMax, get_max(profile));
 
-        avg[i] = profile->avg(_avg_samples);
-        total += avg[i];
-        i++;
+        avg[profile->id()] = profile->avg(_avg_samples);
+        total += avg[profile->id()];
 
-        get_sub_avg(avg, profile->profiles(), i);
+        get_sub_avg(avg, profile->profiles());
     }
     scaleMax = std::max(scaleMax * 1.2f, 1.0f);
 
@@ -304,8 +297,8 @@ void ProfilerView::render() {
     ImGui::TableSetupColumn("##pct",   ImGuiTableColumnFlags_WidthFixed, 46.0f);
 
     // ── One row per stage ─────────────────────────────────────────────────────
-    for (int i = 0; const auto profile : profiles) {
-        draw_table_entry(profile, i, avg, total);
+    for (const auto profile : profiles) {
+        draw_table_entry(profile, avg, total);
     }
 
     ImGui::TableNextRow();
@@ -334,6 +327,11 @@ void ProfilerView::render() {
     ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
     ImGui::SameLine();
     ImGui::Checkbox("M Max", &_maintain_max);
+
+    if (ImGui::Button("RESET Profiler")) {
+        Profiler::Get()->reset();
+        _disabled_profiles.clear();
+    }
 
     ImGui::End();
 }
