@@ -1,0 +1,52 @@
+#version 430
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(std430, binding = 0) writeonly buffer BufResult   { float result[];   };
+layout(std430, binding = 1) readonly  buffer BufP        { float p[];        };
+layout(std430, binding = 2) readonly  buffer BufB        { float b[];        };
+layout(std430, binding = 3) readonly  buffer BufRho      { float rho[];      };
+layout(std430, binding = 4) readonly  buffer BufBoundary { float boundary[]; };
+
+uniform int uWidth;
+uniform int uHeight;
+
+int idx(int x, int y) {
+    return y * uWidth + x;
+}
+
+void sampleNeighbor(int nx, int ny, inout float sum, inout int nCount) {
+    if (nx < 0 || nx >= uWidth || ny < 0 || ny >= uHeight) return;
+    if (nx == 0 || nx == uWidth-1 || ny == 0 || ny == uHeight-1) return;
+    if (boundary[idx(nx, ny)] > 0.5) return;
+
+    nCount++;
+    if (rho[idx(nx, ny)] > 0.5){
+        sum += p[idx(nx, ny)];
+    }
+}
+
+// x1 = D^-1 (b - (L + U) x0)
+void main(){
+    int x = int(gl_GlobalInvocationID.x);
+    int y = int(gl_GlobalInvocationID.y);
+
+    if (x >= uWidth|| y >= uHeight) return;
+
+    if (rho[idx(x, y)] <= 0.5 || boundary[idx(x, y)] > .5) {
+        result[idx(x, y)] = p[idx(x, y)];
+        return;
+    }
+
+    float sum = 0.0;
+    int nCount = 0;
+
+    sampleNeighbor(x - 1, y, sum, nCount);
+    sampleNeighbor(x + 1, y, sum, nCount);
+    sampleNeighbor(x, y - 1, sum, nCount);
+    sampleNeighbor(x, y + 1, sum, nCount);
+
+    if(nCount == 0)
+        result[idx(x, y)] = 0.0;
+    else
+        result[idx(x, y)] = (sum - b[idx(x, y)]) / float(nCount);
+}

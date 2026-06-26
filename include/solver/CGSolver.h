@@ -1,30 +1,14 @@
 #ifndef EULERIANFLUIDSIMULATION_SOLVER_H
 #define EULERIANFLUIDSIMULATION_SOLVER_H
 
-#include "ScalField.h"
-#include <eigen/Eigen/Sparse>
-#include <eigen/Eigen/IterativeLinearSolvers>
-
-#include "Grid.h"
+#include "simulation/ScalField.h"
+#include "simulation/Grid.h"
 #include "compute/ComputeShader.h"
 #include "compute/StorageBuffer.h"
 
-class Solver {
-protected:
-    Solver(int width, int height);
+#include "ISolver.h"
 
-public:
-    virtual ~Solver() = default;
-
-    virtual float solve(Grid* grid) = 0;
-
-protected:
-    int _width = 0;
-    int _height = 0;
-    int _size = 0;
-};
-
-class CGSolver : public Solver {
+class CGSolver : public ISolver {
 public:
     CGSolver(int width, int height);
     ~CGSolver() override;
@@ -63,37 +47,6 @@ private:
     std::vector<float> _scalars_cpu;
     int _numGroups = 0;
 #endif
-};
-
-class EigenSolver : public Solver {
-public:
-    ~EigenSolver() override;
-
-protected:
-    EigenSolver(int width, int height);
-
-    Eigen::SparseMatrix<float, Eigen::RowMajor>* _A{};
-    Eigen::VectorXf* _b{};
-    Eigen::VectorXf* _x0{};
-
-    void determine_equations(const ScalField &divergence, const ScalField &rho, const ScalField &boundary) const;
-};
-
-class EigenCGSolver : public EigenSolver {
-public:
-    EigenCGSolver(int width, int height);
-
-protected:
-    float solve(Grid* grid) override;
-};
-
-class EigenBiCGSTABSolver : public EigenSolver {
-public:
-    EigenBiCGSTABSolver(int width, int height);
-
-protected:
-    float solve(Grid* grid) override;
-
 };
 
 

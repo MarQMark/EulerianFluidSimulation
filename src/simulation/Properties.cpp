@@ -70,6 +70,6 @@ void Properties::Property<Properties::DrawMode>::draw(){
 }
 template<>
 void Properties::Property<Properties::SolverType>::draw(){
-    const char* shapes[] = {"Eigen CG", "Eigen BiCGSTAB", "Self CG"};
+    const char* shapes[] = {"Eigen CG", "Eigen BiCGSTAB", "Self CG", "Jacobi"};
     Util::AddCombo(name, value, shapes, IM_ARRAYSIZE(shapes), description);
 }

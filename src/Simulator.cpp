@@ -7,6 +7,8 @@
 
 #include "simulation/Properties.h"
 #include "simulation/ScalField.h"
+#include "solver/EigenSolver.h"
+#include "solver/JacobiSolver.h"
 #include "util/Profiler.h"
 #include "util/Time.h"
 #include "views/DistributionView.h"
@@ -57,19 +59,25 @@ void Simulator::recreate() {
 	if (_renderer) delete _renderer;
 	if (_solver) delete _solver;
 
-	_renderer = new Renderer(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
-	_grid = new Grid(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
+	const int WIDTH = PROPERTY_I(WIDTH);
+	const int HEIGHT = PROPERTY_I(HEIGHT);
+
+	_renderer = new Renderer(WIDTH, HEIGHT);
+	_grid = new Grid(WIDTH, HEIGHT);
 
 	switch (PROPERTY(SOLVER_TYPE, Properties::SolverType)) {
 		case Properties::EIGEN_CG:
-			_solver = new EigenCGSolver(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
+			_solver = new EigenCGSolver(WIDTH, HEIGHT);
 			break;
 		case Properties::EIGEN_BiCGSTAB:
-			_solver = new EigenBiCGSTABSolver(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
+			_solver = new EigenBiCGSTABSolver(WIDTH, HEIGHT);
+			break;
+		case Properties::JACOBI:
+			_solver = new JacobiSolver(WIDTH, HEIGHT);
 			break;
 		case Properties::SELF_CG:
 		default:
-			_solver = new CGSolver(PROPERTY_I(WIDTH), PROPERTY_I(HEIGHT));
+			_solver = new CGSolver(WIDTH, HEIGHT);
 	}
 
 	if (_views->getView("FieldViewerVel"))

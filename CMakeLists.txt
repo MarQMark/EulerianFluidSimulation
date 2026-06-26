@@ -39,9 +39,12 @@ add_executable(EulerianFluidSimulation
 
         src/simulation/Grid.cpp
         src/simulation/Properties.cpp
-        src/simulation/Solver.cpp
         src/simulation/VecField.cpp
         src/simulation/ScalField.cpp
+
+        src/solver/EigenSolver.cpp
+        src/solver/CGSolver.cpp
+        src/solver/JacobiSolver.cpp
 
         src/compute/StorageBuffer.cpp
         src/compute/ComputeShader.cpp

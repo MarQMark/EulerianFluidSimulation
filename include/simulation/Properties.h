@@ -97,7 +97,7 @@ private:
         ADD(simulation_forces, PUSH_ENABLED, "", false)
 
         auto& simulation_solver = add_sub_category(simulation, "Solver");
-        ADD(simulation_solver, SOLVER_TYPE, "Which algorithm is used to solve system of equations", SolverType::SELF_CG)
+        ADD(simulation_solver, SOLVER_TYPE, "Which algorithm is used to solve system of equations", SolverType::JACOBI)
         ADD(simulation_solver, SOLVER_CHECK_INTERVAL, "Amount of steps CG takes before checking for convergence", 100)
         ADD(simulation_solver, MAX_STEPS, "Maximum amount of iterations solver does", 2000)
         ADD(simulation_solver, SOLVER_THRESHOLD, "Threshold at which solver considers system solved", 1e-5f)
@@ -279,7 +279,8 @@ public:
     enum SolverType {
         EIGEN_CG,
         EIGEN_BiCGSTAB,
-        SELF_CG
+        SELF_CG,
+        JACOBI
     };
 };
 

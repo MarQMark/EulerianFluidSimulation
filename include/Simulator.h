@@ -5,7 +5,7 @@
 #include "compute/ComputeShader.h"
 #include "renderer/Window.h"
 #include "simulation/Grid.h"
-#include "simulation/Solver.h"
+#include "solver/CGSolver.h"
 #include "simulation/VecField.h"
 #include "views/Views.h"
 
@@ -25,7 +25,7 @@ private:
 
     Grid* _grid{};
 
-    Solver* _solver{};
+    ISolver* _solver{};
 
 #ifdef USE_GPU
     ComputeShader* _vel_pass_1{};
