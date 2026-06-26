@@ -3,7 +3,6 @@
 #include "simulation/ScalField.h"
 #include "simulation/VecField.h"
 
-
 class StorageBuffer {
 public:
     StorageBuffer(unsigned int size);

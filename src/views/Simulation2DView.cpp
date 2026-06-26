@@ -1,4 +1,4 @@
-#include "views/SimulationView.h"
+#include "views/Simulation2DView.h"
 
 #include <algorithm>
 
@@ -10,13 +10,13 @@
 #include "util/Time.h"
 
 #define TOP_SPACING 10;
-void SimulationView::render() {
+void Simulation2DView::render() {
     if (!_initialized)
         return;
     if (!_visible)
         return;
 
-    ImGui::Begin("View");
+    ImGui::Begin("Simulation 2D View");
 
     if(ImGui::IsKeyPressed(ImGuiKey_M)) {
         _mode = (Mode)((_mode + 1) % END);
@@ -187,7 +187,7 @@ void SimulationView::render() {
     ImGui::End();
 }
 
-void SimulationView::recreate(const ImTextureID textureID, const Grid* grid) {
+void Simulation2DView::recreate(const ImTextureID textureID, const Grid* grid) {
     _initialized = true;
 
     _texture_id = textureID;
@@ -198,7 +198,7 @@ void SimulationView::recreate(const ImTextureID textureID, const Grid* grid) {
     _rho = &grid->rho();
 }
 
-void SimulationView::setVelField(VecField *velField) {
+void Simulation2DView::setVelField(VecField *velField) {
     _vel_field = velField;
 }
 

@@ -1,19 +1,18 @@
-#include "renderer/Renderer.h"
-
+#include "renderer/Renderer2D.h"
 #include <iostream>
-
+#include "assets/Texture2D.h"
 #include "simulation/Properties.h"
 #include "simulation/ScalField.h"
 
-Renderer::Renderer(const int width, const int height) : _width(width), _height(height){
+Renderer2D::Renderer2D(const int width, const int height) : _width(width), _height(height){
     _txt = new Texture2D(_width, _height, nullptr);
 }
 
-Renderer::~Renderer() {
+Renderer2D::~Renderer2D() {
     delete _txt;
 }
 
-void Renderer::drawField(std::vector<float>& data, VecField& field, int chanel, float& max) {
+void Renderer2D::drawField(std::vector<float>& data, VecField& field, int chanel, float& max) {
     for(auto v : field)
         max = std::max(max, glm::length(v));
     for (int i = 0; i < field.width() * field.height(); i++) {
@@ -25,7 +24,7 @@ void Renderer::drawField(std::vector<float>& data, VecField& field, int chanel, 
         data[i * 4 + chanel] = glm::length(field[i]) / max;
     }
 }
-void Renderer::drawField(std::vector<float>& data, ScalField& field, int chanel, float& max) {
+void Renderer2D::drawField(std::vector<float>& data, ScalField& field, int chanel, float& max) {
     for(auto s : field)
         max = std::max(max, std::abs(s));
     for (int i = 0; i < field.width() * field.height(); i++) {
@@ -47,7 +46,7 @@ void Renderer::drawField(std::vector<float>& data, ScalField& field, int chanel,
     }
 }
 
-void Renderer::render(const Grid *grid) {
+void Renderer2D::render(const Grid *grid) {
     std::vector<float> data(_width * _height * 4);
     /*glm::vec2 max(0);
     for(auto v : vel) {
@@ -105,6 +104,6 @@ void Renderer::render(const Grid *grid) {
     _txt->update(reinterpret_cast<uint8_t *>(data.data()));
 }
 
-Texture2D* Renderer::getTexture2D() const {
+Texture2D* Renderer2D::getTexture2D() const {
     return _txt;
 }

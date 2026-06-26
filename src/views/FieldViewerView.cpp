@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "imgui.h"
-#include "renderer/Renderer.h"
+#include "renderer/Renderer2D.h"
 
 FieldViewerView::FieldViewerView(VecField *field, const std::string& name)
     : _name(name), _v_field(field) {
@@ -179,13 +179,13 @@ void FieldViewerView::render() {
 
 void FieldViewerView::render_vec_field() {
     std::vector<float> data(_v_field->size() * 4);
-    Renderer::drawField(data, *_v_field, 2, _max);
+    Renderer2D::drawField(data, *_v_field, 2, _max);
     _txt->update(reinterpret_cast<uint8_t *>(data.data()));
 }
 
 void FieldViewerView::render_scal_field() {
     std::vector<float> data(_s_field->size() * 4);
-    Renderer::drawField(data, *_s_field, 2, _max);
+    Renderer2D::drawField(data, *_s_field, 2, _max);
     _txt->update(reinterpret_cast<uint8_t *>(data.data()));
 }
 

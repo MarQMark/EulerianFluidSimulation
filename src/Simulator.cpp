@@ -1,10 +1,11 @@
 #include "Simulator.h"
-
 #include <algorithm>
-#include <iostream>
 #include <ranges>
-#include <views/SimulationView.h>
+#include <views/Simulation2DView.h>
+#include <views/Simulation3DView.h>
 
+#include "core/Editor.h"
+#include "core/InputManager.h"
 #include "simulation/Properties.h"
 #include "simulation/ScalField.h"
 #include "solver/EigenSolver.h"
@@ -18,11 +19,25 @@
 #include "views/PropertiesView.h"
 #include "views/SolverStepsView.h"
 #include "views/StatsView.h"
+#include "glad/gl.h"
+#include "renderer/Renderer3D.h"
 
 Simulator::Simulator() {
 	_window = new Window(1280, 720, "StableFluids");
+	Input.addInputWindow(_window);
+
+	// --- Setup Simulator ---
+	_renderer3D = new Renderer3D;
+
+	_editor = new Editor;
+
+	_scene = new Scene(_window);
+	_editor->setScene(_scene);
+
+	// --- Setup UI ---
 	_views = new Views(_window);
-	_views->addView("Simulation", new SimulationView());
+	_views->addView("Simulation2D", new Simulation2DView());
+	_views->addView("Simulation3D", new Simulation3DView(_editor, _renderer3D));
 	_views->addView("Properties", new PropertiesView());
 	_views->addView("Performance", new FPSView());
 	_views->addView("Stats", new StatsView());
@@ -32,7 +47,7 @@ Simulator::Simulator() {
 
 	recreate();
 
-	Time::Get()->targetFps = 600;
+	Time::Get()->targetFps = 165;
 }
 
 Simulator::~Simulator() {
@@ -43,7 +58,8 @@ Simulator::~Simulator() {
 #endif
 
 	delete _grid;
-	delete _renderer;
+	delete _renderer2D;
+	delete _renderer3D;
 	delete _views;
 	delete _window;
 	delete _solver;
@@ -56,13 +72,13 @@ Simulator::~Simulator() {
 
 void Simulator::recreate() {
 	if (_grid) delete _grid;
-	if (_renderer) delete _renderer;
+	if (_renderer2D) delete _renderer2D;
 	if (_solver) delete _solver;
 
 	const int WIDTH = PROPERTY_I(WIDTH);
 	const int HEIGHT = PROPERTY_I(HEIGHT);
 
-	_renderer = new Renderer(WIDTH, HEIGHT);
+	_renderer2D = new Renderer2D(WIDTH, HEIGHT);
 	_grid = new Grid(WIDTH, HEIGHT);
 
 	switch (PROPERTY(SOLVER_TYPE, Properties::SolverType)) {
@@ -93,8 +109,8 @@ void Simulator::recreate() {
 	if (_views->getView("FieldViewerPressure"))
 		_views->replaceView("FieldViewerPressure", new FieldViewerView(&_grid->pressure(), "Pressure Viewer"));
 
-	_views->getView<SimulationView>("Simulation")->recreate(
-		_renderer->getTexture2D()->get(), _grid);
+	_views->getView<Simulation2DView>("Simulation2D")->recreate(
+		_renderer2D->getTexture2D()->get(), _grid);
 	_views->getView<StatsView>("Stats")->recreate(_grid);
 	_views->getView<DistributionView>("Distribution")->recreate(_grid);
 
@@ -136,9 +152,9 @@ void Simulator::recreate() {
 	if (_vel_pass_2) delete _vel_pass_2;
 	if (_add_force) delete _add_force;
 
-	_vel_pass_1 = new ComputeShader(ComputeShader::LoadTextFile("shaders/vel_advect_pass1.comp"));
-	_vel_pass_2 = new ComputeShader(ComputeShader::LoadTextFile("shaders/vel_advect_pass2.comp"));
-	_add_force = new ComputeShader(ComputeShader::LoadTextFile("shaders/add_force.comp"));
+	_vel_pass_1 = new Shader({{ "assets/shaders/vel_advect_pass1.comp", Shader::COMPUTE }});
+	_vel_pass_2 = new Shader({{ "assets/shaders/vel_advect_pass2.comp", Shader::COMPUTE }});
+	_add_force = new Shader({{ "assets/shaders/add_force.comp", Shader::COMPUTE }});
 #endif
 }
 
@@ -153,9 +169,12 @@ void Simulator::update() {
     			ADD_PROPERTY_I(SIMULATION_STEPS, -1);
     	}
 
-    	_views->getView<SimulationView>("Simulation")->setVelField(&_grid->vel());
+    	_views->getView<Simulation2DView>("Simulation2D")->setVelField(&_grid->vel());
 
-        _renderer->render(_grid);
+    	_scene->update(Time::Get()->dt);
+
+        _renderer2D->render(_grid);
+    	_renderer3D->render(_scene);
         _views->render();
         _window->update();
 
@@ -213,6 +232,7 @@ void Simulator::update() {
     	}
 
     	Time::Get()->limitFPS();
+    	Input.reset();
     }
 }
 
