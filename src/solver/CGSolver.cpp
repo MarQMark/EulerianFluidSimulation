@@ -1,7 +1,5 @@
 #include "solver/CGSolver.h"
 
-#include <GL/glew.h>
-
 #include "simulation/Properties.h"
 #include "util/Profiler.h"
 
@@ -20,18 +18,18 @@ CGSolver::CGSolver(const int width, const int height) : ISolver(width, height) {
     _d   = new ScalField(width, height);
 
 #ifdef USE_GPU
-    _shader_as  = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_add_scaled.comp"));
-    _shader_mm  = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_mat_mul.comp"));
-    _shader_ss  = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_set_subtract.comp"));
-    _shader_sa  = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_scale_add.comp"));
+    _shader_as  = new Shader({{"shaders/cg_add_scaled.comp", Shader::COMPUTE }});
+    _shader_mm  = new Shader({{"shaders/cg_mat_mul.comp", Shader::COMPUTE }});
+    _shader_ss  = new Shader({{"shaders/cg_set_subtract.comp", Shader::COMPUTE }});
+    _shader_sa  = new Shader({{"shaders/cg_scale_add.comp", Shader::COMPUTE }});
 
-    _shader_asg = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_add_scaled_gpu.comp"));
-    _shader_sag = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_scale_add_gpu.comp"));
+    _shader_asg = new Shader({{"shaders/cg_add_scaled_gpu.comp", Shader::COMPUTE }});
+    _shader_sag = new Shader({{"shaders/cg_scale_add_gpu.comp", Shader::COMPUTE }});
 
-    _shader_dp2 = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_dot2_pass.comp"));
-    _shader_r2  = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_reduce2.comp"));
+    _shader_dp2 = new Shader({{"shaders/cg_dot2_pass.comp", Shader::COMPUTE }});
+    _shader_r2  = new Shader({{"shaders/cg_reduce2.comp", Shader::COMPUTE }});
 
-    _shader_us  = new ComputeShader(ComputeShader::LoadTextFile("shaders/cg_update_scalars.comp"));
+    _shader_us  = new Shader({{"shaders/cg_update_scalars.comp", Shader::COMPUTE }});
 
     const int n = width * height;
     _gpu_r   = new StorageBuffer(n * sizeof(float));

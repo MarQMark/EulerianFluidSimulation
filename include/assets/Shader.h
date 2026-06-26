@@ -32,7 +32,7 @@ public:
     void bind() const;
     void unbind() const;
 
-    void dispatch(int gx, int gy, int gz = 1) const;
+    void dispatch(int gx, int gy = 1, int gz = 1) const;
 
     // --- Uniforms ---
     void setFloat(const std::string& name, float value) const;

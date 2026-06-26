@@ -2,7 +2,7 @@
 #define EULERIANFLUIDSIMULATION_JACOBISOLVER_H
 
 #include "ISolver.h"
-#include "compute/ComputeShader.h"
+#include "assets/Shader.h"
 #include "compute/StorageBuffer.h"
 #include "simulation/ScalField.h"
 
@@ -17,7 +17,7 @@ private:
     ScalField* _tmp{};
 
 #ifdef USE_GPU
-    ComputeShader* _shader_jp{};
+    Shader* _shader_jp{};
     StorageBuffer* _gpu_tmp{};
 #endif
 

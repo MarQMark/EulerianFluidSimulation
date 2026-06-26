@@ -3,10 +3,10 @@
 
 #include "simulation/ScalField.h"
 #include "simulation/Grid.h"
-#include "compute/ComputeShader.h"
 #include "compute/StorageBuffer.h"
 
 #include "ISolver.h"
+#include "assets/Shader.h"
 
 class CGSolver : public ISolver {
 public:
@@ -23,16 +23,16 @@ private:
     ScalField* _d{};
 
 #ifdef USE_GPU
-    ComputeShader* _shader_as{};
-    ComputeShader* _shader_mm{};
-    ComputeShader* _shader_ss{};
-    ComputeShader* _shader_sa{};
+    Shader* _shader_as{};
+    Shader* _shader_mm{};
+    Shader* _shader_ss{};
+    Shader* _shader_sa{};
 
-    ComputeShader* _shader_asg{};
-    ComputeShader* _shader_sag{};
-    ComputeShader* _shader_dp2{};
-    ComputeShader* _shader_r2{};
-    ComputeShader* _shader_us{};
+    Shader* _shader_asg{};
+    Shader* _shader_sag{};
+    Shader* _shader_dp2{};
+    Shader* _shader_r2{};
+    Shader* _shader_us{};
 
     StorageBuffer* _gpu_t{};
     StorageBuffer* _gpu_tmp{};

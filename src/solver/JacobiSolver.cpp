@@ -1,14 +1,12 @@
 #include "solver/JacobiSolver.h"
 
-#include <GL/glew.h>
-
 #include "simulation/Grid.h"
 #include "simulation/Properties.h"
 
 JacobiSolver::JacobiSolver(const int width, const int height) : ISolver(width, height) {
     _tmp = new ScalField(width, height);
 #ifdef USE_GPU
-    _shader_jp  = new ComputeShader(ComputeShader::LoadTextFile("shaders/jacobi_pass.comp"));
+    _shader_jp  = new Shader({{"shaders/jacobi_pass.comp", Shader::COMPUTE }});
     _gpu_tmp = new StorageBuffer(width * height * sizeof(float));
 #endif
 }
