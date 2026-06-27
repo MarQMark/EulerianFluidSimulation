@@ -111,8 +111,8 @@ void Simulator::recreate() {
 
 	//_views->getView<Simulation2DView>("Simulation2D")->recreate(
 	//	_renderer2D->getTexture2D()->get(), _grid);
-	_views->getView<StatsView>("Stats")->recreate(_grid);
-	_views->getView<DistributionView>("Distribution")->recreate(_grid);
+	//_views->getView<StatsView>("Stats")->recreate(_grid);
+	//_views->getView<DistributionView>("Distribution")->recreate(_grid);
 
 	switch (PROPERTY(INIT_SHAPE, Properties::InitShape)) {
 		case Properties::FULL:
@@ -175,7 +175,7 @@ void Simulator::update() {
 
         _renderer2D->render(_grid);
     	_renderer3D->render(_scene);
-        _views->update();
+        _views->update(nullptr);
         _window->update();
 
 		const bool searching = _views->getView<PropertiesView>("Properties")->searching();

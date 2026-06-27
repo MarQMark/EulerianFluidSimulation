@@ -9,7 +9,7 @@ Simulation3DView::Simulation3DView(Editor* editor, Renderer3D* renderer)
     : editor(editor), renderer(renderer)
 { }
 
-void Simulation3DView::render() {
+void Simulation3DView::render(void* renderData) {
     if (!_visible)
         return;
 

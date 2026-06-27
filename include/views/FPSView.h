@@ -7,7 +7,7 @@ class FPSView : public Viewable{
 public:
     FPSView() = default;
 
-    void render() override;
+    void render(void* renderData) override;
 
 private:
     static constexpr unsigned int MAX_TIMES = 2000;

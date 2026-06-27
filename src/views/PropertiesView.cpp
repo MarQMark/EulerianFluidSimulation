@@ -11,7 +11,7 @@
 #include "util/GuiHelper.h"
 
 
-void PropertiesView::render() {
+void PropertiesView::render(void* renderData) {
     if (!_visible)
         return;
 

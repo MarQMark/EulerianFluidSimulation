@@ -9,7 +9,7 @@ class PropertiesView : public Viewable {
 public:
     PropertiesView() = default;
 
-    void render() override;
+    void render(void* renderData) override;
 
     bool searching() const;
 

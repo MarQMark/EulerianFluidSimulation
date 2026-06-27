@@ -6,13 +6,9 @@
 
 class StatsView : public Viewable{
 public:
-    void render() override;
-
-    void recreate(Grid* grid);
+    void render(void* renderData) override;
 
 private:
-    Grid* _grid{};
-
     static constexpr unsigned int MAX_TIMES = 2000;
     float _times[MAX_TIMES];
     unsigned int _times_offset = 0;

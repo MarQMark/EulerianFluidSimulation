@@ -6,19 +6,26 @@
 #include "imgui/imgui.h"
 #include "simulation/Grid.h"
 #include "simulation/Properties.h"
+#include "simulation/SimulationDisplay.h"
 #include "simulation/VecField.h"
 #include "util/Time.h"
 
 #define TOP_SPACING 10;
 
-Simulation2DView::Simulation2DView(const ImTextureID textureID) : _texture_id(textureID), _width(0), _height(0) {
+Simulation2DView::Simulation2DView(const ImTextureID textureID, const int width, const int height)
+        : _texture_id(textureID), _width(width), _height(height) {
 }
 
-void Simulation2DView::render() {
-    if (!_initialized)
+void Simulation2DView::render(void* renderData) {
+    if (!renderData)
         return;
     if (!_visible)
         return;
+    const auto* data = static_cast<SimulationDisplay2D::RenderData2D*>(renderData);
+    const auto* grid = data->grid;
+    auto& forces = grid->forces();
+    auto& boundary = grid->boundary();
+    auto& rho = grid->rho();
 
     ImGui::Begin("Simulation 2D View");
 
@@ -57,7 +64,7 @@ void Simulation2DView::render() {
                  ImVec2(1, 0));
 
 
-    _forces->clear();
+    forces.clear();
     if (ImGui::IsItemHovered()) {
         const ImVec2 mouse = ImGui::GetIO().MousePos;
 
@@ -117,15 +124,15 @@ void Simulation2DView::render() {
                     if (dx*dx + dy*dy <= r2) {
                         switch (_mode) {
                             case FORCE:
-                                (*_forces)(x, flipY) += force * glm::vec2(1.f, -1);
+                                forces(x, flipY) += force * glm::vec2(1.f, -1);
                                 break;
                             case BOUNDARY:
-                                if (left) (*_boundary)(x, flipY) = 1;
-                                else      (*_boundary)(x, flipY) = 0;
+                                if (left) boundary(x, flipY) = 1;
+                                else      boundary(x, flipY) = 0;
                                 break;
                             case FLUID:
-                                if (left) (*_rho)(x, flipY) = 1;
-                                else      (*_rho)(x, flipY) = 0;
+                                if (left) rho(x, flipY) = 1;
+                                else      rho(x, flipY) = 0;
                                 break;
                             case END:
                                 break;
@@ -189,16 +196,6 @@ void Simulation2DView::render() {
     }
 
     ImGui::End();
-}
-
-void Simulation2DView::updateGrid(const Grid* grid) {
-    _initialized = true;
-
-    _width = grid->width();
-    _height = grid->height();
-    _forces = &grid->forces();
-    _boundary = &grid->boundary();
-    _rho = &grid->rho();
 }
 
 void Simulation2DView::setVelField(VecField *velField) {

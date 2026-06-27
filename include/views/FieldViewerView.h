@@ -14,7 +14,7 @@ public:
     FieldViewerView(ScalField* field, const std::string& name);
     ~FieldViewerView();
 
-    void render() override;
+    void render(void* renderData) override;
 
 private:
     std::string _name{};

@@ -5,7 +5,7 @@
 #include "util/GuiHelper.h"
 #include "util/Time.h"
 
-void FPSView::render() {
+void FPSView::render(void* renderData) {
     if (!_visible)
         return;
 

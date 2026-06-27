@@ -11,7 +11,7 @@
 
 class ProfilerView : public Viewable{
 public:
-    void render() override;
+    void render(void* renderData) override;
 
 private:
     std::map<std::string, bool> _disabled_profiles;

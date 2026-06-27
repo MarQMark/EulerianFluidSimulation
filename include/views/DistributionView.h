@@ -6,13 +6,10 @@
 
 class DistributionView : public Viewable {
 public:
-    void render() override;
-
-    void recreate(Grid* grid);
+    void render(void* renderData) override;
 
 private:
-    Grid* _grid{};
-    int _y_level = 0;
+    int _y_level = -1;
 };
 
 

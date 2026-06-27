@@ -6,12 +6,12 @@
 #include "simulation/SimulationDisplay.h"
 #include "solver/ISolver.h"
 
-class SimulationDisplay2D;
-
 class CPUSimulator2D final : public ISimulator2D {
 public:
     CPUSimulator2D(unsigned width, unsigned height);
     ~CPUSimulator2D() override;
+
+    void update() override;
 
     void* getRenderData() override;
 

@@ -7,6 +7,8 @@
 #include "util/GuiHelper.h"
 #include <GLFW/glfw3.h>
 
+#include "simulation/Properties.h"
+
 Views::Views(const Window* window) {
     ImGui::CreateContext();
     Util::ApplyTheme();
@@ -23,7 +25,42 @@ Views::~Views() {
         delete view;
 }
 
-void Views::update() {
+void DrawTaskbar()
+{
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+    const float height = 32.0f;
+
+    ImGui::SetNextWindowPos(viewport->Pos);
+    ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, height));
+
+    ImGuiWindowFlags flags =
+        ImGuiWindowFlags_NoDecoration |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoSavedSettings |
+        ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+    ImGui::Begin("Taskbar", nullptr, flags);
+
+    if (ImGui::Button("Open")) {
+        // ...
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Save")) {
+        // ...
+    }
+
+    ImGui::SameLine();
+
+    ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+
+    ImGui::End();
+}
+
+void Views::update(void* renderData) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -52,6 +89,8 @@ void Views::update() {
     if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
         window_flags |= ImGuiWindowFlags_NoBackground;
 
+    window_flags |= ImGuiWindowFlags_MenuBar;
+
     if (!opt_padding)
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin("DockSpace Demo", nullptr, window_flags);
@@ -61,6 +100,8 @@ void Views::update() {
     if (opt_fullscreen)
         ImGui::PopStyleVar(2);
 
+
+    render_menubar();
 
     ImGuiIO& io = ImGui::GetIO();
     if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
@@ -73,7 +114,7 @@ void Views::update() {
     ImGui::ShowDemoWindow(&show_demo_window);
 
     for (const auto view: _views | std::views::values)
-        view->render();
+        view->render(renderData);
 
     ImGui::End();
 
@@ -119,4 +160,54 @@ void Views::deleteView(const std::string &name) {
 
     delete _views[name];
     _views.erase(name);
+}
+
+void Views::render_menubar() {
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Open")) {}
+            if (ImGui::MenuItem("Save")) {}
+
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Exit")) {
+                exit(0);
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::Separator();
+        if (ImGui::BeginMenu("Simulation")) {
+            if (ImGui::BeginMenu("Change type")) {
+                if (ImGui::MenuItem("CPU 2D")) {
+                    SET_PROPERTY(SIMULATION_TYPE, Properties::CPU_2D, Properties::SimulatorType);
+                    SET_PROPERTY_B(SIMULATION_REBUILD, true);
+                }
+                if (ImGui::MenuItem("CPU 3D")) {
+                    SET_PROPERTY(SIMULATION_TYPE, Properties::CPU_3D, Properties::SimulatorType);
+                    SET_PROPERTY_B(SIMULATION_REBUILD, true);
+                }
+
+                if (ImGui::MenuItem("OpenGL 2D")) {
+                    SET_PROPERTY(SIMULATION_TYPE, Properties::OPENGL_2D, Properties::SimulatorType);
+                    SET_PROPERTY_B(SIMULATION_REBUILD, true);
+                }
+
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::Separator();
+        if (ImGui::BeginMenu("View")) {
+            for (const auto& [name, view] : _views) {
+                bool visible = view->isVisible();
+                ImGui::MenuItem(name.c_str(), nullptr, &visible);
+                view->setVisible(visible);
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMenuBar();
+    }
 }

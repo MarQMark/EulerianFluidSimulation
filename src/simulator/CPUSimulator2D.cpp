@@ -9,6 +9,7 @@
 #include "solver/JacobiSolver.h"
 
 #include "simulation/SimulationDisplay.h"
+#include "util/Profiler.h"
 
 
 #define BOUNDARY 1.f
@@ -41,6 +42,32 @@ CPUSimulator2D::CPUSimulator2D(const unsigned width, const unsigned height) : IS
 CPUSimulator2D::~CPUSimulator2D() {
     delete _grid;
 	delete _solver;
+}
+
+void CPUSimulator2D::update() {
+	Profiler* profiler = Profiler::Get();
+
+	profiler->start("1 Vel Extrapolate");
+	if (!PROPERTY_B(DISABLE_VEL_EXTRAPOLATE)) vel_extrapolate();
+	profiler->stop();
+
+	//diffuse();
+
+	profiler->start("2 Rho Sharpen");
+	if (!PROPERTY_B(DISABLE_RHO_SHARPEN)) rho_sharpen();
+	profiler->stop();
+	profiler->start("3 Rho Advect");
+	if (!PROPERTY_B(DISABLE_RHO_ADVECT))  rho_advect();
+	profiler->stop();
+	profiler->start("4 Vel Advect");
+	if (!PROPERTY_B(DISABLE_VEL_ADVECT))  vel_advect();
+	profiler->stop();
+	profiler->start("5 Add Force");
+	if (!PROPERTY_B(DISABLE_ADD_FORCE))   add_force();
+	profiler->stop();
+	profiler->start("6 Project");
+	if (!PROPERTY_B(DISABLE_PROJECT))     project();
+	profiler->stop();
 }
 
 void* CPUSimulator2D::getRenderData() {

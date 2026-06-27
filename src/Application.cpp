@@ -4,6 +4,7 @@
 #include "simulation/Properties.h"
 #include "simulator/CPUSimulator2D.h"
 #include "simulator/CPUSimulator3D.h"
+#include "simulator/OpenGLSimulator2D.h"
 #include "util/Time.h"
 #include "views/DistributionView.h"
 #include "views/FPSView.h"
@@ -24,8 +25,7 @@ Application::Application() {
     _views->addView("Profiler", new ProfilerView());
     _views->addView("SolverSteps", new SolverStepsView());
 
-    //rebuild(CPU_2D);
-	rebuild(CPU_3D);
+	rebuild();
 
     Time::Get()->targetFps = 165;
 }
@@ -49,17 +49,22 @@ void Application::update() {
     	}
 
         _display->update(_simulator->getRenderData());
-        _views->update();
+        _views->update(_simulator->getRenderData());
     	_window->update();
 
         input_handler();
 
     	Time::Get()->limitFPS();
     	Input.reset();
+
+    	if (PROPERTY_B(SIMULATION_REBUILD))
+    		rebuild();
     }
 }
 
-void Application::rebuild(const SimulatorType type) {
+void Application::rebuild() {
+	SET_PROPERTY_B(SIMULATION_REBUILD, false);
+
     if (_simulator) delete _simulator;
     if (_display) {
         _views->deleteView(std::string{_display->viewableName()});
@@ -69,15 +74,16 @@ void Application::rebuild(const SimulatorType type) {
     const int WIDTH = PROPERTY_I(WIDTH);
     const int HEIGHT = PROPERTY_I(HEIGHT);
 
-    switch (type) {
-        case OPENGL_2D:
+    switch (PROPERTY(SIMULATION_TYPE, Properties::SimulatorType)) {
+        case Properties::OPENGL_2D:
+    		_simulator = new OpenGLSimulator2D(WIDTH, HEIGHT);
             _display = new SimulationDisplay2D(WIDTH, HEIGHT);
             break;
-        case CPU_3D:
+        case Properties::CPU_3D:
     		_simulator = new CPUSimulator3D(WIDTH, HEIGHT, 1);
             _display = new SimulationDisplay3D(_window);
             break;
-        case CPU_2D:
+        case Properties::CPU_2D:
         default:
             _simulator = new CPUSimulator2D(WIDTH, HEIGHT);
             _display = new SimulationDisplay2D(WIDTH, HEIGHT);
@@ -91,7 +97,7 @@ void Application::input_handler() {
     const bool searching = _views->getView<PropertiesView>("Properties")->searching();
 
     if(ImGui::IsKeyPressed(ImGuiKey_R) && !searching)
-    	_should_rebuild = true;
+    	SET_PROPERTY_B(SIMULATION_REBUILD, true);
     if (ImGui::IsKeyPressed(ImGuiKey_P) && !searching)
     	SET_PROPERTY_B(PAUSED, !PROPERTY_B(PAUSED));
     if (ImGui::IsKeyPressed(ImGuiKey_S) && !searching)
@@ -135,9 +141,4 @@ void Application::input_handler() {
     	else
     		_views->deleteView("FieldViewerPressure");
     }*/
-
-    if (_should_rebuild) {
-    	_should_rebuild = false;
-    	rebuild(CPU_2D);
-    }
 }

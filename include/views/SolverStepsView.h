@@ -5,7 +5,7 @@
 
 class SolverStepsView : public Viewable{
 public:
-    void render() override;
+    void render(void* renderData) override;
 
 private:
     static constexpr unsigned int MAX_STEPS = 2000;

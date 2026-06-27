@@ -11,7 +11,6 @@ class Viewable;
 class Window;
 
 class Grid;
-class Simulation2DView;
 
 class ISimulationDisplay {
 protected:
@@ -40,8 +39,9 @@ public:
     std::string_view viewableName() override;
 
 private:
+    unsigned int _width;
+    unsigned int _height;
     Renderer2D* _renderer{};
-    Simulation2DView* _simulation_view{};
 };
 
 class SimulationDisplay3D final : public ISimulationDisplay {

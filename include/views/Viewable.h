@@ -6,7 +6,7 @@ public:
     Viewable() = default;
     virtual ~Viewable() = default;
 
-    virtual void render() = 0;
+    virtual void render(void* renderData) = 0;
 
     virtual void setVisible(const bool visible) {_visible = visible;}
     virtual bool isVisible() {return _visible;}

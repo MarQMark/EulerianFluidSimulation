@@ -59,7 +59,7 @@ void DrawFieldGrid(ImDrawList* dl, ImVec2 origin, float cellSize, ScalField& fie
     }
 }
 
-void FieldViewerView::render() {
+void FieldViewerView::render(void* renderData) {
     if (!_v_field && !_s_field)
         return;
 

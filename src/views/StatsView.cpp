@@ -4,15 +4,20 @@
 
 #include "imgui.h"
 #include "simulation/Properties.h"
+#include "simulation/SimulationDisplay.h"
 #include "util/GuiHelper.h"
 
-void StatsView::render() {
+void StatsView::render(void* renderData) {
+    if (!renderData)
+        return;
     if (!_visible)
         return;
+    const auto* data = static_cast<SimulationDisplay2D::RenderData2D*>(renderData);
+    const auto* grid = data->grid;
 
     ImGui::Begin("Stats");
 
-    if (!_grid) {
+    if (!grid) {
         ImGui::End();
         return;
     }
@@ -21,16 +26,16 @@ void StatsView::render() {
     float compressed = 0;
     float floating = 0;
     float sum = 0;
-    for (unsigned int i = 0; i < _grid->rho().size(); i++) {
-        if (_grid->rho()[i] > PROPERTY_F(LIQUID_THRESHOLD))
+    for (unsigned int i = 0; i < grid->rho().size(); i++) {
+        if (grid->rho()[i] > PROPERTY_F(LIQUID_THRESHOLD))
             current += 1;
         else
-            floating += _grid->rho()[i];
+            floating += grid->rho()[i];
 
-        if (_grid->rho()[i] > 1.f)
-            compressed += _grid->rho()[i] - 1.f;
+        if (grid->rho()[i] > 1.f)
+            compressed += grid->rho()[i] - 1.f;
 
-        sum += _grid->rho()[i];
+        sum += grid->rho()[i];
     }
 
     const float total = PROPERTY_F(TOTAL_RHO);
@@ -82,8 +87,4 @@ void StatsView::render() {
     }
 
     ImGui::End();
-}
-
-void StatsView::recreate(Grid *grid) {
-    _grid = grid;
 }

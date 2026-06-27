@@ -246,7 +246,10 @@ void ProfilerView::set_disabled(Profiler::Profile *profile, const bool disabled,
 }
 
 
-void ProfilerView::render() {
+void ProfilerView::render(void* renderData) {
+    if (!_visible)
+        return;
+
     ImGui::Begin("Profiler");
 
     Util::SectionHeader("PIPELINE PROFILER");

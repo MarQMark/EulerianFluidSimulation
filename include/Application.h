@@ -18,13 +18,7 @@ private:
     ISimulationDisplay* _display{};
     Views* _views{};
 
-    enum SimulatorType {
-        CPU_2D,
-        OPENGL_2D,
-        CPU_3D,
-    };
-    void rebuild(SimulatorType type);
-    bool _should_rebuild = false;
+    void rebuild();
 
     void input_handler();
 };

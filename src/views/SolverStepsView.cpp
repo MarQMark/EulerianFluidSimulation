@@ -4,7 +4,7 @@
 #include "simulation/Properties.h"
 #include "util/GuiHelper.h"
 
-void SolverStepsView::render() {
+void SolverStepsView::render(void* renderData) {
     if (!_visible) return;
 
     ImGui::Begin("Solver Steps");

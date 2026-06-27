@@ -2,6 +2,11 @@
 
 #include <algorithm>
 
+#include "simulation/Properties.h"
+
+#define LOOP_2D(x, y, offset)  for (int y = offset; y < _n_height - offset; y++) \
+                               for (int x = offset; x < _n_width  - offset; x++)
+
 #ifdef USE_GPU
 void Grid::gpuUpload() const {
     gpuVel->upload(_vel->data());
@@ -50,6 +55,39 @@ Grid::Grid(const unsigned int nWidth, const unsigned int nHeight)
     gpuForces     = new StorageBuffer(_size * sizeof(glm::vec2));
     gpuBoundary   = new StorageBuffer(_size * sizeof(float));
 #endif
+
+    switch (PROPERTY(INIT_SHAPE, Properties::InitShape)) {
+        case Properties::FULL:
+            (*_rho) = 1.f;
+            break;
+        case Properties::HALF:
+            for (int y = 0; y < _n_height / 2; y++)
+            for (int x = 0; x < _n_width; x++)
+                (*_rho)(x, y) = 1.f;
+            break;
+        case Properties::SQUARE:
+            if (_n_width < 50 || _n_height < 50)
+                break;
+            for (int y = 40; y < 50; y++)
+                for (int x = 40; x < 50; x++)
+                    (*_rho)(x, y) = 1.f;
+            break;
+        case Properties::EMPTY:
+            (*_rho) = 0.f;
+            break;
+    }
+
+    LOOP_2D(x, y, 0) {
+        if (y == 0) (*_rho)(x, y) = 0.f;
+        if (x == 0) (*_rho)(x, y) = 0.f;
+        if (x == _n_width  - 1) (*_rho)(x, y) = 0.f;
+        if (x == _n_height - 1) (*_rho)(x, y) = 0.f;
+    }
+
+    SET_PROPERTY_F(TOTAL_RHO, 0.f);
+    LOOP_2D(x, y, 0) {
+        ADD_PROPERTY_F(TOTAL_RHO, (*_rho)(x, y));
+    }
 }
 
 Grid::~Grid() {
@@ -237,3 +275,5 @@ unsigned int Grid::height() const {
 unsigned int Grid::size() const {
     return _size;
 }
+
+#undef LOOP_2D

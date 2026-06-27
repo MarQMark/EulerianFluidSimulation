@@ -4,7 +4,8 @@
 #include "views/Simulation2DView.h"
 #include "views/Simulation3DView.h"
 
-SimulationDisplay2D::SimulationDisplay2D(const unsigned int width, const unsigned int height) {
+SimulationDisplay2D::SimulationDisplay2D(const unsigned int width, const unsigned int height)
+    : _width(width), _height(height) {
     _renderer = new Renderer2D(width, height);
 }
 
@@ -16,13 +17,11 @@ void SimulationDisplay2D::update(void* renderData) {
     const auto* data = static_cast<RenderData2D*>(renderData);
     if (renderData) {
         _renderer->render(data->grid);
-        _simulation_view->updateGrid(data->grid);
     }
 }
 
 Viewable* SimulationDisplay2D::createViewable() {
-    _simulation_view = new Simulation2DView(_renderer->getTexture2D()->get());
-    return _simulation_view;
+    return new Simulation2DView(_renderer->getTexture2D()->get(), _width, _height);
 }
 
 std::string_view SimulationDisplay2D::viewableName() {

@@ -12,7 +12,7 @@ class Simulation3DView : public Viewable {
 public:
     explicit Simulation3DView(Editor* editor, Renderer3D* renderer);
 
-    void render() override;
+    void render(void* renderData) override;
 
 private:
     Editor* editor;

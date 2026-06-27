@@ -13,7 +13,7 @@ public:
     explicit Views(const Window* window);
     ~Views();
 
-    void update();
+    void update(void* renderData);
 
     void addView(const std::string& name, Viewable* view);
     Viewable* getView(const std::string& name);
@@ -32,6 +32,8 @@ public:
 
 private:
     std::map<std::string, Viewable*> _views;
+
+    void render_menubar();
 };
 
 

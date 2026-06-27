@@ -21,11 +21,9 @@ private:
         END
     };
 public:
-    explicit Simulation2DView(ImTextureID textureID);
+    explicit Simulation2DView(ImTextureID textureID, int width, int height);
 
-    void render() override;
-
-    void updateGrid(const Grid* grid);
+    void render(void* renderData) override;
 
     void setVelField(VecField* velField);
 
@@ -39,11 +37,8 @@ private:
     Mode _mode = FORCE;
 
     ImVec2 _mouse_pos = ImVec2(-1, -1);
-    VecField* _forces{};
 
     VecField* _vel_field{};
-    ScalField* _boundary{};
-    ScalField* _rho{};
 };
 
 

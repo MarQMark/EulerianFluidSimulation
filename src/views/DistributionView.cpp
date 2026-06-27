@@ -4,19 +4,27 @@
 
 #include "imgui.h"
 #include "simulation/Properties.h"
+#include "simulation/SimulationDisplay.h"
 #include "util/GuiHelper.h"
 
-void DistributionView::render() {
+void DistributionView::render(void* renderData) {
+    if (!renderData)
+        return;
     if (!_visible)
         return;
+    const auto* data = static_cast<SimulationDisplay2D::RenderData2D*>(renderData);
+    const auto* grid = data->grid;
 
     ImGui::Begin("Rho Distribution");
-    if (!_grid) {
+    if (!grid) {
         ImGui::End();
         return;
     }
 
-    auto& rho = _grid->rho();
+    if (_y_level == -1)
+        _y_level = grid->height() / 2;
+
+    auto& rho = grid->rho();
     _y_level = std::clamp(_y_level, 0, (int)rho.height() - 1);
 
     Util::SectionHeader("DISTRIBUTION");
@@ -36,9 +44,4 @@ void DistributionView::render() {
     ImGui::SliderInt("Y Level", &_y_level, 0, rho.height() - 1);
 
     ImGui::End();
-}
-
-void DistributionView::recreate(Grid *grid) {
-    _grid = grid;
-    _y_level = _grid->height() / 2;
 }

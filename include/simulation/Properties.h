@@ -33,6 +33,9 @@
 
 class Properties {
 public:
+    PROP_TOKEN(SIMULATION_TYPE, "Simulation Type")
+    PROP_TOKEN(SIMULATION_REBUILD, "Simulation Rebuild")
+
     PROP_TOKEN(BRUSH_SIZE, "Brush Size")
 
     PROP_TOKEN(LAMBDA_MINUS, "Lambda-")
@@ -129,6 +132,9 @@ private:
         ADD_HIDDEN(MAX_VALUE, 0)
         ADD_HIDDEN(TOTAL_RHO, 0.f)
         ADD_HIDDEN(SOLVE_STEPS, 0)
+
+        ADD_HIDDEN(SIMULATION_TYPE, SimulatorType::CPU_2D);
+        ADD_HIDDEN(SIMULATION_REBUILD, false);
     }
     ~Properties();
 
@@ -261,6 +267,11 @@ public:
 
         return s_instance;
     }
+    enum SimulatorType {
+        CPU_2D,
+        OPENGL_2D,
+        CPU_3D,
+    };
     enum InitShape {
         FULL,
         HALF,
