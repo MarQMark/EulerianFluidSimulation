@@ -21,11 +21,11 @@ private:
         END
     };
 public:
-    explicit Simulation2DView() = default;
+    explicit Simulation2DView(ImTextureID textureID);
 
     void render() override;
 
-    void recreate(ImTextureID textureID, const Grid* grid);
+    void updateGrid(const Grid* grid);
 
     void setVelField(VecField* velField);
 

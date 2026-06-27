@@ -36,7 +36,7 @@ Simulator::Simulator() {
 
 	// --- Setup UI ---
 	_views = new Views(_window);
-	_views->addView("Simulation2D", new Simulation2DView());
+	//_views->addView("Simulation2D", new Simulation2DView());
 	_views->addView("Simulation3D", new Simulation3DView(_editor, _renderer3D));
 	_views->addView("Properties", new PropertiesView());
 	_views->addView("Performance", new FPSView());
@@ -68,7 +68,7 @@ Simulator::~Simulator() {
 #define BOUNDARY 1.f
 
 #define LOOP_2D_GRID(x, y, offset)  for (int y = offset; y < _grid->height() - offset; y++) \
-									for (int x = offset; x < _grid->width() - offset; x++)
+									for (int x = offset; x < _grid->width()  - offset; x++)
 
 void Simulator::recreate() {
 	if (_grid) delete _grid;
@@ -109,8 +109,8 @@ void Simulator::recreate() {
 	if (_views->getView("FieldViewerPressure"))
 		_views->replaceView("FieldViewerPressure", new FieldViewerView(&_grid->pressure(), "Pressure Viewer"));
 
-	_views->getView<Simulation2DView>("Simulation2D")->recreate(
-		_renderer2D->getTexture2D()->get(), _grid);
+	//_views->getView<Simulation2DView>("Simulation2D")->recreate(
+	//	_renderer2D->getTexture2D()->get(), _grid);
 	_views->getView<StatsView>("Stats")->recreate(_grid);
 	_views->getView<DistributionView>("Distribution")->recreate(_grid);
 
@@ -175,7 +175,7 @@ void Simulator::update() {
 
         _renderer2D->render(_grid);
     	_renderer3D->render(_scene);
-        _views->render();
+        _views->update();
         _window->update();
 
 		const bool searching = _views->getView<PropertiesView>("Properties")->searching();

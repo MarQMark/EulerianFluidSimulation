@@ -1,8 +1,8 @@
-#include "Simulator.h"
+#include "Application.h"
 
 int main() {
-    Simulator simulator;
-    simulator.update();
+    Application app;
+    app.update();
 
     return 0;
 }

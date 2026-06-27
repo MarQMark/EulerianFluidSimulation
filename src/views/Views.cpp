@@ -23,7 +23,7 @@ Views::~Views() {
         delete view;
 }
 
-void Views::render() {
+void Views::update() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();

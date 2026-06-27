@@ -13,7 +13,7 @@ public:
     explicit Views(const Window* window);
     ~Views();
 
-    void render();
+    void update();
 
     void addView(const std::string& name, Viewable* view);
     Viewable* getView(const std::string& name);

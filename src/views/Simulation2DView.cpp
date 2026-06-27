@@ -10,6 +10,10 @@
 #include "util/Time.h"
 
 #define TOP_SPACING 10;
+
+Simulation2DView::Simulation2DView(const ImTextureID textureID) : _texture_id(textureID), _width(0), _height(0) {
+}
+
 void Simulation2DView::render() {
     if (!_initialized)
         return;
@@ -187,10 +191,9 @@ void Simulation2DView::render() {
     ImGui::End();
 }
 
-void Simulation2DView::recreate(const ImTextureID textureID, const Grid* grid) {
+void Simulation2DView::updateGrid(const Grid* grid) {
     _initialized = true;
 
-    _texture_id = textureID;
     _width = grid->width();
     _height = grid->height();
     _forces = &grid->forces();
