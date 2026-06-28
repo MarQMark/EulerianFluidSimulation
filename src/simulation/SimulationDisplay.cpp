@@ -5,8 +5,9 @@
 #include "views/Simulation3DView.h"
 
 SimulationDisplay2D::SimulationDisplay2D(const unsigned int width, const unsigned int height)
-    : _width(width), _height(height) {
+    : ISimulationDisplay(), _width(width), _height(height) {
     _renderer = new Renderer2D(width, height);
+    _viewables["Simualtion2D"] = new Simulation2DView(_renderer->getTexture2D()->get(), _width, _height);
 }
 
 SimulationDisplay2D::~SimulationDisplay2D() {
@@ -20,20 +21,13 @@ void SimulationDisplay2D::update(void* renderData) {
     }
 }
 
-Viewable* SimulationDisplay2D::createViewable() {
-    return new Simulation2DView(_renderer->getTexture2D()->get(), _width, _height);
-}
-
-std::string_view SimulationDisplay2D::viewableName() {
-    return "Simualtion2D";
-}
-
-
-SimulationDisplay3D::SimulationDisplay3D(Window* window) {
+SimulationDisplay3D::SimulationDisplay3D(Window* window) : ISimulationDisplay() {
     _renderer = new Renderer3D();
     _scene = new Scene(window);
     _editor = new Editor;
     _editor->setScene(_scene);
+
+    _viewables["Simulation3D"] = new Simulation3DView(_editor, _renderer);
 }
 
 SimulationDisplay3D::~SimulationDisplay3D() {
@@ -48,12 +42,3 @@ void SimulationDisplay3D::update(void* renderData) {
     _scene->update(Time::Get()->dt);
     _renderer->render(_scene);
 }
-
-Viewable* SimulationDisplay3D::createViewable() {
-    return new Simulation3DView(_editor, _renderer);
-}
-
-std::string_view SimulationDisplay3D::viewableName() {
-    return "Simulation3D";
-}
-

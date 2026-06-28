@@ -15,14 +15,16 @@ class Grid;
 class ISimulationDisplay {
 protected:
     ISimulationDisplay() = default;
+    std::map<std::string, Viewable*> _viewables;
 
 public:
     virtual ~ISimulationDisplay() = default;
 
     virtual void update(void* renderData) = 0;
 
-    virtual Viewable* createViewable() = 0;
-    virtual std::string_view viewableName() = 0;
+    virtual const std::map<std::string, Viewable*>& viewables() {
+        return _viewables;
+    };
 };
 
 class SimulationDisplay2D final : public ISimulationDisplay {
@@ -34,9 +36,6 @@ public:
     ~SimulationDisplay2D() override;
 
     void update(void* renderData) override;
-
-    Viewable* createViewable() override;
-    std::string_view viewableName() override;
 
 private:
     unsigned int _width;
@@ -54,9 +53,6 @@ public:
     ~SimulationDisplay3D() override;
 
     void update(void* renderData) override;
-
-    Viewable* createViewable() override;
-    std::string_view viewableName() override;
 
 private:
     Renderer3D* _renderer{};

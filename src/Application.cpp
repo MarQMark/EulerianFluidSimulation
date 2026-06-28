@@ -67,7 +67,8 @@ void Application::rebuild() {
 
     if (_simulator) delete _simulator;
     if (_display) {
-        _views->deleteView(std::string{_display->viewableName()});
+    	for (const auto name: _display->viewables() | std::views::keys)
+			_views->deleteView(name);
         delete _display;
     }
 
@@ -90,7 +91,8 @@ void Application::rebuild() {
             break;
     }
 
-    _views->addView(std::string{_display->viewableName()}, _display->createViewable());
+	for (const auto& [name, v] : _display->viewables())
+		_views->addView(name, v);
 }
 
 void Application::input_handler() {

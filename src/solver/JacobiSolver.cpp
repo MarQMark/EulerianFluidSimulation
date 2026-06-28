@@ -6,7 +6,7 @@
 JacobiSolver::JacobiSolver(const int width, const int height) : ISolver(width, height) {
     _tmp = new ScalField(width, height);
 #ifdef USE_GPU
-    _shader_jp  = new Shader({{"shaders/jacobi_pass.comp", Shader::COMPUTE }});
+    _shader_jp  = new Shader({{"assets/shaders/jacobi_pass.comp", Shader::COMPUTE }});
     _gpu_tmp = new StorageBuffer(width * height * sizeof(float));
 #endif
 }

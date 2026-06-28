@@ -18,18 +18,18 @@ CGSolver::CGSolver(const int width, const int height) : ISolver(width, height) {
     _d   = new ScalField(width, height);
 
 #ifdef USE_GPU
-    _shader_as  = new Shader({{"shaders/cg_add_scaled.comp", Shader::COMPUTE }});
-    _shader_mm  = new Shader({{"shaders/cg_mat_mul.comp", Shader::COMPUTE }});
-    _shader_ss  = new Shader({{"shaders/cg_set_subtract.comp", Shader::COMPUTE }});
-    _shader_sa  = new Shader({{"shaders/cg_scale_add.comp", Shader::COMPUTE }});
+    _shader_as  = new Shader({{"assets/shaders/cg_add_scaled.comp", Shader::COMPUTE }});
+    _shader_mm  = new Shader({{"assets/shaders/cg_mat_mul.comp", Shader::COMPUTE }});
+    _shader_ss  = new Shader({{"assets/shaders/cg_set_subtract.comp", Shader::COMPUTE }});
+    _shader_sa  = new Shader({{"assets/shaders/cg_scale_add.comp", Shader::COMPUTE }});
 
-    _shader_asg = new Shader({{"shaders/cg_add_scaled_gpu.comp", Shader::COMPUTE }});
-    _shader_sag = new Shader({{"shaders/cg_scale_add_gpu.comp", Shader::COMPUTE }});
+    _shader_asg = new Shader({{"assets/shaders/cg_add_scaled_gpu.comp", Shader::COMPUTE }});
+    _shader_sag = new Shader({{"assets/shaders/cg_scale_add_gpu.comp", Shader::COMPUTE }});
 
-    _shader_dp2 = new Shader({{"shaders/cg_dot2_pass.comp", Shader::COMPUTE }});
-    _shader_r2  = new Shader({{"shaders/cg_reduce2.comp", Shader::COMPUTE }});
+    _shader_dp2 = new Shader({{"assets/shaders/cg_dot2_pass.comp", Shader::COMPUTE }});
+    _shader_r2  = new Shader({{"assets/shaders/cg_reduce2.comp", Shader::COMPUTE }});
 
-    _shader_us  = new Shader({{"shaders/cg_update_scalars.comp", Shader::COMPUTE }});
+    _shader_us  = new Shader({{"assets/shaders/cg_update_scalars.comp", Shader::COMPUTE }});
 
     const int n = width * height;
     _gpu_r   = new StorageBuffer(n * sizeof(float));
