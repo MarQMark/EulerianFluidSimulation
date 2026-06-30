@@ -2,13 +2,17 @@
 
 #include "simulation/scene/nodes/FluidNode.h"
 #include "util/Time.h"
+#include "views/NodePropertiesView.h"
+#include "views/PropertiesView.h"
+#include "views/SceneView.h"
 #include "views/Simulation2DView.h"
 #include "views/Simulation3DView.h"
 
 SimulationDisplay2D::SimulationDisplay2D(const unsigned int width, const unsigned int height)
     : ISimulationDisplay(), _width(width), _height(height) {
     _renderer = new Renderer2D(width, height);
-    _viewables["Simualtion2D"] = new Simulation2DView(_renderer->getTexture2D()->get(), _width, _height);
+    _viewables["Simulation2D"] = new Simulation2DView(_renderer->getTexture2D()->get(), _width, _height);
+    _viewables["Properties"] = new PropertiesView();
 }
 
 SimulationDisplay2D::~SimulationDisplay2D() {
@@ -29,6 +33,8 @@ SimulationDisplay3D::SimulationDisplay3D(Window* window) : ISimulationDisplay() 
     _editor->setScene(_scene);
 
     _viewables["Simulation3D"] = new Simulation3DView(_editor, _renderer);
+    _viewables["Scene"] = new SceneView(_editor, _renderer);
+    _viewables["Properties"] = new NodePropertiesView(_editor);
 }
 
 SimulationDisplay3D::~SimulationDisplay3D() {

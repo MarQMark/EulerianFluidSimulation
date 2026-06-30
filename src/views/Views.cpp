@@ -7,6 +7,7 @@
 #include "util/GuiHelper.h"
 #include <GLFW/glfw3.h>
 
+#include "ImGuizmo.h"
 #include "simulation/Properties.h"
 
 Views::Views(const Window* window) {
@@ -64,6 +65,7 @@ void Views::update(void* renderData) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+    ImGuizmo::BeginFrame();
 
     static bool opt_fullscreen = true;
     static bool opt_padding = false;
@@ -110,8 +112,8 @@ void Views::update(void* renderData) {
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
     }
 
-    bool show_demo_window = true;
-    ImGui::ShowDemoWindow(&show_demo_window);
+    // bool show_demo_window = true;
+    // ImGui::ShowDemoWindow(&show_demo_window);
 
     for (const auto view: _views | std::views::values)
         view->render(renderData);

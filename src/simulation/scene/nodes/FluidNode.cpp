@@ -12,6 +12,9 @@ FluidNode::FluidNode() {
     _cubes = new MarchingCubes(fluidMesh.get());
     _fluidModel = std::make_shared<Model>("Fluid", std::move(fluidMesh));
 
+    setSceneGraphVisible(false);
+    setDeletable(false);
+
     Material fluidMaterial("Fluid", Shader::createDefaultShaded());
     fluidMaterial.setVec3("albedo", glm::vec3(1.0f, 1.0f, 1.0f));
     _fluidModel->addMaterial(fluidMaterial);

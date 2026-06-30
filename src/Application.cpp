@@ -18,7 +18,7 @@ Application::Application() {
 	Input.addInputWindow(_window);
 
     _views = new Views(_window);
-    _views->addView("Properties", new PropertiesView());
+    // _views->addView("Properties", new PropertiesView());
     _views->addView("Performance", new FPSView());
     _views->addView("Stats", new StatsView());
     _views->addView("Distribution", new DistributionView());
@@ -96,6 +96,7 @@ void Application::rebuild() {
 }
 
 void Application::input_handler() {
+	/*
     const bool searching = _views->getView<PropertiesView>("Properties")->searching();
 
     if(ImGui::IsKeyPressed(ImGuiKey_R) && !searching)

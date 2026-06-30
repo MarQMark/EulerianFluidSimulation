@@ -132,7 +132,6 @@ void Util::ApplyTheme() {
 
     s.WindowPadding      = {8.0f, 4.0f};
     s.FramePadding       = { 8.0f,  3.0f};
-    s.CellPadding        = { 6.0f,  4.0f};
     s.ItemSpacing        = { 5.0f,  4.0f};
     s.ItemInnerSpacing   = { 6.0f,  4.0f};
     s.IndentSpacing      = 14.0f;
