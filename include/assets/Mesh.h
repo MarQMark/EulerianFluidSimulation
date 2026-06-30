@@ -38,6 +38,8 @@ public:
 
     void updateMeshData(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
 
+    void setExternalBuffers(unsigned int vertexBuffer, unsigned int indexBuffer, int vertexCount, int indexCount);
+
     void setMaterialIndex(int index);
     int getMaterialIndex() const;
 
@@ -58,6 +60,7 @@ public:
     GLuint getVAO() const;
 
     // --- Factory ---
+    static std::unique_ptr<Mesh> createEmpty();
     static std::unique_ptr<Mesh> createBox(const std::string& name);
     static std::unique_ptr<Mesh> createQuad(const std::string& name);
     static std::unique_ptr<Mesh> createWireframeBox(const std::string& name);

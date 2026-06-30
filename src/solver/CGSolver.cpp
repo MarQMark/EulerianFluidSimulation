@@ -12,10 +12,10 @@ static constexpr int SCALAR_GAMMA_OLD = 4;
 static constexpr int SCALAR_COUNT     = 5;
 
 CGSolver::CGSolver(const int width, const int height) : ISolver(width, height) {
-    _t   = new ScalField(width, height);
-    _tmp = new ScalField(width, height);
-    _r   = new ScalField(width, height);
-    _d   = new ScalField(width, height);
+    _t   = new ScalField2D(width, height);
+    _tmp = new ScalField2D(width, height);
+    _r   = new ScalField2D(width, height);
+    _d   = new ScalField2D(width, height);
 
 #ifdef USE_GPU
     _shader_as  = new Shader({{"assets/shaders/cg_add_scaled.comp", Shader::COMPUTE }});
@@ -380,8 +380,8 @@ float CGSolver::solve(Grid* grid) {
 #endif
 }
 
-void CGSolver::impl_mat_mul(ScalField &result, const ScalField &x,
-                             const ScalField &rho, const ScalField &boundary) const
+void CGSolver::impl_mat_mul(ScalField2D &result, const ScalField2D &x,
+                             const ScalField2D &rho, const ScalField2D &boundary) const
 {
     for (int y = 0; y < _height; y++) {
         for (int x_ = 0; x_ < _width; x_++) {

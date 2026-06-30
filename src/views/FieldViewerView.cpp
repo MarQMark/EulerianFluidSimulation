@@ -5,12 +5,12 @@
 #include "imgui.h"
 #include "renderer/Renderer2D.h"
 
-FieldViewerView::FieldViewerView(VecField *field, const std::string& name)
+FieldViewerView::FieldViewerView(VecField2D *field, const std::string& name)
     : _name(name), _v_field(field) {
     _txt = new Texture2D(field->width(), field->height(), nullptr);
 }
 
-FieldViewerView::FieldViewerView(ScalField *field, const std::string& name)
+FieldViewerView::FieldViewerView(ScalField2D *field, const std::string& name)
     : _name(name), _s_field(field) {
     _txt = new Texture2D(field->width(), field->height(), nullptr);
 }
@@ -19,7 +19,7 @@ FieldViewerView::~FieldViewerView() {
     delete _txt;
 }
 
-void DrawFieldGrid(ImDrawList* dl, ImVec2 origin, float cellSize, ScalField& field)
+void DrawFieldGrid(ImDrawList* dl, ImVec2 origin, float cellSize, ScalField2D& field)
 {
     for (int y = 0; y < 25; y++)
     {

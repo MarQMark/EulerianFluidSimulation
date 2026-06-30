@@ -231,6 +231,13 @@ void Model::addMesh(std::unique_ptr<Mesh> mesh) {
     updateLocalBoundingBox();
 }
 
+void Model::setMesh(unsigned int index, std::unique_ptr<Mesh> mesh) {
+    if (index < 0 || index >= meshes.size())
+        return;
+
+    meshes[index] = std::move(mesh);
+}
+
 std::vector<Mesh*> Model::getMeshes() const {
     std::vector<Mesh*> rawMeshes;
     rawMeshes.reserve(meshes.size());

@@ -1,5 +1,6 @@
 #include "simulation/SimulationDisplay.h"
 
+#include "simulation/scene/nodes/FluidNode.h"
 #include "util/Time.h"
 #include "views/Simulation2DView.h"
 #include "views/Simulation3DView.h"
@@ -38,6 +39,7 @@ SimulationDisplay3D::~SimulationDisplay3D() {
 
 void SimulationDisplay3D::update(void* renderData) {
     const auto* data = static_cast<RenderData3D *>(renderData);
+    _scene->getFluid()->setRenderData(data);
 
     _scene->update(Time::Get()->dt);
     _renderer->render(_scene);

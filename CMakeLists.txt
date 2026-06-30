@@ -20,7 +20,11 @@ endif()
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
-add_executable(EulerianFluidSimulation ${SOURCES})
+add_executable(EulerianFluidSimulation ${SOURCES}
+        src/simulation/scene/nodes/FluidNode.cpp
+        include/simulation/scene/nodes/FluidNode.h
+        src/renderer/MarchingCubes.cpp
+        include/renderer/MarchingCubes.h)
 
 # DearImGUI
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)

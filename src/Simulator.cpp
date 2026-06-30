@@ -7,7 +7,7 @@
 #include "core/Editor.h"
 #include "core/InputManager.h"
 #include "simulation/Properties.h"
-#include "simulation/ScalField.h"
+#include "simulation/ScalField2D.h"
 #include "solver/EigenSolver.h"
 #include "solver/JacobiSolver.h"
 #include "util/Profiler.h"
@@ -271,7 +271,7 @@ void Simulator::vel_extrapolate()
 	const int h = _grid->height();
 
 	// Cells that already have valid velocities
-	ScalField known(w, h);
+	ScalField2D known(w, h);
 
 	for (int y = 0; y < h; ++y)
 	{
@@ -342,7 +342,7 @@ void Simulator::rho_advect() {
 
     //################## Step 1 ##################
 	// Advect gamma using backward semi-lagrangian
-	auto advectedGamma = ScalField(gamma, false);
+	auto advectedGamma = ScalField2D(gamma, false);
 	LOOP_2D_GRID(x, y, 1){
 		if (boundary(x, y) == BOUNDARY)
 			continue;
@@ -536,11 +536,11 @@ void Simulator::rho_sharpen() {
 
 	float delT = PROPERTY_F(DT) * 3;
 
-	auto del_rho = ScalField(_grid->width(), _grid->height());
+	auto del_rho = ScalField2D(_grid->width(), _grid->height());
 
 	// Calculate the mass change due to unit velocity
-	auto del_plus = VecField(_grid->width(), _grid->height());
-	auto del_minus = VecField(_grid->width(), _grid->height());
+	auto del_plus = VecField2D(_grid->width(), _grid->height());
+	auto del_minus = VecField2D(_grid->width(), _grid->height());
 	LOOP_2D_GRID(x, y, 1) {
 		del_plus(x, y).x = -(rho(x, y) - rho(x - 1, y)) * delT;
 		del_minus(x, y).x = -(rho(x + 1, y) - rho(x, y)) * delT;
@@ -550,8 +550,8 @@ void Simulator::rho_sharpen() {
 	}
 
 	// Calculate the maximum mass increase and mass decrease due to any unit velocity
-	auto max_inc = ScalField(_grid->width(), _grid->height());
-	auto max_dec = ScalField(_grid->width(), _grid->height());
+	auto max_inc = ScalField2D(_grid->width(), _grid->height());
+	auto max_dec = ScalField2D(_grid->width(), _grid->height());
 	LOOP_2D_GRID(x, y, 1) {
 		max_inc(x, y) = std::sqrt(
 			std::max(
@@ -576,7 +576,7 @@ void Simulator::rho_sharpen() {
 		);
 	}
 
-	auto w = ScalField(_grid->width(), _grid->height());
+	auto w = ScalField2D(_grid->width(), _grid->height());
 	LOOP_2D_GRID(x, y, 1) {
 		float max = -INFINITY;
 		max = std::max(max, std::abs(rho(x, y) - rho(x - 1, y)));
@@ -620,8 +620,8 @@ void Simulator::rho_sharpen() {
 // substeps: number of forward Euler steps — more = doesn't skip thin interfaces.
 glm::vec2 Simulator::traceAlongField(
     glm::vec2        start,
-    const ScalField& rho,
-    const ScalField& walls,
+    const ScalField2D& rho,
+    const ScalField2D& walls,
     float            D,
     int              substeps) const
 {
@@ -673,8 +673,8 @@ glm::vec2 Simulator::traceAlongField(
 // Wall cells receive zero weight; remaining weights are renormalised
 // so the total deposited equals exactly 'value'.
 void Simulator::scatterValue(
-    ScalField&       rho,
-    const ScalField& walls,
+    ScalField2D&       rho,
+    const ScalField2D& walls,
     glm::vec2        pos,
     float            value)
 {
@@ -828,8 +828,8 @@ void Simulator::diffuse() {
 	// Solve for each velocity component separately
 	// (they decouple — ∇² acts independently on each)
 	for (int c = 0; c < 2; c++) {
-		ScalField rhs(w, h);
-		ScalField sol(w, h);
+		ScalField2D rhs(w, h);
+		ScalField2D sol(w, h);
 
 		LOOP_2D_GRID(x, y, 0) {
 			rhs(x, y) = (c == 0) ? field(x, y).x : field(x, y).y;

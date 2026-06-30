@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "ScalField3D.h"
 #include "core/Editor.h"
 #include "renderer/Renderer2D.h"
 #include "renderer/Renderer3D.h"
@@ -46,7 +47,7 @@ private:
 class SimulationDisplay3D final : public ISimulationDisplay {
 public:
     struct RenderData3D {
-        // ScalField3D for fluid
+        ScalField3D field;
     };
 
     SimulationDisplay3D(Window* window);

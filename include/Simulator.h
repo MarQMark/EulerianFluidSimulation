@@ -7,7 +7,7 @@
 #include "renderer/Window.h"
 #include "simulation/Grid.h"
 #include "solver/CGSolver.h"
-#include "simulation/VecField.h"
+#include "simulation/VecField2D.h"
 #include "views/Views.h"
 
 class Scene;
@@ -49,8 +49,8 @@ private:
     void rho_advect();
 
     void rho_sharpen();
-    glm::vec2 traceAlongField( glm::vec2 start, const ScalField& rho, const ScalField& walls, float D, int substeps) const;
-    void scatterValue(ScalField& rho, const ScalField& walls, glm::vec2 pos, float value);
+    glm::vec2 traceAlongField( glm::vec2 start, const ScalField2D& rho, const ScalField2D& walls, float D, int substeps) const;
+    void scatterValue(ScalField2D& rho, const ScalField2D& walls, glm::vec2 pos, float value);
 
     void add_force() const;
     void vel_advect();

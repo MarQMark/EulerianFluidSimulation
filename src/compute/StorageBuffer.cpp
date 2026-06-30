@@ -33,19 +33,19 @@ void StorageBuffer::download(void *data, unsigned int bytes) const {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-void StorageBuffer::upload(ScalField *field, const unsigned int bytes) const {
+void StorageBuffer::upload(ScalField2D *field, const unsigned int bytes) const {
     upload(field->data(), bytes);
 }
 
-void StorageBuffer::download(ScalField *field, const unsigned int bytes) const {
+void StorageBuffer::download(ScalField2D *field, const unsigned int bytes) const {
     download(field->data(), bytes);
 }
 
-void StorageBuffer::upload(VecField *field, const unsigned int bytes) const {
+void StorageBuffer::upload(VecField2D *field, const unsigned int bytes) const {
     upload(field->data(), bytes);
 }
 
-void StorageBuffer::download(VecField *field, const unsigned int bytes) const {
+void StorageBuffer::download(VecField2D *field, const unsigned int bytes) const {
     download(field->data(), bytes);
 }
 

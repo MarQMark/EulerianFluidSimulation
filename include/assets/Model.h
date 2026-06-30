@@ -28,6 +28,7 @@ public:
     std::vector<Triangle> getWorldSpaceTriangles(const glm::mat4& transform) const;
 
     void addMesh(std::unique_ptr<Mesh> mesh);
+    void setMesh(unsigned int index, std::unique_ptr<Mesh> mesh);
     std::vector<Mesh*> getMeshes() const;
 
     int addMaterial(const Material& material);

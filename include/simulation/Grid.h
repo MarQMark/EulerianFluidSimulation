@@ -4,8 +4,8 @@
 #include <map>
 #include <vector>
 
-#include "ScalField.h"
-#include "VecField.h"
+#include "ScalField2D.h"
+#include "VecField2D.h"
 #include "compute/StorageBuffer.h"
 #include "glm/glm.hpp"
 
@@ -56,24 +56,24 @@ public:
 
     glm::vec2 traceParticle(glm::vec2 pos, float dt, int substeps) const;
 
-    VecField& vel() const;
-    VecField& tmpVec() const;
+    VecField2D& vel() const;
+    VecField2D& tmpVec() const;
     void swapVec();
 
-    ScalField& rho() const;
-    ScalField& tmpScal() const;
+    ScalField2D& rho() const;
+    ScalField2D& tmpScal() const;
     void swapRho();
 
-    ScalField& gamma() const;
-    ScalField& beta() const;
+    ScalField2D& gamma() const;
+    ScalField2D& beta() const;
     std::map<unsigned int, DisAdvCell>& A() const;
     void addA(unsigned int i, unsigned int j, float val) const;
 
-    ScalField& divergence() const;
-    ScalField& pressure() const;
+    ScalField2D& divergence() const;
+    ScalField2D& pressure() const;
 
-    VecField& forces() const;
-    ScalField& boundary() const;
+    VecField2D& forces() const;
+    ScalField2D& boundary() const;
 
     unsigned int width() const;
     unsigned int height() const;
@@ -84,23 +84,23 @@ private:
     const unsigned int _n_height;
     const unsigned int _size;
 
-    VecField* _vel{};
-    VecField* _v_tmp{};
+    VecField2D* _vel{};
+    VecField2D* _v_tmp{};
 
-    ScalField* _rho{};
-    ScalField* _s_tmp{};
+    ScalField2D* _rho{};
+    ScalField2D* _s_tmp{};
 
-    ScalField* _gamma{};
-    ScalField* _beta{};
+    ScalField2D* _gamma{};
+    ScalField2D* _beta{};
 
 
     std::map<unsigned int, DisAdvCell>* _A{};
 
-    ScalField* _divergence{};
-    ScalField* _pressure{};
+    ScalField2D* _divergence{};
+    ScalField2D* _pressure{};
 
-    VecField* _forces{};
-    ScalField* _boundary{};
+    VecField2D* _forces{};
+    ScalField2D* _boundary{};
 };
 
 

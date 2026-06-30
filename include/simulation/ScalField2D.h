@@ -1,5 +1,5 @@
-#ifndef EULERIANFLUIDSIMULATION_SCALFIELD_H
-#define EULERIANFLUIDSIMULATION_SCALFIELD_H
+#ifndef EULERIANFLUIDSIMULATION_SCALFIELD2D_H
+#define EULERIANFLUIDSIMULATION_SCALFIELD2D_H
 #include <cstddef>
 #include <cstring>
 #include <vector>
@@ -7,11 +7,11 @@
 #include "glm/vec2.hpp"
 
 
-class ScalField {
+class ScalField2D {
 public:
-    ScalField(unsigned int width, unsigned int height);
-    ScalField(const ScalField& field, bool copy = true);
-    ~ScalField() = default;
+    ScalField2D(unsigned int width, unsigned int height);
+    ScalField2D(const ScalField2D& field, bool copy = true);
+    ~ScalField2D() = default;
 
     float& operator[](const std::size_t index) {
         return _field[index];
@@ -24,7 +24,7 @@ public:
         return _field[y * _width + x];
     }
 
-    ScalField& operator=(const ScalField& field2) {
+    ScalField2D& operator=(const ScalField2D& field2) {
         if (this == &field2)
             return *this;
 
@@ -34,57 +34,57 @@ public:
         _height = field2._height;
         return *this;
     }
-    ScalField& operator=(const float val) {
+    ScalField2D& operator=(const float val) {
         //_field = field2._field;
         for(auto& v : _field)
             v = val;
         return *this;
     }
-    ScalField& operator*=(const float scalar) {
+    ScalField2D& operator*=(const float scalar) {
         for (auto& v : _field)
             v *= scalar;
         return *this;
     }
-    ScalField operator*(const float scalar) const {
-        ScalField result = *this;
+    ScalField2D operator*(const float scalar) const {
+        ScalField2D result = *this;
         result *= scalar;
         return result;
     }
 
-    ScalField& operator/=(const float scalar) {
+    ScalField2D& operator/=(const float scalar) {
         for (auto& v : _field)
             v /= scalar;
         return *this;
     }
-    ScalField operator/(const float scalar) const {
-        ScalField result = *this;
+    ScalField2D operator/(const float scalar) const {
+        ScalField2D result = *this;
         result /= scalar;
         return result;
     }
 
-    ScalField& operator+=(const ScalField& field2) {
+    ScalField2D& operator+=(const ScalField2D& field2) {
         for (int i = 0; i < _field.size(); i++)
             _field[i] += field2._field[i];
         return *this;
     }
-    ScalField operator+(const ScalField& field2) const {
-        ScalField result = *this;
+    ScalField2D operator+(const ScalField2D& field2) const {
+        ScalField2D result = *this;
         result += field2;
         return result;
     }
 
-    ScalField& operator-=(const ScalField& field2) {
+    ScalField2D& operator-=(const ScalField2D& field2) {
         for (int i = 0; i < _field.size(); i++)
             _field[i] -= field2._field[i];
         return *this;
     }
-    ScalField operator-(const ScalField& field2) const {
-        ScalField result = *this;
+    ScalField2D operator-(const ScalField2D& field2) const {
+        ScalField2D result = *this;
         result -= field2;
         return result;
     }
 
-    float dot(const ScalField& field2) {
+    float dot(const ScalField2D& field2) {
         //assert(_field.size() == field2.size());
 
         float dot = 0;
@@ -96,7 +96,7 @@ public:
     float sqLen() {
         return dot(*this);
     }
-    void addScaled(const ScalField& other, float alpha) {
+    void addScaled(const ScalField2D& other, float alpha) {
         for (size_t i = 0; i < _field.size(); i++)
             _field[i] += alpha * other._field[i];
     }

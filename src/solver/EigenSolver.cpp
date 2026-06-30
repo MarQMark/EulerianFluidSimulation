@@ -14,7 +14,7 @@ EigenSolver::EigenSolver(const int width, const int height) : ISolver(width, hei
 
 EigenSolver::~EigenSolver() { delete _A; delete _b; delete _x0; }
 
-void EigenSolver::determine_equations(const ScalField &divergence, const ScalField &rho, const ScalField &boundary) const
+void EigenSolver::determine_equations(const ScalField2D &divergence, const ScalField2D &rho, const ScalField2D &boundary) const
 {
     auto idx = [&](int x, int y){ return y * _width + x; };
     std::vector<Eigen::Triplet<float>> triplets;

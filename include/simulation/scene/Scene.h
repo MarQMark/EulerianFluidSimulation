@@ -9,6 +9,7 @@
 #include <nlohmann/json_fwd.hpp>
 #include "simulation/scene/nodes/CameraNode.h"
 
+class FluidNode;
 class IParticleSpawn;
 class ForceFieldNode;
 class ModelNode;
@@ -26,6 +27,7 @@ public:
     void removeSceneNode(const SceneNode* node);
 
     CameraNode* getCamera() const;
+    FluidNode* getFluid() const;
 
     void setSimulationDomain(BoundingBoxNode* domain);
     BoundingBoxNode* getSimulationDomain() const;
@@ -46,6 +48,7 @@ private:
 
     // --- Node Cache ---
     CameraNode*                     camera              = nullptr;
+    FluidNode*                      fluid               = nullptr;
     BoundingBoxNode*                simulationDomain    = nullptr;
     std::vector<ModelNode*>         models              = {};
     std::vector<BoundingBoxNode*>   boundingBoxes       = {};

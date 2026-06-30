@@ -1,7 +1,7 @@
 #ifndef EULERIANFLUIDSIMULATION_SOLVER_H
 #define EULERIANFLUIDSIMULATION_SOLVER_H
 
-#include "simulation/ScalField.h"
+#include "simulation/ScalField2D.h"
 #include "simulation/Grid.h"
 #include "compute/StorageBuffer.h"
 
@@ -15,12 +15,12 @@ public:
     float solve(Grid* grid) override;
 
 private:
-    void impl_mat_mul(ScalField& result, const ScalField& x, const ScalField& rho, const ScalField& boundary) const;
+    void impl_mat_mul(ScalField2D& result, const ScalField2D& x, const ScalField2D& rho, const ScalField2D& boundary) const;
 
-    ScalField* _t{};
-    ScalField* _tmp{};
-    ScalField* _r{};
-    ScalField* _d{};
+    ScalField2D* _t{};
+    ScalField2D* _tmp{};
+    ScalField2D* _r{};
+    ScalField2D* _d{};
 
 #ifdef USE_GPU
     Shader* _shader_as{};

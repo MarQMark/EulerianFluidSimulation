@@ -4,7 +4,7 @@
 #include "ISolver.h"
 #include "assets/Shader.h"
 #include "compute/StorageBuffer.h"
-#include "simulation/ScalField.h"
+#include "simulation/ScalField2D.h"
 
 class JacobiSolver : public ISolver {
 public:
@@ -14,14 +14,14 @@ public:
     float solve(Grid *grid) override;
 
 private:
-    ScalField* _tmp{};
+    ScalField2D* _tmp{};
 
 #ifdef USE_GPU
     Shader* _shader_jp{};
     StorageBuffer* _gpu_tmp{};
 #endif
 
-    void impl_mat_mul(ScalField& result, const ScalField& x, const ScalField& rho, const ScalField& boundary) const;
+    void impl_mat_mul(ScalField2D& result, const ScalField2D& x, const ScalField2D& rho, const ScalField2D& boundary) const;
 };
 
 #endif //EULERIANFLUIDSIMULATION_JACOBISOLVER_H

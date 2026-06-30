@@ -22,21 +22,21 @@ void Grid::gpuDownload() const {
 
 Grid::Grid(const unsigned int nWidth, const unsigned int nHeight)
     : _n_width(nWidth), _n_height(nHeight), _size(nWidth * nHeight) {
-    _vel = new VecField(nWidth, nHeight);
-    _v_tmp = new VecField(nWidth, nHeight);
-    _rho = new ScalField(nWidth, nHeight);
-    _s_tmp = new ScalField(nWidth, nHeight);
-    _forces = new VecField(nWidth, nHeight);
-    _boundary = new ScalField(nWidth, nHeight);
+    _vel = new VecField2D(nWidth, nHeight);
+    _v_tmp = new VecField2D(nWidth, nHeight);
+    _rho = new ScalField2D(nWidth, nHeight);
+    _s_tmp = new ScalField2D(nWidth, nHeight);
+    _forces = new VecField2D(nWidth, nHeight);
+    _boundary = new ScalField2D(nWidth, nHeight);
 
-    _gamma = new ScalField(nWidth, nHeight);
-    _beta = new ScalField(nWidth, nHeight);
+    _gamma = new ScalField2D(nWidth, nHeight);
+    _beta = new ScalField2D(nWidth, nHeight);
     // How cares about RAM, just download more if it's not enough
     //_A = new std::vector<DisAdvCell>();//(nWidth * nHeight * nWidth * nHeight);
     _A = new std::map<unsigned int, DisAdvCell>;
 
-    _divergence = new ScalField(nWidth, nHeight);
-    _pressure = new ScalField(nWidth, nHeight);
+    _divergence = new ScalField2D(nWidth, nHeight);
+    _pressure = new ScalField2D(nWidth, nHeight);
 
     *_gamma = 1.f;
 
@@ -196,43 +196,43 @@ glm::vec2 Grid::traceParticle(const glm::vec2 start, const float dt, const int s
     return pos;
 }
 
-VecField & Grid::vel() const {
+VecField2D & Grid::vel() const {
     return *_vel;
 }
 
-VecField & Grid::tmpVec() const {
+VecField2D & Grid::tmpVec() const {
     return *_v_tmp;
 }
 
 void Grid::swapVec() {
-    VecField* tmp = _vel;
+    VecField2D* tmp = _vel;
     _vel = _v_tmp;
     _v_tmp = tmp;
 
     _v_tmp->clear();
 }
 
-ScalField & Grid::rho() const {
+ScalField2D & Grid::rho() const {
     return *_rho;
 }
 
-ScalField & Grid::tmpScal() const {
+ScalField2D & Grid::tmpScal() const {
     return *_s_tmp;
 }
 
 void Grid::swapRho() {
-    ScalField* tmp = _rho;
+    ScalField2D* tmp = _rho;
     _rho = _s_tmp;
     _s_tmp = tmp;
 
     _s_tmp->clear();
 }
 
-ScalField & Grid::gamma() const {
+ScalField2D & Grid::gamma() const {
     return *_gamma;
 }
 
-ScalField & Grid::beta() const {
+ScalField2D & Grid::beta() const {
     return *_beta;
 }
 
@@ -248,19 +248,19 @@ void Grid::addA(const unsigned int i, const unsigned int j, const float val) con
         (*_A)[idx] = {i, j, val};
 }
 
-ScalField & Grid::divergence() const {
+ScalField2D & Grid::divergence() const {
     return *_divergence;
 }
 
-ScalField & Grid::pressure() const {
+ScalField2D & Grid::pressure() const {
     return *_pressure;
 }
 
-VecField & Grid::forces() const {
+VecField2D & Grid::forces() const {
     return *_forces;
 }
 
-ScalField & Grid::boundary() const {
+ScalField2D & Grid::boundary() const {
     return *_boundary;
 }
 

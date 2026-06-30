@@ -2,7 +2,7 @@
 #define RENDERER_H
 
 #include "simulation/Grid.h"
-#include "simulation/ScalField.h"
+#include "simulation/ScalField2D.h"
 
 class Texture2D;
 
@@ -15,8 +15,8 @@ public:
 
     Texture2D* getTexture2D() const;
 
-    static void drawField(std::vector<float>& data, VecField& field, int chanel, float& max);
-    static void drawField(std::vector<float>& data, ScalField& field, int chanel, float& max);
+    static void drawField(std::vector<float>& data, VecField2D& field, int chanel, float& max);
+    static void drawField(std::vector<float>& data, ScalField2D& field, int chanel, float& max);
 private:
     Texture2D* _txt;
     int _width;

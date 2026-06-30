@@ -6,7 +6,7 @@
 #include <eigen/Eigen/Sparse>
 #include <eigen/Eigen/IterativeLinearSolvers>
 
-#include "simulation/ScalField.h"
+#include "simulation/ScalField2D.h"
 
 class EigenSolver : public ISolver {
 public:
@@ -19,7 +19,7 @@ protected:
     Eigen::VectorXf* _b{};
     Eigen::VectorXf* _x0{};
 
-    void determine_equations(const ScalField &divergence, const ScalField &rho, const ScalField &boundary) const;
+    void determine_equations(const ScalField2D &divergence, const ScalField2D &rho, const ScalField2D &boundary) const;
 };
 
 class EigenCGSolver : public EigenSolver {

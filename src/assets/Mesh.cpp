@@ -90,6 +90,25 @@ void Mesh::updateMeshData(const std::vector<Vertex>& vertices, const std::vector
     updateGPU();
 }
 
+void Mesh::setExternalBuffers(unsigned int vertexBuffer, unsigned int indexBuffer, int vertexCount, int indexCount) {
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
+    glEnableVertexAttribArray(2);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+    this->vertexCount = vertexCount;
+    this->indexCount = indexCount;
+}
+
 void Mesh::setMaterialIndex(const int index) {
     materialIndex = index;
 }
@@ -163,6 +182,10 @@ std::vector<unsigned int> Mesh::getIndices() {
 
 GLuint Mesh::getVAO() const {
     return vao;
+}
+
+std::unique_ptr<Mesh> Mesh::createEmpty() {
+    return std::make_unique<Mesh>("Empty", 0, 0);
 }
 
 std::unique_ptr<Mesh> Mesh::createBox(const std::string& name) {

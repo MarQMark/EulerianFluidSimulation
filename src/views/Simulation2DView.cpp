@@ -7,7 +7,7 @@
 #include "simulation/Grid.h"
 #include "simulation/Properties.h"
 #include "simulation/SimulationDisplay.h"
-#include "simulation/VecField.h"
+#include "simulation/VecField2D.h"
 #include "util/Time.h"
 
 #define TOP_SPACING 10;
@@ -198,7 +198,7 @@ void Simulation2DView::render(void* renderData) {
     ImGui::End();
 }
 
-void Simulation2DView::setVelField(VecField *velField) {
+void Simulation2DView::setVelField(VecField2D *velField) {
     _vel_field = velField;
 }
 

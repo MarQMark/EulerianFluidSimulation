@@ -1,22 +1,22 @@
-#include "simulation/ScalField.h"
+#include "simulation/ScalField2D.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 
-ScalField::ScalField(const unsigned int width, const unsigned int height) : _width(width), _height(height){
+ScalField2D::ScalField2D(const unsigned int width, const unsigned int height) : _width(width), _height(height){
     _field.resize(_width * _height);
     clear();
 }
 
-ScalField::ScalField(const ScalField &field, const bool copy ) : _width(field.width()), _height(field.height()){
+ScalField2D::ScalField2D(const ScalField2D &field, const bool copy ) : _width(field.width()), _height(field.height()){
     _field.resize(_width * _height);
     if (copy)
         memcpy(_field.data(), field._field.data(), field.size() * sizeof(float));
 }
 
 #if 1
-float ScalField::interpolate(glm::vec2 pos) const {
+float ScalField2D::interpolate(glm::vec2 pos) const {
     pos += glm::vec2(1.f);
     const int x = (int)pos.x;
     const int y = (int)pos.y;
@@ -67,7 +67,7 @@ float ScalField::interpolate(glm::vec2 pos) const {
     return fxy;
 }
 #else
-float ScalField::BilinearInterpolation(const glm::vec2 &pos,
+float ScalField2D::BilinearInterpolation(const glm::vec2 &pos,
                                           int low_x,
                                           int low_y,
                                           int comp) const
@@ -91,7 +91,7 @@ float ScalField::BilinearInterpolation(const glm::vec2 &pos,
 }
 
 #define EPSILON 1.0e-10
-float ScalField::interpolate(glm::vec2 pos) const {
+float ScalField2D::interpolate(glm::vec2 pos) const {
     float Vx, Vy;
 
     // Interpolate the x component
@@ -108,19 +108,19 @@ float ScalField::interpolate(glm::vec2 pos) const {
 }
 #endif
 
-void ScalField::clear() {
+void ScalField2D::clear() {
     memset(_field.data(), 0, size() * sizeof(float));
 }
 
-unsigned int ScalField::size() const {
+unsigned int ScalField2D::size() const {
     return _width * _height;
 }
 
-unsigned int ScalField::width() const {
+unsigned int ScalField2D::width() const {
     return _width;
 }
 
-unsigned int ScalField::height() const {
+unsigned int ScalField2D::height() const {
     return _height;
 }
 

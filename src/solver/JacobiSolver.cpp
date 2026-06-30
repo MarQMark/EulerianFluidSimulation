@@ -4,7 +4,7 @@
 #include "simulation/Properties.h"
 
 JacobiSolver::JacobiSolver(const int width, const int height) : ISolver(width, height) {
-    _tmp = new ScalField(width, height);
+    _tmp = new ScalField2D(width, height);
 #ifdef USE_GPU
     _shader_jp  = new Shader({{"assets/shaders/jacobi_pass.comp", Shader::COMPUTE }});
     _gpu_tmp = new StorageBuffer(width * height * sizeof(float));
@@ -54,12 +54,12 @@ float JacobiSolver::solve(Grid *grid) {
     return 0;
 
 #else
-    ScalField       &p        = grid->pressure();
-    const ScalField &b        = grid->divergence();  // RHS: ∇·u / dt
-    const ScalField &rho      = grid->rho();
-    const ScalField &boundary = grid->boundary();
+    ScalField2D       &p        = grid->pressure();
+    const ScalField2D &b        = grid->divergence();  // RHS: ∇·u / dt
+    const ScalField2D &rho      = grid->rho();
+    const ScalField2D &boundary = grid->boundary();
 
-    ScalField& tmp = *_tmp;
+    ScalField2D& tmp = *_tmp;
 
     for (int i = 0; i < iter; i++) {
         for (int y = 0; y < _height; y++) {
@@ -104,7 +104,7 @@ float JacobiSolver::solve(Grid *grid) {
 #endif
 }
 
-void JacobiSolver::impl_mat_mul(ScalField &result, const ScalField &x, const ScalField &rho, const ScalField &boundary) const {
+void JacobiSolver::impl_mat_mul(ScalField2D &result, const ScalField2D &x, const ScalField2D &rho, const ScalField2D &boundary) const {
     for (int y = 0; y < _height; y++) {
         for (int x_ = 0; x_ < _width; x_++) {
             if (rho(x_, y) <= 0.5f || boundary(x_, y) >= 0.5f) {  // was == 1

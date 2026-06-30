@@ -5,13 +5,13 @@
 
 #include "Viewable.h"
 #include "../assets/Texture2D.h"
-#include "simulation/ScalField.h"
-#include "simulation/VecField.h"
+#include "simulation/ScalField2D.h"
+#include "simulation/VecField2D.h"
 
 class FieldViewerView : public Viewable {
 public:
-    FieldViewerView(VecField* field, const std::string& name);
-    FieldViewerView(ScalField* field, const std::string& name);
+    FieldViewerView(VecField2D* field, const std::string& name);
+    FieldViewerView(ScalField2D* field, const std::string& name);
     ~FieldViewerView();
 
     void render(void* renderData) override;
@@ -21,8 +21,8 @@ private:
 
     Texture2D* _txt{};
 
-    VecField* _v_field{};
-    ScalField* _s_field{};
+    VecField2D* _v_field{};
+    ScalField2D* _s_field{};
 
     float _max = 0;
 

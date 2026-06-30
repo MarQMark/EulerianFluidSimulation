@@ -1,4 +1,4 @@
-#include "simulation/VecField.h"
+#include "simulation/VecField2D.h"
 
 #include <algorithm>
 #include <cmath>
@@ -6,19 +6,19 @@
 
 #include "glm/common.hpp"
 
-VecField::VecField(const unsigned int width, const unsigned int height) : _width(width), _height(height){
+VecField2D::VecField2D(const unsigned int width, const unsigned int height) : _width(width), _height(height){
     _field.resize(width * height);
     clear();
 }
 
-VecField::VecField(const VecField &field, const bool copy) : _width(field.width()), _height(field.height()) {
+VecField2D::VecField2D(const VecField2D &field, const bool copy) : _width(field.width()), _height(field.height()) {
     _field.resize(field.width() * field.height());
     if (copy)
         memcpy(_field.data(), field._field.data(), field.size() * sizeof(glm::vec2));
 }
 
 #if 0
-glm::vec2 VecField::interpolate(glm::vec2 pos) {
+glm::vec2 VecField2D::interpolate(glm::vec2 pos) {
     pos += glm::vec2(.5);
     const int x = (int)pos.x;
     const int y = (int)pos.y;
@@ -69,7 +69,7 @@ glm::vec2 VecField::interpolate(glm::vec2 pos) {
     return fxy;
 }
 #elif 0
-glm::vec2 VecField::interpolate(glm::vec2 pos) {
+glm::vec2 VecField2D::interpolate(glm::vec2 pos) {
     // pos is in cell-center space: cell (i,j) has center at (i+0.5, j+0.5)
     // Find the left/bottom neighbor index
     float px = pos.x - 0.5f;
@@ -101,7 +101,7 @@ glm::vec2 VecField::interpolate(glm::vec2 pos) {
     return glm::mix(row0, row1, ty);
 }
 #else
-float VecField::BilinearInterpolation(const glm::vec2 &pos,
+float VecField2D::BilinearInterpolation(const glm::vec2 &pos,
                                           int low_x,
                                           int low_y,
                                           int comp)
@@ -125,7 +125,7 @@ float VecField::BilinearInterpolation(const glm::vec2 &pos,
 }
 
 #define EPSILON 1.0e-10
-glm::vec2 VecField::interpolate(glm::vec2 pos) {
+glm::vec2 VecField2D::interpolate(glm::vec2 pos) {
     float Vx, Vy;
 
     // Interpolate the x component
@@ -142,19 +142,19 @@ glm::vec2 VecField::interpolate(glm::vec2 pos) {
 }
 #endif
 
-void VecField::clear() {
+void VecField2D::clear() {
     memset(_field.data(), 0, size() * sizeof(glm::vec2));
 }
 
-unsigned int VecField::size() const {
+unsigned int VecField2D::size() const {
     return _width * _height;
 }
 
-unsigned int VecField::width() const {
+unsigned int VecField2D::width() const {
     return _width;
 }
 
-unsigned int VecField::height() const {
+unsigned int VecField2D::height() const {
     return _height;
 }
 
