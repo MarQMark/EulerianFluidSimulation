@@ -18,7 +18,7 @@ Application::Application() {
 	Input.addInputWindow(_window);
 
     _views = new Views(_window);
-    // _views->addView("Properties", new PropertiesView());
+    _views->addView("Properties", new PropertiesView());
     _views->addView("Performance", new FPSView());
     _views->addView("Stats", new StatsView());
     _views->addView("Distribution", new DistributionView());
@@ -67,7 +67,7 @@ void Application::rebuild() {
 
     if (_simulator) delete _simulator;
     if (_display) {
-    	for (const auto name: _display->viewables() | std::views::keys)
+    	for (const auto& name: _display->viewables() | std::views::keys)
 			_views->deleteView(name);
         delete _display;
     }

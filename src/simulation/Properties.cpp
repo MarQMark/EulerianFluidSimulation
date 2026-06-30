@@ -47,7 +47,7 @@ void Properties::Property<int>::draw(){
 }
 template<>
 void Properties::Property<float>::draw(){
-    Util::AddTextField(name, value, description);
+    Util::AddTextField(std::string(name + std::to_string(dimension)).c_str(), value, description);
 }
 template<>
 void Properties::Property<unsigned int>::draw(){

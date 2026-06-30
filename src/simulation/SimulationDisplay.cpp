@@ -12,7 +12,7 @@ SimulationDisplay2D::SimulationDisplay2D(const unsigned int width, const unsigne
     : ISimulationDisplay(), _width(width), _height(height) {
     _renderer = new Renderer2D(width, height);
     _viewables["Simulation2D"] = new Simulation2DView(_renderer->getTexture2D()->get(), _width, _height);
-    _viewables["Properties"] = new PropertiesView();
+    //_viewables["Properties"] = new PropertiesView();
 }
 
 SimulationDisplay2D::~SimulationDisplay2D() {
@@ -34,7 +34,7 @@ SimulationDisplay3D::SimulationDisplay3D(Window* window) : ISimulationDisplay() 
 
     _viewables["Simulation3D"] = new Simulation3DView(_editor, _renderer);
     _viewables["Scene"] = new SceneView(_editor, _renderer);
-    _viewables["Properties"] = new NodePropertiesView(_editor);
+    //_viewables["Properties"] = new NodePropertiesView(_editor);
 }
 
 SimulationDisplay3D::~SimulationDisplay3D() {

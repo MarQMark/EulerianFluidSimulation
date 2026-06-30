@@ -49,15 +49,19 @@ void PropertiesView::render_categories() {
     _focused = false;
 
     for (const auto& cat : Properties::Get()->getCategories()) {
+        if (cat->empty())
+            continue;
         if (ImGui::CollapsingHeader(cat->name.c_str())) {
             for (const auto& sub : cat->sub_categories) {
+                if (sub->empty())
+                    continue;
                 Util::SectionHeader(sub->name.c_str());
-                for (const auto& p : sub->properties)
+                for (const auto& p : *sub)
                     p->draw();
             }
             if (!cat->sub_categories.empty())
                 Util::SectionHeader("Ungrouped");
-            for (const auto& p : cat->properties)
+            for (const auto& p : *cat)
                 p->draw();
         }
     }
@@ -87,17 +91,17 @@ void PropertiesView::render_search() {
     std::vector<std::pair<std::string, Properties::IProperty*>> results;
     for (const auto& cat : Properties::Get()->getCategories()) {
         for (const auto& sub : cat->sub_categories) {
-            for (const auto& p : sub->properties) {
+            for (const auto& p : *sub) {
                 if (score_match(p->name, _query) >= _valid_threshold ||
                     score_match(p->description, _query) >= _valid_threshold) {
-                    results.push_back({cat->name, p});
+                    results.emplace_back(cat->name, p);
                 }
             }
         }
-        for (const auto& p : cat->properties) {
+        for (const auto& p : *cat) {
             if (score_match(p->name, _query) >= _valid_threshold ||
                 score_match(p->description, _query) >= _valid_threshold) {
-                results.push_back({cat->name, p});
+                results.emplace_back(cat->name, p);
             }
         }
     }

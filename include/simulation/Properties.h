@@ -3,8 +3,12 @@
 #include <assert.h>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
+
+#include "util/Logger.h"
 
 #define PROPERTY(name, type) Properties::Get()->getPropertyValue<type>(Properties::name)
 #define PROPERTY_I(name) PROPERTY(name, int)
@@ -24,10 +28,17 @@
 #define ADD_PROPERTY_F(name, value) ADD_PROPERTY(name, value, float)
 #define ADD_PROPERTY_B(name, value) ADD_PROPERTY(name, value, bool)
 
-#define ADD(cat, name, desc, val) {auto* p = new Property(name, desc, val); \
-                                   cat.add(p); \
-                                   add_property(p); }
-#define ADD_HIDDEN(name, val) add_property(new Property(name, "", val));
+#define ADD_D(dim, cat, name, desc, val) {auto* p = new Property(name, desc, val, dim); \
+                                          cat.add(p); \
+                                          add_property(p); }
+#define ADD_2D(cat, name, desc, val) ADD_D(2, cat, name, desc, val)
+#define ADD_3D(cat, name, desc, val) ADD_D(3, cat, name, desc, val)
+#define ADD(cat, name, desc, val)    ADD_D(0, cat, name, desc, val)
+
+#define ADD_HIDDEN_D(dim, name, val)  add_property(new Property(name, "", val, dim));
+#define ADD_HIDDEN_2D(dim, name, val) ADD_HIDDEN_D(2, name, val)
+#define ADD_HIDDEN_3D(dim, name, val) ADD_HIDDEN_D(3, name, val)
+#define ADD_HIDDEN(name, val)         ADD_HIDDEN_D(0, name, val)
 
 #define PROP_TOKEN(token, name) static constexpr std::string_view token = name;
 
@@ -59,6 +70,7 @@ public:
 
     PROP_TOKEN(WIDTH, "Width")
     PROP_TOKEN(HEIGHT, "Height")
+    PROP_TOKEN(DEPTH, "Depth")
     PROP_TOKEN(INIT_SHAPE, "Init Shape")
 
     PROP_TOKEN(DRAW_MODE, "Draw Mode")
@@ -83,7 +95,7 @@ private:
     static Properties* s_instance;
     Properties() {
         auto& interaction = add_category("Interaction");
-        ADD(interaction, BRUSH_SIZE, "Radius of Brush in screen pixels", 50.f)
+        ADD_2D(interaction, BRUSH_SIZE, "Radius of Brush in screen pixels", 50.f)
 
         auto& simulation = add_category("Simulation");
         auto& simulation_rho = add_sub_category(simulation, "Density");
@@ -111,12 +123,13 @@ private:
         auto& grid = add_category("Grid");
         ADD(grid, WIDTH, "Number of cells in width", 72)
         ADD(grid, HEIGHT, "Number of cells in height", 72)
+        ADD_3D(grid, DEPTH, "Number of cells in depth", 72)
         ADD(grid, INIT_SHAPE, "", InitShape::HALF)
 
         auto& rendering = add_category("Rendering");
-        ADD(rendering, DRAW_MODE, "Which field is rendered in main window", DrawMode::FLUID)
-        ADD(rendering, DRAW_VEL_ARROWS, "Draw velocity arrows", false)
-        ADD(rendering, RE_CALC_DIV, "Recalculate Divergence after Projection", false)
+        ADD_2D(rendering, DRAW_MODE, "Which field is rendered in main window", DrawMode::FLUID)
+        ADD_2D(rendering, DRAW_VEL_ARROWS, "Draw velocity arrows", false)
+        ADD_2D(rendering, RE_CALC_DIV, "Recalculate Divergence after Projection", false)
 
         auto& controls = add_category("Controls");
         ADD(controls, PAUSED, "If simulation is paused", false)
@@ -145,60 +158,106 @@ private:
 public:
     class IProperty {
     public:
-        IProperty(const std::string &name, const std::string& description)
-        : name(name), description(description) {}
-        IProperty(const std::string_view &name, const std::string& description)
-       : name(name), description(description) {}
+        IProperty(std::string name, std::string  description, const int dimension = 0)
+        : name(std::move(name)), description(std::move(description)), dimension(dimension) {}
+        IProperty(const std::string_view &name, std::string  description, const int dimension = 0)
+       : name(name), description(std::move(description)), dimension(dimension) {}
 
         virtual ~IProperty() = default;
         virtual void draw() = 0;
 
         const std::string name;
         const std::string description;
+        const int dimension;
     };
 
 private:
     template<typename T>
     class Property final : public IProperty{
     public:
-        Property(const std::string &name, const std::string &description, T value)
-            : IProperty(name, description), value(value) {
+        Property(const std::string &name, const std::string &description, T value, const int dimension = 0)
+            : IProperty(name, description, dimension), value(value) {
         }
-        Property(const std::string_view &name, const std::string &description, T value)
-            : IProperty(name, description), value(value) {
+        Property(const std::string_view &name, const std::string &description, T value, const int dimension = 0)
+            : IProperty(name, description, dimension), value(value) {
         }
         T value;
         void draw() override;
     };
 
-    struct SubCategory {
-        ~SubCategory() {
-            for (const auto p : properties)
+    class ICategory {
+    public:
+        virtual ~ICategory() {
+            for (const auto p : _properties)
                 delete p;
         }
-        std::string name;
-        std::vector<IProperty*> properties;
-        void add(IProperty* property) {
-            properties.push_back(property);
+        virtual void add(IProperty* property) {
+            _properties.push_back(property);
         }
+
+        class Iterator {
+        public:
+            Iterator(const std::vector<IProperty*>::iterator current,
+                     const std::vector<IProperty*>::iterator end)
+                : current_(current), end_(end)
+            {
+                skipHidden();
+            }
+
+            IProperty*& operator*() const {
+                return *current_;
+            }
+
+            Iterator& operator++() {
+                ++current_;
+                skipHidden();
+                return *this;
+            }
+
+            bool operator!=(const Iterator& other) const {
+                return current_ != other.current_;
+            }
+
+        private:
+            void skipHidden() {
+                while (current_ != end_ && !matchesDimension(*current_))
+                    ++current_;
+            }
+
+            std::vector<IProperty*>::iterator current_;
+            std::vector<IProperty*>::iterator end_;
+        };
+        Iterator begin() {
+            return Iterator(_properties.begin(), _properties.end());
+        }
+        Iterator end() {
+            return Iterator(_properties.end(), _properties.end());
+        }
+
+        bool empty() {
+            unsigned int count = 0;
+            for (const auto p : *this)
+                count++;
+
+            return (count == 0);
+        }
+    private:
+        std::vector<IProperty*> _properties;
     };
-    struct Category {
-        ~Category() {
+    class SubCategory final : public ICategory {
+    public:
+        explicit SubCategory(const std::string& name) : name(name) {}
+        std::string name;
+    };
+    class Category final : public ICategory {
+    public:
+        explicit Category(const std::string& name) : name(name) {}
+        ~Category() override {
             for (const auto cat : sub_categories)
                 delete cat;
-            for (const auto p : properties)
-                delete p;
         }
         std::string name;
         std::vector<SubCategory*> sub_categories;
-        std::vector<IProperty*> properties;
-
-        void add(SubCategory* sub_category) {
-            sub_categories.push_back(sub_category);
-        }
-        void add(IProperty* property) {
-            properties.push_back(property);
-        }
     };
 
     std::vector<Category*> _categories;
@@ -226,6 +285,14 @@ public:
             std::abort();
         }
 
+        if (!matchesDimension(p)) {
+            std::stringstream ss;
+            ss << "Accessing Property ";
+            ss << name;
+            ss << " while simulation dimension does not match property dimension (" << p->dimension << ")";
+            LOG_WARN(ss.str())
+        }
+
         return p->value;
     }
     template<typename T>
@@ -239,6 +306,14 @@ public:
         if (!p) {
             std::cerr << "Property " << name << " type mismatch: " << typeid(T).name() << std::endl;
             std::abort();
+        }
+
+        if (!matchesDimension(p)) {
+            std::stringstream ss;
+            ss << "Setting Property ";
+            ss << name;
+            ss << " while simulation dimension does not match property dimension (" << p->dimension << ")";
+            LOG_WARN(ss.str())
         }
 
         p->value = value;
@@ -256,9 +331,31 @@ public:
             std::abort();
         }
 
+        if (!matchesDimension(p)) {
+            std::stringstream ss;
+            ss << "Adding Property ";
+            ss << name;
+            ss << " while simulation dimension does not match property dimension (" << p->dimension << ")";
+            LOG_WARN(ss.str())
+        }
+
         p->value += value;
     }
 
+private:
+    static bool matchesDimension(const IProperty* property) {
+        if (property->dimension == 0)
+            return true;
+
+        const auto simType = PROPERTY(SIMULATION_TYPE, SimulatorType);
+        if (property->dimension == 2 && simType <= END_2D_SIMULATIONS)
+            return true;
+
+        if (property->dimension == 3 && simType >  END_2D_SIMULATIONS)
+            return true;
+
+        return false;
+    }
 
 public:
     static Properties* Get() {
@@ -270,6 +367,7 @@ public:
     enum SimulatorType {
         CPU_2D,
         OPENGL_2D,
+        END_2D_SIMULATIONS = OPENGL_2D,
         CPU_3D,
     };
     enum InitShape {
