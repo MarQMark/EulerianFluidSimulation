@@ -13,7 +13,7 @@ Properties::~Properties() {
     for (const auto cat : _categories)
         delete cat;
 
-    for (const auto p: _properties | std::views::values)
+    for (const auto p: _properties)
         delete p;
 }
 
@@ -29,12 +29,17 @@ Properties::SubCategory & Properties::add_sub_category(Category &cat, const std:
     return *sub;
 }
 
-void Properties::add_property(IProperty *p) {
-    if (_properties.contains(p->name)) {
-        std::cerr << "Duplicate Property name: " << p->name << std::endl;
+void Properties::add_property(const unsigned int token, IProperty *p) {
+    if (_properties.size() <= token) {
+        LOG_WARN("Adding uninitialized Property: " + p->name)
+        _properties.push_back(p);
+        return;
+    }
+    if(_properties[token]) {
+        LOG_ERROR("Duplicate Property (" + std::to_string(token) + "): " + p->name);
         std::abort();
     }
-    _properties[p->name] = p;
+    _properties[token] = p;
 }
 
 template<typename T>

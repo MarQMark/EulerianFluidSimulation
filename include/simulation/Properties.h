@@ -28,118 +28,122 @@
 #define ADD_PROPERTY_F(name, value) ADD_PROPERTY(name, value, float)
 #define ADD_PROPERTY_B(name, value) ADD_PROPERTY(name, value, bool)
 
-#define ADD_D(dim, cat, name, desc, val) {auto* p = new Property(name, desc, val, dim); \
-                                          cat.add(p); \
-                                          add_property(p); }
-#define ADD_2D(cat, name, desc, val) ADD_D(2, cat, name, desc, val)
-#define ADD_3D(cat, name, desc, val) ADD_D(3, cat, name, desc, val)
-#define ADD(cat, name, desc, val)    ADD_D(0, cat, name, desc, val)
+#define ADD_D(cat, token, dim, name, desc, val) {auto* p = new Property(name, desc, val, dim); \
+                                                 int a = token; \
+                                                 cat.add(p); \
+                                                 add_property(token, p); }
+#define ADD_2D(cat, token, name, desc, val) ADD_D(cat, token, 2, name, desc, val)
+#define ADD_3D(cat, token, name, desc, val) ADD_D(cat, token, 3, name, desc, val)
+#define ADD(cat, token, name, desc, val)    ADD_D(cat, token, 0, name, desc, val)
 
-#define ADD_HIDDEN_D(dim, name, val)  add_property(new Property(name, "", val, dim));
-#define ADD_HIDDEN_2D(dim, name, val) ADD_HIDDEN_D(2, name, val)
-#define ADD_HIDDEN_3D(dim, name, val) ADD_HIDDEN_D(3, name, val)
-#define ADD_HIDDEN(name, val)         ADD_HIDDEN_D(0, name, val)
+#define ADD_HIDDEN_D(token, dim, val)  add_property(token, new Property("", "", val, dim));
+#define ADD_HIDDEN_2D(token, dim, val) ADD_HIDDEN_D(token, 2, val)
+#define ADD_HIDDEN_3D(token, dim, val) ADD_HIDDEN_D(token, 3, val)
+#define ADD_HIDDEN(token, val)         ADD_HIDDEN_D(token, 0, val)
 
-#define PROP_TOKEN(token, name) static constexpr std::string_view token = name;
+static constexpr unsigned int COUNTER_START = __COUNTER__ + 1;
+#define PROP_TOKEN(token) static constexpr unsigned int token = __COUNTER__ - COUNTER_START;
 
 class Properties {
 public:
-    PROP_TOKEN(SIMULATION_TYPE, "Simulation Type")
-    PROP_TOKEN(SIMULATION_REBUILD, "Simulation Rebuild")
+    PROP_TOKEN(SIMULATION_TYPE)
+    PROP_TOKEN(SIMULATION_REBUILD)
 
-    PROP_TOKEN(BRUSH_SIZE, "Brush Size")
+    PROP_TOKEN(BRUSH_SIZE)
 
-    PROP_TOKEN(LAMBDA_MINUS, "Lambda-")
-    PROP_TOKEN(LAMBDA_PLUS, "Lambda+")
-    PROP_TOKEN(ETA, "Eta")
-    PROP_TOKEN(LIQUID_THRESHOLD, "Liquid Threshold")
-    PROP_TOKEN(RHO_D, "D")
+    PROP_TOKEN(LAMBDA_MINUS)
+    PROP_TOKEN(LAMBDA_PLUS)
+    PROP_TOKEN(ETA)
+    PROP_TOKEN(LIQUID_THRESHOLD)
+    PROP_TOKEN(RHO_D)
 
-    PROP_TOKEN(GRAVITY_FORCE, "Gravity Force")
-    PROP_TOKEN(GRAVITY_ENABLED, "Gravity Enabled")
-    PROP_TOKEN(PUSH_FORCE, "Push Force")
-    PROP_TOKEN(PUSH_ENABLED, "Push Enabled")
+    PROP_TOKEN(GRAVITY_FORCE)
+    PROP_TOKEN(GRAVITY_ENABLED)
+    PROP_TOKEN(PUSH_FORCE)
+    PROP_TOKEN(PUSH_ENABLED)
 
-    PROP_TOKEN(SOLVER_TYPE, "Solver")
-    PROP_TOKEN(SOLVER_CHECK_INTERVAL, "Check Interval")
-    PROP_TOKEN(MAX_STEPS, "Max Steps")
-    PROP_TOKEN(SOLVER_THRESHOLD, "Threshold")
+    PROP_TOKEN(SOLVER_TYPE)
+    PROP_TOKEN(SOLVER_CHECK_INTERVAL)
+    PROP_TOKEN(MAX_STEPS)
+    PROP_TOKEN(SOLVER_THRESHOLD)
 
-    PROP_TOKEN(DT, "DT")
-    PROP_TOKEN(VISCOSITY, "Viscosity")
+    PROP_TOKEN(DT)
+    PROP_TOKEN(VISCOSITY)
 
-    PROP_TOKEN(WIDTH, "Width")
-    PROP_TOKEN(HEIGHT, "Height")
-    PROP_TOKEN(DEPTH, "Depth")
-    PROP_TOKEN(INIT_SHAPE, "Init Shape")
+    PROP_TOKEN(WIDTH)
+    PROP_TOKEN(HEIGHT)
+    PROP_TOKEN(DEPTH)
+    PROP_TOKEN(INIT_SHAPE)
 
-    PROP_TOKEN(DRAW_MODE, "Draw Mode")
-    PROP_TOKEN(DRAW_VEL_ARROWS, "Draw vel arrows")
-    PROP_TOKEN(RE_CALC_DIV, "Re-Calc Div")
+    PROP_TOKEN(DRAW_MODE)
+    PROP_TOKEN(DRAW_VEL_ARROWS)
+    PROP_TOKEN(RE_CALC_DIV)
 
-    PROP_TOKEN(PAUSED, "Paused")
+    PROP_TOKEN(PAUSED)
 
-    PROP_TOKEN(SIMULATION_STEPS, "Simulation Steps")
-    PROP_TOKEN(MAX_VALUE, "Max Value")
-    PROP_TOKEN(TOTAL_RHO, "Total Rho")
-    PROP_TOKEN(SOLVE_STEPS, "Solve Steps")
+    PROP_TOKEN(SIMULATION_STEPS)
+    PROP_TOKEN(MAX_VALUE)
+    PROP_TOKEN(TOTAL_RHO)
+    PROP_TOKEN(SOLVE_STEPS)
 
-    PROP_TOKEN(DISABLE_VEL_EXTRAPOLATE, "Disable Velocity Extrapolation");
-    PROP_TOKEN(DISABLE_RHO_SHARPEN, "Disable Density Sharpen");
-    PROP_TOKEN(DISABLE_RHO_ADVECT, "Disable Density Advection");
-    PROP_TOKEN(DISABLE_VEL_ADVECT, "Disable Velocity Advection");
-    PROP_TOKEN(DISABLE_ADD_FORCE, "Disable Add Force");
-    PROP_TOKEN(DISABLE_PROJECT, "Disable Projection");
+    PROP_TOKEN(DISABLE_VEL_EXTRAPOLATE);
+    PROP_TOKEN(DISABLE_RHO_SHARPEN);
+    PROP_TOKEN(DISABLE_RHO_ADVECT);
+    PROP_TOKEN(DISABLE_VEL_ADVECT);
+    PROP_TOKEN(DISABLE_ADD_FORCE);
+    PROP_TOKEN(DISABLE_PROJECT);
 
 private:
     static Properties* s_instance;
     Properties() {
+        _properties.resize((__COUNTER__ - COUNTER_START) + 1);
+
         auto& interaction = add_category("Interaction");
-        ADD_2D(interaction, BRUSH_SIZE, "Radius of Brush in screen pixels", 50.f)
+        ADD_2D(interaction, BRUSH_SIZE, "Brush Size", "Radius of Brush in screen pixels", 50.f)
 
         auto& simulation = add_category("Simulation");
         auto& simulation_rho = add_sub_category(simulation, "Density");
-        ADD(simulation_rho, LAMBDA_MINUS, "Control how much compression is penalized", .5f)
-        ADD(simulation_rho, LAMBDA_PLUS, "Control how much expansion is penalized", .1f)
-        ADD(simulation_rho, ETA, "", 1.f)
-        ADD(simulation_rho, LIQUID_THRESHOLD, "", 0.5f)
-        ADD(simulation_rho, RHO_D, "", 3.f)
+        ADD(simulation_rho, LAMBDA_MINUS, "Lambda-", "Control how much compression is penalized", .5f)
+        ADD(simulation_rho, LAMBDA_PLUS, "Lambda+", "Control how much expansion is penalized", .1f)
+        ADD(simulation_rho, ETA, "Eta", "", 1.f)
+        ADD(simulation_rho, LIQUID_THRESHOLD, "Liquid Threshold", "", 0.5f)
+        ADD(simulation_rho, RHO_D, "D", "", 3.f)
 
         auto& simulation_forces = add_sub_category(simulation, "Forces");
-        ADD(simulation_forces, GRAVITY_FORCE, "", 0.02f)
-        ADD(simulation_forces, GRAVITY_ENABLED, "", true)
-        ADD(simulation_forces, PUSH_FORCE, "", 0.1f)
-        ADD(simulation_forces, PUSH_ENABLED, "", false)
+        ADD(simulation_forces, GRAVITY_FORCE, "Gravity Force", "", 0.02f)
+        ADD(simulation_forces, GRAVITY_ENABLED, "Gravity Enabled", "", true)
+        ADD(simulation_forces, PUSH_FORCE, "Push Force", "", 0.1f)
+        ADD(simulation_forces, PUSH_ENABLED, "Push Enabled", "", false)
 
         auto& simulation_solver = add_sub_category(simulation, "Solver");
-        ADD(simulation_solver, SOLVER_TYPE, "Which algorithm is used to solve system of equations", SolverType::JACOBI)
-        ADD(simulation_solver, SOLVER_CHECK_INTERVAL, "Amount of steps CG takes before checking for convergence", 100)
-        ADD(simulation_solver, MAX_STEPS, "Maximum amount of iterations solver does", 2000)
-        ADD(simulation_solver, SOLVER_THRESHOLD, "Threshold at which solver considers system solved", 1e-5f)
+        ADD(simulation_solver, SOLVER_TYPE, "Solver", "Which algorithm is used to solve system of equations", SolverType::JACOBI)
+        ADD(simulation_solver, SOLVER_CHECK_INTERVAL, "Check Interval", "Amount of steps CG takes before checking for convergence", 100)
+        ADD(simulation_solver, MAX_STEPS, "Max Steps", "Maximum amount of iterations solver does", 2000)
+        ADD(simulation_solver, SOLVER_THRESHOLD, "Threshold", "Threshold at which solver considers system solved", 1e-5f)
 
-        ADD(simulation, DT, "Delta time", 1.67f)
-        ADD(simulation, VISCOSITY, "", 0.f)
+        ADD(simulation, DT, "DT", "Delta time", 1.67f)
+        ADD(simulation, VISCOSITY, "Viscosity", "", 0.f)
 
         auto& grid = add_category("Grid");
-        ADD(grid, WIDTH, "Number of cells in width", 72)
-        ADD(grid, HEIGHT, "Number of cells in height", 72)
-        ADD_3D(grid, DEPTH, "Number of cells in depth", 72)
-        ADD(grid, INIT_SHAPE, "", InitShape::HALF)
+        ADD(grid, WIDTH, "Width", "Number of cells in width", 72)
+        ADD(grid, HEIGHT, "Height", "Number of cells in height", 72)
+        ADD_3D(grid, DEPTH, "Depth", "Number of cells in depth", 72)
+        ADD(grid, INIT_SHAPE, "Init Shape", "", InitShape::HALF)
 
         auto& rendering = add_category("Rendering");
-        ADD_2D(rendering, DRAW_MODE, "Which field is rendered in main window", DrawMode::FLUID)
-        ADD_2D(rendering, DRAW_VEL_ARROWS, "Draw velocity arrows", false)
-        ADD_2D(rendering, RE_CALC_DIV, "Recalculate Divergence after Projection", false)
+        ADD_2D(rendering, DRAW_MODE, "Draw Mode", "Which field is rendered in main window", DrawMode::FLUID)
+        ADD_2D(rendering, DRAW_VEL_ARROWS, "Draw vel arrows", "Draw velocity arrows", false)
+        ADD_2D(rendering, RE_CALC_DIV, "Re-Calc Div", "Recalculate Divergence after Projection", false)
 
         auto& controls = add_category("Controls");
-        ADD(controls, PAUSED, "If simulation is paused", false)
+        ADD(controls, PAUSED, "Paused", "If simulation is paused", false)
         auto& controls_steps = add_sub_category(controls, "Steps");
-        ADD(controls_steps, DISABLE_VEL_EXTRAPOLATE, "", false);
-        ADD(controls_steps, DISABLE_RHO_SHARPEN, "", false);
-        ADD(controls_steps, DISABLE_RHO_ADVECT, "", false);
-        ADD(controls_steps, DISABLE_VEL_ADVECT, "", false);
-        ADD(controls_steps, DISABLE_ADD_FORCE, "", false);
-        ADD(controls_steps, DISABLE_PROJECT, "", false);
+        ADD(controls_steps, DISABLE_VEL_EXTRAPOLATE, "Disable Velocity Extrapolation", "", false);
+        ADD(controls_steps, DISABLE_RHO_SHARPEN, "Disable Density Sharpen", "", false);
+        ADD(controls_steps, DISABLE_RHO_ADVECT, "Disable Density Advection", "", false);
+        ADD(controls_steps, DISABLE_VEL_ADVECT, "Disable Velocity Advection", "", false);
+        ADD(controls_steps, DISABLE_ADD_FORCE, "Disable Add Force", "", false);
+        ADD(controls_steps, DISABLE_PROJECT, "Disable Projection", "", false);
 
         ADD_HIDDEN(SIMULATION_STEPS, 0)
         ADD_HIDDEN(MAX_VALUE, 0)
@@ -160,9 +164,6 @@ public:
     public:
         IProperty(std::string name, std::string  description, const int dimension = 0)
         : name(std::move(name)), description(std::move(description)), dimension(dimension) {}
-        IProperty(const std::string_view &name, std::string  description, const int dimension = 0)
-       : name(name), description(std::move(description)), dimension(dimension) {}
-
         virtual ~IProperty() = default;
         virtual void draw() = 0;
 
@@ -176,9 +177,6 @@ private:
     class Property final : public IProperty{
     public:
         Property(const std::string &name, const std::string &description, T value, const int dimension = 0)
-            : IProperty(name, description, dimension), value(value) {
-        }
-        Property(const std::string_view &name, const std::string &description, T value, const int dimension = 0)
             : IProperty(name, description, dimension), value(value) {
         }
         T value;
@@ -246,12 +244,12 @@ private:
     };
     class SubCategory final : public ICategory {
     public:
-        explicit SubCategory(const std::string& name) : name(name) {}
+        explicit SubCategory(std::string  name) : name(std::move(name)) {}
         std::string name;
     };
     class Category final : public ICategory {
     public:
-        explicit Category(const std::string& name) : name(name) {}
+        explicit Category(std::string  name) : name(std::move(name)) {}
         ~Category() override {
             for (const auto cat : sub_categories)
                 delete cat;
@@ -264,8 +262,8 @@ private:
     Category& add_category(const std::string& name);
     SubCategory& add_sub_category(Category& cat, const std::string& name);
 
-    std::map<std::string, IProperty*> _properties;
-    void add_property(IProperty* p);
+    std::vector<IProperty*> _properties;
+    void add_property(unsigned int token, IProperty* p);
 
 public:
     std::vector<Category*>& getCategories() {
@@ -273,22 +271,22 @@ public:
     }
 
     template<typename T>
-    T getPropertyValue(const std::string_view& name) {
-        if (!_properties.contains(name.data())) {
-            std::cerr << "Property does not exist: " << name << std::endl;
+    T getPropertyValue(const unsigned int token) {
+        if (_properties.size() <= token) {
+            std::cerr << "Property does not exist: " << _properties[token] << std::endl;
             std::abort();
         }
 
-        auto p = dynamic_cast<Property<T> *>(_properties[name.data()]);
+        auto p = dynamic_cast<Property<T> *>(_properties[token]);
         if (!p) {
-            std::cerr << "Property " << name << " type mismatch: " << typeid(T).name() << std::endl;
+            std::cerr << "Property " << p->name << " type mismatch: " << typeid(T).name() << std::endl;
             std::abort();
         }
 
         if (!matchesDimension(p)) {
             std::stringstream ss;
             ss << "Accessing Property ";
-            ss << name;
+            ss << p->name;
             ss << " while simulation dimension does not match property dimension (" << p->dimension << ")";
             LOG_WARN(ss.str())
         }
@@ -296,22 +294,22 @@ public:
         return p->value;
     }
     template<typename T>
-    void setPropertyValue(const std::string_view& name, T value) {
-        if (!_properties.contains(name.data())) {
-            std::cerr << "Property does not exist: " << name << std::endl;
+    void setPropertyValue(const unsigned int token, T value) {
+        if (_properties.size() <= token) {
+            std::cerr << "Property does not exist: " << _properties[token]->name << std::endl;
             std::abort();
         }
 
-        auto p = dynamic_cast<Property<T> *>(_properties[name.data()]);
+        auto p = dynamic_cast<Property<T> *>(_properties[token]);
         if (!p) {
-            std::cerr << "Property " << name << " type mismatch: " << typeid(T).name() << std::endl;
+            std::cerr << "Property " << p->name << " type mismatch: " << typeid(T).name() << std::endl;
             std::abort();
         }
 
         if (!matchesDimension(p)) {
             std::stringstream ss;
             ss << "Setting Property ";
-            ss << name;
+            ss << p->name;
             ss << " while simulation dimension does not match property dimension (" << p->dimension << ")";
             LOG_WARN(ss.str())
         }
@@ -319,22 +317,22 @@ public:
         p->value = value;
     }
     template<typename T>
-    void addPropertyValue(const std::string_view& name, T value) {
-        if (!_properties.contains(name.data())) {
-            std::cerr << "Property does not exist: " << name << std::endl;
+    void addPropertyValue(const unsigned int token, T value) {
+        if (_properties.size() <= token) {
+            std::cerr << "Property does not exist: " << _properties[token] << std::endl;
             std::abort();
         }
 
-        auto p = dynamic_cast<Property<T> *>(_properties[name.data()]);
+        auto p = dynamic_cast<Property<T> *>(_properties[token]);
         if (!p) {
-            std::cerr << "Property " << name << " type mismatch: " << typeid(T).name() << std::endl;
+            std::cerr << "Property " << p->name << " type mismatch: " << typeid(T).name() << std::endl;
             std::abort();
         }
 
         if (!matchesDimension(p)) {
             std::stringstream ss;
             ss << "Adding Property ";
-            ss << name;
+            ss << p->name;
             ss << " while simulation dimension does not match property dimension (" << p->dimension << ")";
             LOG_WARN(ss.str())
         }
