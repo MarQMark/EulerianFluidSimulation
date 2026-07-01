@@ -48,6 +48,10 @@ class Properties {
 public:
     PROP_TOKEN(SIMULATION_TYPE)
     PROP_TOKEN(SIMULATION_REBUILD)
+    PROP_TOKEN(SIMULATION_RESET)
+    PROP_TOKEN(SIMULATION_INITIALIZED)
+
+    PROP_TOKEN(SIMULATION_GRID_RESIZED)
 
     PROP_TOKEN(BRUSH_SIZE)
 
@@ -70,9 +74,12 @@ public:
     PROP_TOKEN(DT)
     PROP_TOKEN(VISCOSITY)
 
-    PROP_TOKEN(WIDTH)
-    PROP_TOKEN(HEIGHT)
-    PROP_TOKEN(DEPTH)
+    PROP_TOKEN(WIDTH_2D)
+    PROP_TOKEN(HEIGHT_2D)
+
+    PROP_TOKEN(WIDTH_3D)
+    PROP_TOKEN(HEIGHT_3D)
+    PROP_TOKEN(DEPTH_3D)
     PROP_TOKEN(INIT_SHAPE)
 
     PROP_TOKEN(DRAW_MODE)
@@ -125,10 +132,9 @@ private:
         ADD(simulation, VISCOSITY, "Viscosity", "", 0.f)
 
         auto& grid = add_category("Grid");
-        ADD(grid, WIDTH, "Width", "Number of cells in width", 72)
-        ADD(grid, HEIGHT, "Height", "Number of cells in height", 72)
-        ADD_3D(grid, DEPTH, "Depth", "Number of cells in depth", 72)
-        ADD(grid, INIT_SHAPE, "Init Shape", "", InitShape::HALF)
+        ADD_2D(grid, WIDTH_2D, "Width", "Number of cells in width", 72)
+        ADD_2D(grid, HEIGHT_2D, "Height", "Number of cells in height", 72)
+        ADD_2D(grid, INIT_SHAPE, "Init Shape", "", InitShape::HALF)
 
         auto& rendering = add_category("Rendering");
         ADD_2D(rendering, DRAW_MODE, "Draw Mode", "Which field is rendered in main window", DrawMode::FLUID)
@@ -145,13 +151,20 @@ private:
         ADD(controls_steps, DISABLE_ADD_FORCE, "Disable Add Force", "", false);
         ADD(controls_steps, DISABLE_PROJECT, "Disable Projection", "", false);
 
+        ADD_HIDDEN(WIDTH_3D, 10)
+        ADD_HIDDEN(HEIGHT_3D, 10)
+        ADD_HIDDEN(DEPTH_3D, 10)
+
         ADD_HIDDEN(SIMULATION_STEPS, 0)
         ADD_HIDDEN(MAX_VALUE, 0)
         ADD_HIDDEN(TOTAL_RHO, 0.f)
         ADD_HIDDEN(SOLVE_STEPS, 0)
 
-        ADD_HIDDEN(SIMULATION_TYPE, SimulatorType::CPU_2D);
+        ADD_HIDDEN(SIMULATION_TYPE, SimulatorType::CPU_3D);
         ADD_HIDDEN(SIMULATION_REBUILD, false);
+        ADD_HIDDEN(SIMULATION_RESET, false);
+        ADD_HIDDEN(SIMULATION_INITIALIZED, false);
+        ADD_HIDDEN(SIMULATION_GRID_RESIZED, false);
     }
     ~Properties();
 

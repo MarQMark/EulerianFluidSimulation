@@ -1,7 +1,7 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
-#include "simulation/Grid.h"
+#include "simulation/Grid2D.h"
 #include "simulation/ScalField2D.h"
 
 class Texture2D;
@@ -11,7 +11,7 @@ public:
     Renderer2D(int width, int height);
     ~Renderer2D();
 
-    void render(const Grid* grid);
+    void render(const Grid2D* grid);
 
     Texture2D* getTexture2D() const;
 

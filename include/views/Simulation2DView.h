@@ -7,7 +7,7 @@
 #include "imgui/imgui.h"
 
 #include "Viewable.h"
-#include "simulation/Grid.h"
+#include "simulation/Grid2D.h"
 #include "simulation/ScalField2D.h"
 #include "simulation/VecField2D.h"
 

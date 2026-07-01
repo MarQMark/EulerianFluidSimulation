@@ -1,6 +1,6 @@
 #include "solver/JacobiSolver.h"
 
-#include "simulation/Grid.h"
+#include "simulation/Grid2D.h"
 #include "simulation/Properties.h"
 
 JacobiSolver::JacobiSolver(const int width, const int height) : ISolver(width, height) {
@@ -19,7 +19,7 @@ JacobiSolver::~JacobiSolver() {
 #endif
 }
 
-float JacobiSolver::solve(Grid *grid) {
+float JacobiSolver::solve(Grid2D *grid) {
     const int iter = PROPERTY_I(MAX_STEPS);
 
 #ifdef USE_GPU

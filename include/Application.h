@@ -1,7 +1,7 @@
 #ifndef EULERIANFLUIDSIMULATION_APPLICATION_H
 #define EULERIANFLUIDSIMULATION_APPLICATION_H
 
-#include "simulation/SimulationDisplay.h"
+#include "simulation/ISimulationDisplay.h"
 #include "simulator/ISimulator.h"
 #include "views/Views.h"
 

@@ -28,15 +28,7 @@ int main() {
 }
 " HAS_STD_FORMAT)
 
-add_executable(EulerianFluidSimulation ${SOURCES}
-        src/simulation/scene/nodes/FluidNode.cpp
-        include/simulation/scene/nodes/FluidNode.h
-        src/renderer/MarchingCubes.cpp
-        include/renderer/MarchingCubes.h
-        src/views/SceneView.cpp
-        include/views/SceneView.h
-        src/views/NodePropertiesView.cpp
-        include/views/NodePropertiesView.h)
+add_executable(EulerianFluidSimulation ${SOURCES})
 
 # DearImGUI
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)

@@ -4,11 +4,13 @@
 
 #include "simulation/scene/nodes/FluidNode.h"
 #include "renderer/MarchingCubes.h"
+#include "simulation/Grid3D.h"
+#include "simulation/scene/Scene.h"
 #include "simulation/scene/nodes/BoundingBoxNode.h"
 
 FluidNode::FluidNode() {
     // --- Model ---
-    auto fluidMesh = std::make_unique<Mesh>("FluidMesh", 0, 0);
+    auto fluidMesh = std::make_unique<Mesh>("FluidMesh", 1, 1);
     _cubes = new MarchingCubes(fluidMesh.get());
     _fluidModel = std::make_shared<Model>("Fluid", std::move(fluidMesh));
 
@@ -29,22 +31,18 @@ void FluidNode::setRenderData(const SimulationDisplay3D::RenderData3D* data) {
 }
 
 void FluidNode::update(float deltaTime) {
-    ScalField3D scalarField(100, 100, 100);
+    if (!_renderData)
+        return;
 
-    for (int z = 0; z < 100; z++) {
-        for (int y = 0; y < 20; y++) {
-            for (int x = 0; x < 100; x++) {
-                scalarField(x, y, z) = 1.0f;
-            }
-        }
-    }
-
-    AABB domain = scene->getSimulationDomain()->getWorldBoundingBox();
-
-    _cubes->generateMesh(scalarField, domain);
+    _cubes->updateMesh(
+        _renderData->grid->rho(),
+        scene->getSimulationDomain()->getWorldBoundingBox());
 }
 
 void FluidNode::draw(const glm::mat4& view, const glm::mat4& projection) const {
+    if (!_renderData)
+        return;
+
     _fluidModel->draw(view, projection, glm::mat4(1.0f));
 }
 

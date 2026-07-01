@@ -2,7 +2,7 @@
 #define EULERIANFLUIDSIMULATION_SOLVER_H
 
 #include "simulation/ScalField2D.h"
-#include "simulation/Grid.h"
+#include "simulation/Grid2D.h"
 #include "compute/StorageBuffer.h"
 
 #include "ISolver.h"
@@ -12,7 +12,7 @@ class CGSolver : public ISolver {
 public:
     CGSolver(int width, int height);
     ~CGSolver() override;
-    float solve(Grid* grid) override;
+    float solve(Grid2D* grid) override;
 
 private:
     void impl_mat_mul(ScalField2D& result, const ScalField2D& x, const ScalField2D& rho, const ScalField2D& boundary) const;

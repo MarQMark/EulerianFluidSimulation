@@ -2,8 +2,8 @@
 #define EULERIANFLUIDSIMULATION_CPUSIMULATOR2D_H
 
 #include "ISimulator2D.h"
-#include "simulation/Grid.h"
-#include "simulation/SimulationDisplay.h"
+#include "simulation/Grid2D.h"
+#include "simulation/SimulationDisplay2D.h"
 #include "solver/ISolver.h"
 
 class CPUSimulator2D final : public ISimulator2D {
@@ -24,7 +24,7 @@ private:
     void diffuse() override;
     void project() override;
 
-    Grid* _grid{};
+    Grid2D* _grid{};
     ISolver* _solver{};
     SimulationDisplay2D::RenderData2D* _data;
 

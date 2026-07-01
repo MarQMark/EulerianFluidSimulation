@@ -7,6 +7,8 @@
 
 #include <vector>
 #include <nlohmann/json_fwd.hpp>
+
+#include "nodes/SimulationDomainNode.h"
 #include "simulation/scene/nodes/CameraNode.h"
 
 class FluidNode;
@@ -29,7 +31,7 @@ public:
     CameraNode* getCamera() const;
     FluidNode* getFluid() const;
 
-    void setSimulationDomain(BoundingBoxNode* domain);
+    void setSimulationDomain(SimulationDomainNode* domain);
     BoundingBoxNode* getSimulationDomain() const;
 
     std::vector<ModelNode*> getModels() const;
@@ -49,7 +51,8 @@ private:
     // --- Node Cache ---
     CameraNode*                     camera              = nullptr;
     FluidNode*                      fluid               = nullptr;
-    BoundingBoxNode*                simulationDomain    = nullptr;
+    SimulationDomainNode*           simulationDomain    = nullptr;
+
     std::vector<ModelNode*>         models              = {};
     std::vector<BoundingBoxNode*>   boundingBoxes       = {};
     std::vector<ForceFieldNode*>    forceFields         = {};

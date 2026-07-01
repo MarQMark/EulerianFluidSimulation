@@ -319,8 +319,8 @@ public:
     MarchingCubes(Mesh* mesh);
     ~MarchingCubes();
 
-    void generateMesh(const ScalField3D& field, AABB domain);
-    void rebuildBuffers(int x, int y, int z);
+    void updateMesh(const ScalField3D& field, AABB domain);
+    void resizeBuffers(int x, int y, int z);
 
 private:
     Shader* _mcShader;

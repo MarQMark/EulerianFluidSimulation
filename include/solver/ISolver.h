@@ -1,7 +1,7 @@
 #ifndef EULERIANFLUIDSIMULATION_ISOLVER_H
 #define EULERIANFLUIDSIMULATION_ISOLVER_H
 
-class Grid;
+class Grid2D;
 
 class ISolver {
 protected:
@@ -11,7 +11,7 @@ protected:
 public:
     virtual ~ISolver() = default;
 
-    virtual float solve(Grid* grid) = 0;
+    virtual float solve(Grid2D* grid) = 0;
 
 protected:
     int _width = 0;

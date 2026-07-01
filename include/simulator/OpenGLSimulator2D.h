@@ -3,8 +3,8 @@
 
 #include "ISimulator2D.h"
 #include "assets/Shader.h"
-#include "simulation/Grid.h"
-#include "simulation/SimulationDisplay.h"
+#include "simulation/Grid2D.h"
+#include "simulation/SimulationDisplay2D.h"
 #include "solver/ISolver.h"
 
 class SimulationDisplay2D;
@@ -29,7 +29,7 @@ private:
     Shader* _vel_pass_2{};
     Shader* _add_force{};
 
-    Grid* _grid{};
+    Grid2D* _grid{};
     ISolver* _solver{};
     SimulationDisplay2D::RenderData2D* _data;
 };

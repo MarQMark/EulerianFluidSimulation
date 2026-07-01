@@ -34,6 +34,15 @@ void Vec3Property::draw() {
         set(v);
 }
 
+void IVec3Property::draw() {
+    ImGui::Text("%s:", name.c_str());
+    std::string id = "##" + name;
+
+    glm::ivec3 v = get();
+    if (ImGui::DragInt3(id.c_str(), glm::value_ptr(v), 0.01f))
+        set(v);
+}
+
 void ColorProperty::draw() {
     ImGui::Text("%s:", name.c_str());
     std::string id = "##" + name;

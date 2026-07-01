@@ -30,6 +30,13 @@ MarchingCubes::MarchingCubes(Mesh* mesh) {
 
     _vertexCountBuffer = new StorageBuffer(sizeof(int));
     _indexCountBuffer = new StorageBuffer(sizeof(int));
+
+    _fieldBuffer = new StorageBuffer(sizeof(float));
+
+    // Assign new marching cubes buffers to mesh. Buffers are resized dynamically
+    _vertexBuffer = new StorageBuffer(sizeof(Vertex));
+    _indexBuffer = new StorageBuffer(sizeof(int));
+    _mesh->setBuffers(_vertexBuffer->id(), _indexBuffer->id());
 }
 
 MarchingCubes::~MarchingCubes() {
@@ -39,9 +46,12 @@ MarchingCubes::~MarchingCubes() {
     delete _triangleTable;
 }
 
-void MarchingCubes::generateMesh(const ScalField3D& field, AABB domain) {
+void MarchingCubes::updateMesh(const ScalField3D& field, AABB domain) {
     if (field.width() != _lastSize.x || field.height() != _lastSize.y || field.depth() != _lastSize.z)
-        rebuildBuffers(field.width(), field.height(), field.depth());
+        resizeBuffers(field.width(), field.height(), field.depth());
+
+    _vertexCountBuffer->clear();
+    _indexCountBuffer->clear();
 
     // --- Algorithm ---
     _mcShader->bind();
@@ -68,30 +78,24 @@ void MarchingCubes::generateMesh(const ScalField3D& field, AABB domain) {
 
     int vertexCount = 0;
     _vertexCountBuffer->download(&vertexCount);
+    _mesh->setVertexCount(vertexCount);
 
     int indexCount = 0;
     _indexCountBuffer->download(&indexCount);
-
-    _mesh->setExternalBuffers(_vertexBuffer->id(), _indexBuffer->id(), vertexCount, indexCount);
+    _mesh->setIndexCount(indexCount);
 }
 
-void MarchingCubes::rebuildBuffers(const int x, const int y, const int z) {
-    if (_fieldBuffer) {
-        delete _fieldBuffer;
-        delete _vertexBuffer;
-        delete _indexBuffer;
-    }
-
+void MarchingCubes::resizeBuffers(const int x, const int y, const int z) {
     int maxCubes = x * y * z;
 
-    _fieldBuffer = new StorageBuffer(maxCubes * sizeof(float));
+    _fieldBuffer->resize(maxCubes * sizeof(float));
 
     int estimatedActiveCubes = maxCubes * 0.15f;
     _maxVertices = estimatedActiveCubes * 15 * 1.2f;
     _maxIndices = estimatedActiveCubes * 15 * 1.2f;
 
-    _vertexBuffer = new StorageBuffer(sizeof(Vertex) * _maxVertices);
-    _indexBuffer = new StorageBuffer(sizeof(int) * _maxIndices);
+    _vertexBuffer->resize(sizeof(Vertex) * _maxVertices);
+    _indexBuffer->resize(sizeof(int) * _maxIndices);
 
     _lastSize = { x, y, z };
 }

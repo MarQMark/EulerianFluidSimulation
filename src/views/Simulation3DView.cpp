@@ -4,6 +4,8 @@
 #include "core/Editor.h"
 #include "glm/gtc/type_ptr.hpp"
 #include "renderer/Renderer3D.h"
+#include "simulation/Properties.h"
+#include "util/Time.h"
 
 Simulation3DView::Simulation3DView(Editor* editor, Renderer3D* renderer)
     : editor(editor), renderer(renderer)
@@ -99,6 +101,11 @@ void Simulation3DView::render(void* renderData) {
                 transform->setTransform(matrix);
             }
         }
+    }
+
+    if (PROPERTY_B(PAUSED) && (int)(Time::Get()->tt / 500) % 2 == 0) {
+        ImGui::SetCursorPos({ 20, viewportSize.y - 5 });
+        ImGui::Text("PAUSED");
     }
 
     ImGui::End();

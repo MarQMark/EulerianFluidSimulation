@@ -5,7 +5,7 @@
 
 #include "assets/Shader.h"
 #include "renderer/Window.h"
-#include "simulation/Grid.h"
+#include "simulation/Grid2D.h"
 #include "solver/CGSolver.h"
 #include "simulation/VecField2D.h"
 #include "views/Views.h"
@@ -30,7 +30,7 @@ private:
 
     Views* _views{};
 
-    Grid* _grid{};
+    Grid2D* _grid{};
 
     ISolver* _solver{};
 

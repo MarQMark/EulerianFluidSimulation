@@ -1,30 +1,16 @@
-#include "simulation/SimulationDisplay.h"
+//
+// Created by ruut on 7/1/26.
+//
 
+#include "simulation/SimulationDisplay3D.h"
+#include "core/Editor.h"
+#include "renderer/Renderer3D.h"
+#include "simulation/Properties.h"
 #include "simulation/scene/nodes/FluidNode.h"
 #include "util/Time.h"
 #include "views/NodePropertiesView.h"
-#include "views/PropertiesView.h"
 #include "views/SceneView.h"
-#include "views/Simulation2DView.h"
 #include "views/Simulation3DView.h"
-
-SimulationDisplay2D::SimulationDisplay2D(const unsigned int width, const unsigned int height)
-    : ISimulationDisplay(), _width(width), _height(height) {
-    _renderer = new Renderer2D(width, height);
-    _viewables["Simulation2D"] = new Simulation2DView(_renderer->getTexture2D()->get(), _width, _height);
-    //_viewables["Properties"] = new PropertiesView();
-}
-
-SimulationDisplay2D::~SimulationDisplay2D() {
-    delete _renderer;
-}
-
-void SimulationDisplay2D::update(void* renderData) {
-    const auto* data = static_cast<RenderData2D*>(renderData);
-    if (renderData) {
-        _renderer->render(data->grid);
-    }
-}
 
 SimulationDisplay3D::SimulationDisplay3D(Window* window) : ISimulationDisplay() {
     _renderer = new Renderer3D();
@@ -34,7 +20,9 @@ SimulationDisplay3D::SimulationDisplay3D(Window* window) : ISimulationDisplay() 
 
     _viewables["Simulation3D"] = new Simulation3DView(_editor, _renderer);
     _viewables["Scene"] = new SceneView(_editor, _renderer);
-    //_viewables["Properties"] = new NodePropertiesView(_editor);
+    _viewables["NodeProperties"] = new NodePropertiesView(_editor);
+
+    SET_PROPERTY_B(PAUSED, true);
 }
 
 SimulationDisplay3D::~SimulationDisplay3D() {
@@ -45,6 +33,12 @@ SimulationDisplay3D::~SimulationDisplay3D() {
 
 void SimulationDisplay3D::update(void* renderData) {
     const auto* data = static_cast<RenderData3D *>(renderData);
+
+    // Initialize simulation if simulation is not paused but uninitialized (just started)
+    if (!PROPERTY_B(PAUSED) && !PROPERTY_B(SIMULATION_INITIALIZED)) {
+        _editor->initSimulation(data->grid);
+    }
+
     _scene->getFluid()->setRenderData(data);
 
     _scene->update(Time::Get()->dt);

@@ -8,6 +8,21 @@
 #include "simulation/scene/nodes/ModelParticleSpawnNode.h"
 #include <memory>
 
+#include "simulation/Grid3D.h"
+#include "simulation/Properties.h"
+
+void Editor::initSimulation(Grid3D* grid) {
+    for (int z = 0 ; z < grid->rho().depth() ; z++) {
+        for (int y = 0 ; y < grid->rho().height() * 0.5 ; y++) {
+            for (int x = 0 ; x < grid->rho().width() ; x++) {
+                (grid->rho())(x, y, z) = 1.0f;
+            }
+        }
+    }
+
+    SET_PROPERTY_B(SIMULATION_INITIALIZED, true);
+}
+
 void Editor::setScene(Scene* scene) {
     this->scene = scene;
 }

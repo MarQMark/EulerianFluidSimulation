@@ -1,6 +1,6 @@
 #include "solver/EigenSolver.h"
 
-#include "simulation/Grid.h"
+#include "simulation/Grid2D.h"
 #include "simulation/Properties.h"
 
 using SpMat = Eigen::SparseMatrix<float, Eigen::RowMajor>;
@@ -45,7 +45,7 @@ void EigenSolver::determine_equations(const ScalField2D &divergence, const ScalF
 }
 
 EigenCGSolver::EigenCGSolver(const int w, const int h) : EigenSolver(w, h) {}
-float EigenCGSolver::solve(Grid* grid) {
+float EigenCGSolver::solve(Grid2D* grid) {
     determine_equations(grid->divergence(), grid->rho(), grid->boundary());
     Eigen::ConjugateGradient<SpMat,Eigen::Lower|Eigen::Upper,
                              Eigen::DiagonalPreconditioner<float>> solver;
@@ -60,7 +60,7 @@ float EigenCGSolver::solve(Grid* grid) {
 }
 
 EigenBiCGSTABSolver::EigenBiCGSTABSolver(const int w, const int h) : EigenSolver(w, h) {}
-float EigenBiCGSTABSolver::solve(Grid* grid) {
+float EigenBiCGSTABSolver::solve(Grid2D* grid) {
     determine_equations(grid->divergence(), grid->rho(), grid->boundary());
     Eigen::BiCGSTAB<SpMat, Eigen::DiagonalPreconditioner<float>> solver;
     solver.setMaxIterations(PROPERTY_I(MAX_STEPS));

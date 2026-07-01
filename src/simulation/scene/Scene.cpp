@@ -11,6 +11,7 @@
 #include <algorithm>
 
 #include "simulation/scene/nodes/FluidNode.h"
+#include "simulation/scene/nodes/SimulationDomainNode.h"
 #include "simulation/scene/nodes/SkyboxNode.h"
 
 Scene::Scene(Window* window) {
@@ -22,16 +23,12 @@ Scene::Scene(Window* window) {
     auto cameraNode = std::make_unique<CameraNode>(window, glm::vec3(0.0f, 0.0, 1.0f));
     addSceneNode(std::move(cameraNode));
 
-    // --- Fluid ---
+    // --- Simulation ---
+    auto simulationDomain = std::make_unique<SimulationDomainNode>();
+    addSceneNode(std::move(simulationDomain));
+
     auto fluidNode = std::make_unique<FluidNode>();
     addSceneNode(std::move(fluidNode));
-
-    auto domainBB = std::make_unique<BoundingBoxNode>("Simulation Domain", glm::vec4(0.2f, 0.6f, 1.0f, 1.0f));
-    domainBB->setScale({ 2.0f, 2.0f, 2.0f });
-    domainBB->setDeletable(false);
-    domainBB->addTag("simulation_domain");
-    setSimulationDomain(domainBB.get());
-    addSceneNode(std::move(domainBB));
 }
 
 void Scene::update(float deltaTime) const {
@@ -53,6 +50,9 @@ void Scene::addSceneNode(std::unique_ptr<SceneNode> node) {
 
     if (auto *fluid = dynamic_cast<FluidNode*>(node.get()))
         this->fluid = fluid;
+
+    if (auto *domain = dynamic_cast<SimulationDomainNode*>(node.get()))
+        this->simulationDomain = domain;
 
     if (auto* model = dynamic_cast<ModelNode*>(node.get()))
         models.push_back(model);
@@ -81,7 +81,7 @@ void Scene::removeSceneNode(const SceneNode* node) {
     std::erase_if(sceneNodes, [&](const std::unique_ptr<SceneNode>& n) { return n.get() == node; });
 }
 
-void Scene::setSimulationDomain(BoundingBoxNode* domain) {
+void Scene::setSimulationDomain(SimulationDomainNode* domain) {
     simulationDomain = domain;
 }
 

@@ -1,15 +1,13 @@
-#ifndef GRID_H
-#define GRID_H
+#ifndef GRID2D_H
+#define GRID2D_H
 
 #include <map>
-#include <vector>
-
 #include "ScalField2D.h"
 #include "VecField2D.h"
 #include "compute/StorageBuffer.h"
 #include "glm/glm.hpp"
 
-class Grid {
+class Grid2D {
 private:
     struct _DisAdvCell {
         //_DisAdvCell(const unsigned int _i, const unsigned int _j, const float _val)
@@ -51,8 +49,8 @@ public:
 #endif
 
 public:
-    explicit Grid(unsigned int nWidth, unsigned int nHeight);
-    ~Grid();
+    explicit Grid2D(unsigned int nWidth, unsigned int nHeight);
+    ~Grid2D();
 
     glm::vec2 traceParticle(glm::vec2 pos, float dt, int substeps) const;
 

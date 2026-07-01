@@ -27,7 +27,7 @@ public:
     EigenCGSolver(int width, int height);
 
 protected:
-    float solve(Grid* grid) override;
+    float solve(Grid2D* grid) override;
 };
 
 class EigenBiCGSTABSolver : public EigenSolver {
@@ -35,7 +35,7 @@ public:
     EigenBiCGSTABSolver(int width, int height);
 
 protected:
-    float solve(Grid* grid) override;
+    float solve(Grid2D* grid) override;
 
 };
 

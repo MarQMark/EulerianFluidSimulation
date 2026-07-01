@@ -90,9 +90,14 @@ void Mesh::updateMeshData(const std::vector<Vertex>& vertices, const std::vector
     updateGPU();
 }
 
-void Mesh::setExternalBuffers(unsigned int vertexBuffer, unsigned int indexBuffer, int vertexCount, int indexCount) {
+void Mesh::setBuffers(unsigned int vertexBuffer, unsigned int indexBuffer) {
+    // Free old buffers
+    if (vbo) glDeleteBuffers(1, &vbo); vbo = 0;
+    if (ebo) glDeleteBuffers(1, &ebo); ebo = 0;
+
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
     glEnableVertexAttribArray(0);
@@ -103,10 +108,8 @@ void Mesh::setExternalBuffers(unsigned int vertexBuffer, unsigned int indexBuffe
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
     glEnableVertexAttribArray(2);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-
-    this->vertexCount = vertexCount;
-    this->indexCount = indexCount;
+    vbo = vertexBuffer;
+    ebo = indexBuffer;
 }
 
 void Mesh::setMaterialIndex(const int index) {
@@ -182,6 +185,14 @@ std::vector<unsigned int> Mesh::getIndices() {
 
 GLuint Mesh::getVAO() const {
     return vao;
+}
+
+GLuint Mesh::getVBO() const {
+    return vbo;
+}
+
+GLuint Mesh::getEBO() const {
+    return ebo;
 }
 
 std::unique_ptr<Mesh> Mesh::createEmpty() {

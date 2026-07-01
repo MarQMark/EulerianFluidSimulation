@@ -1,5 +1,7 @@
 #include "Application.h"
 
+#include <ranges>
+
 #include "core/InputManager.h"
 #include "simulation/Properties.h"
 #include "simulator/CPUSimulator2D.h"
@@ -20,8 +22,6 @@ Application::Application() {
     _views = new Views(_window);
     _views->addView("Properties", new PropertiesView());
     _views->addView("Performance", new FPSView());
-    _views->addView("Stats", new StatsView());
-    _views->addView("Distribution", new DistributionView());
     _views->addView("Profiler", new ProfilerView());
     _views->addView("SolverSteps", new SolverStepsView());
 
@@ -72,23 +72,37 @@ void Application::rebuild() {
         delete _display;
     }
 
-    const int WIDTH = PROPERTY_I(WIDTH);
-    const int HEIGHT = PROPERTY_I(HEIGHT);
-
     switch (PROPERTY(SIMULATION_TYPE, Properties::SimulatorType)) {
         case Properties::OPENGL_2D:
+        {
+    		int WIDTH	= PROPERTY_I(WIDTH_2D);
+    		int HEIGHT	= PROPERTY_I(HEIGHT_2D);
+
     		_simulator = new OpenGLSimulator2D(WIDTH, HEIGHT);
             _display = new SimulationDisplay2D(WIDTH, HEIGHT);
             break;
+        }
         case Properties::CPU_3D:
-    		_simulator = new CPUSimulator3D(WIDTH, HEIGHT, 1);
+        {
             _display = new SimulationDisplay3D(_window);
+
+    		int WIDTH	= PROPERTY_I(WIDTH_3D);
+    		int HEIGHT	= PROPERTY_I(HEIGHT_3D);
+    		int DEPTH	= PROPERTY_I(DEPTH_3D);
+
+    		_simulator = new CPUSimulator3D(WIDTH, HEIGHT, DEPTH);
             break;
+        }
         case Properties::CPU_2D:
         default:
+        {
+    		int WIDTH	= PROPERTY_I(WIDTH_2D);
+    		int HEIGHT	= PROPERTY_I(HEIGHT_2D);
+
             _simulator = new CPUSimulator2D(WIDTH, HEIGHT);
             _display = new SimulationDisplay2D(WIDTH, HEIGHT);
             break;
+        }
     }
 
 	for (const auto& [name, v] : _display->viewables())

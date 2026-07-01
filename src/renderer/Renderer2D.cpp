@@ -46,7 +46,7 @@ void Renderer2D::drawField(std::vector<float>& data, ScalField2D& field, int cha
     }
 }
 
-void Renderer2D::render(const Grid *grid) {
+void Renderer2D::render(const Grid2D *grid) {
     std::vector<float> data(_width * _height * 4);
     /*glm::vec2 max(0);
     for(auto v : vel) {

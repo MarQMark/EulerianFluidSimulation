@@ -10,7 +10,6 @@
 #include "simulation/Properties.h"
 #include "util/GuiHelper.h"
 
-
 void PropertiesView::render(void* renderData) {
     if (!_visible)
         return;
@@ -24,8 +23,10 @@ void PropertiesView::render(void* renderData) {
         ImGui::SetWindowFocus("Properties");
     }
 
-    if(ImGui::IsKeyPressed(ImGuiKey_R) && !_show_search)
+    if(ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R) && !_show_search)
         SET_PROPERTY_B(SIMULATION_REBUILD, true);
+    if(ImGui::IsKeyPressed(ImGuiKey_R) && !_show_search)
+        SET_PROPERTY_B(SIMULATION_RESET, true);
     if (ImGui::IsKeyPressed(ImGuiKey_P) && !_show_search)
         SET_PROPERTY_B(PAUSED, !PROPERTY_B(PAUSED));
     if (ImGui::IsKeyPressed(ImGuiKey_S) && !_show_search)

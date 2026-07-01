@@ -2,6 +2,9 @@
 #define EULERIANFLUIDSIMULATION_CPUSIMULATOR3D_H
 
 #include "ISimulator3D.h"
+#include "simulation/SimulationDisplay3D.h"
+
+class Grid3D;
 
 class CPUSimulator3D final : public ISimulator3D {
 public:
@@ -21,6 +24,8 @@ private:
     void diffuse() override;
     void project() override;
 
+    Grid3D* _grid{};
+    SimulationDisplay3D::RenderData3D* _data;
 };
 
 

@@ -1,4 +1,4 @@
-#include "simulation/Grid.h"
+#include "simulation/Grid2D.h"
 
 #include <algorithm>
 
@@ -8,19 +8,19 @@
                                for (int x = offset; x < _n_width  - offset; x++)
 
 #ifdef USE_GPU
-void Grid::gpuUpload() const {
+void Grid2D::gpuUpload() const {
     gpuVel->upload(_vel->data());
     gpuRho->upload(_rho->data());
     gpuBoundary->upload(_boundary->data());
     gpuForces->upload(_forces->data());
 }
 
-void Grid::gpuDownload() const {
+void Grid2D::gpuDownload() const {
     gpuVel->download(_vel->data());
 }
 #endif
 
-Grid::Grid(const unsigned int nWidth, const unsigned int nHeight)
+Grid2D::Grid2D(const unsigned int nWidth, const unsigned int nHeight)
     : _n_width(nWidth), _n_height(nHeight), _size(nWidth * nHeight) {
     _vel = new VecField2D(nWidth, nHeight);
     _v_tmp = new VecField2D(nWidth, nHeight);
@@ -90,7 +90,7 @@ Grid::Grid(const unsigned int nWidth, const unsigned int nHeight)
     }
 }
 
-Grid::~Grid() {
+Grid2D::~Grid2D() {
     delete _vel;
     delete _v_tmp;
     delete _rho;
@@ -119,7 +119,7 @@ Grid::~Grid() {
 #endif
 }
 
-glm::vec2 Grid::traceParticle(const glm::vec2 start, const float dt, const int substeps) const {
+glm::vec2 Grid2D::traceParticle(const glm::vec2 start, const float dt, const int substeps) const {
 // Core tracer — used by both rho_advect and vel_advect.
 // start:    cell-index position (rho lives at cell centers, so pass glm::vec2(x, y))
 // dt:       signed timestep (negative = backward trace, positive = forward)
@@ -196,15 +196,15 @@ glm::vec2 Grid::traceParticle(const glm::vec2 start, const float dt, const int s
     return pos;
 }
 
-VecField2D & Grid::vel() const {
+VecField2D & Grid2D::vel() const {
     return *_vel;
 }
 
-VecField2D & Grid::tmpVec() const {
+VecField2D & Grid2D::tmpVec() const {
     return *_v_tmp;
 }
 
-void Grid::swapVec() {
+void Grid2D::swapVec() {
     VecField2D* tmp = _vel;
     _vel = _v_tmp;
     _v_tmp = tmp;
@@ -212,15 +212,15 @@ void Grid::swapVec() {
     _v_tmp->clear();
 }
 
-ScalField2D & Grid::rho() const {
+ScalField2D & Grid2D::rho() const {
     return *_rho;
 }
 
-ScalField2D & Grid::tmpScal() const {
+ScalField2D & Grid2D::tmpScal() const {
     return *_s_tmp;
 }
 
-void Grid::swapRho() {
+void Grid2D::swapRho() {
     ScalField2D* tmp = _rho;
     _rho = _s_tmp;
     _s_tmp = tmp;
@@ -228,19 +228,19 @@ void Grid::swapRho() {
     _s_tmp->clear();
 }
 
-ScalField2D & Grid::gamma() const {
+ScalField2D & Grid2D::gamma() const {
     return *_gamma;
 }
 
-ScalField2D & Grid::beta() const {
+ScalField2D & Grid2D::beta() const {
     return *_beta;
 }
 
-std::map<unsigned int, Grid::DisAdvCell>& Grid::A() const {
+std::map<unsigned int, Grid2D::DisAdvCell>& Grid2D::A() const {
     return *_A;
 }
 
-void Grid::addA(const unsigned int i, const unsigned int j, const float val) const {
+void Grid2D::addA(const unsigned int i, const unsigned int j, const float val) const {
     const unsigned int idx = i * size() + j;
     if (_A->contains(idx))
         (*_A)[idx] += {i, j, val};
@@ -248,31 +248,31 @@ void Grid::addA(const unsigned int i, const unsigned int j, const float val) con
         (*_A)[idx] = {i, j, val};
 }
 
-ScalField2D & Grid::divergence() const {
+ScalField2D & Grid2D::divergence() const {
     return *_divergence;
 }
 
-ScalField2D & Grid::pressure() const {
+ScalField2D & Grid2D::pressure() const {
     return *_pressure;
 }
 
-VecField2D & Grid::forces() const {
+VecField2D & Grid2D::forces() const {
     return *_forces;
 }
 
-ScalField2D & Grid::boundary() const {
+ScalField2D & Grid2D::boundary() const {
     return *_boundary;
 }
 
-unsigned int Grid::width() const {
+unsigned int Grid2D::width() const {
     return _n_width;
 }
 
-unsigned int Grid::height() const {
+unsigned int Grid2D::height() const {
     return _n_height;
 }
 
-unsigned int Grid::size() const {
+unsigned int Grid2D::size() const {
     return _size;
 }
 

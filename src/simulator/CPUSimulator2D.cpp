@@ -8,7 +8,7 @@
 #include "solver/EigenSolver.h"
 #include "solver/JacobiSolver.h"
 
-#include "simulation/SimulationDisplay.h"
+#include "simulation/SimulationDisplay2D.h"
 #include "util/Profiler.h"
 
 
@@ -18,7 +18,7 @@
 									for (int x = offset; x < _grid->width()  - offset; x++)
 
 CPUSimulator2D::CPUSimulator2D(const unsigned width, const unsigned height) : ISimulator2D(width, height) {
-    _grid = new Grid(width, height);
+    _grid = new Grid2D(width, height);
 
 	switch (PROPERTY(SOLVER_TYPE, Properties::SolverType)) {
 		case Properties::EIGEN_CG:

@@ -38,7 +38,7 @@ public:
 
     void updateMeshData(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
 
-    void setExternalBuffers(unsigned int vertexBuffer, unsigned int indexBuffer, int vertexCount, int indexCount);
+    void setBuffers(unsigned int vertexBuffer, unsigned int indexBuffer);
 
     void setMaterialIndex(int index);
     int getMaterialIndex() const;
@@ -58,6 +58,8 @@ public:
     std::vector<unsigned int> getIndices();
 
     GLuint getVAO() const;
+    GLuint getVBO() const;
+    GLuint getEBO() const;
 
     // --- Factory ---
     static std::unique_ptr<Mesh> createEmpty();
@@ -75,7 +77,7 @@ private:
     std::vector<Vertex>         vertices    = {};
     std::vector<unsigned int>   indices     = {};
 
-    GLuint vao, vbo, ebo;
+    GLuint vao = 0, vbo = 0, ebo = 0;
     GLenum primitiveMode                    = GL_TRIANGLES;
     float lineWidth                         = 2.0f;
 

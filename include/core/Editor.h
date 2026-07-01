@@ -8,8 +8,12 @@
 #include "simulation/scene/nodes/ForceFieldNode.h"
 #include "simulation/scene/Scene.h"
 
+class Grid3D;
+
 class Editor {
 public:
+    void initSimulation(Grid3D* grid);
+
     void setScene(Scene* scene);
     Scene* getScene() const;
 

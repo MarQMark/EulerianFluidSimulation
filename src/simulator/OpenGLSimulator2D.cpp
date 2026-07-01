@@ -1,7 +1,7 @@
 #include "simulator/OpenGLSimulator2D.h"
 
 #include "simulation/Properties.h"
-#include "simulation/SimulationDisplay.h"
+#include "simulation/SimulationDisplay2D.h"
 #include "solver/CGSolver.h"
 #include "solver/JacobiSolver.h"
 #include "util/Logger.h"
@@ -11,7 +11,7 @@ OpenGLSimulator2D::OpenGLSimulator2D(const unsigned width, const unsigned height
     _vel_pass_2 = new Shader({{ "assets/shaders/vel_advect_pass2.comp", Shader::COMPUTE }});
     _add_force = new Shader({{ "assets/shaders/add_force.comp", Shader::COMPUTE }});
 
-    _grid = new Grid(width, height);
+    _grid = new Grid2D(width, height);
 
     switch (PROPERTY(SOLVER_TYPE, Properties::SolverType)) {
         case Properties::EIGEN_CG:

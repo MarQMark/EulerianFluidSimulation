@@ -4,7 +4,7 @@
 
 #include "imgui.h"
 #include "simulation/Properties.h"
-#include "simulation/SimulationDisplay.h"
+#include "simulation/SimulationDisplay2D.h"
 #include "util/GuiHelper.h"
 
 void StatsView::render(void* renderData) {

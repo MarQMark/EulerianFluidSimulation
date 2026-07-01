@@ -98,7 +98,7 @@ CGSolver::~CGSolver() {
 #endif
 }
 
-float CGSolver::solve(Grid* grid) {
+float CGSolver::solve(Grid2D* grid) {
     const auto& divergence = grid->divergence();
     const auto& rho        = grid->rho();
     const auto& boundary   = grid->boundary();

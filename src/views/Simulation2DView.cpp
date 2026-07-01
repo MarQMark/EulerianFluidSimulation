@@ -4,9 +4,9 @@
 
 #include "glm/geometric.hpp"
 #include "imgui/imgui.h"
-#include "simulation/Grid.h"
+#include "simulation/Grid2D.h"
 #include "simulation/Properties.h"
-#include "simulation/SimulationDisplay.h"
+#include "simulation/SimulationDisplay2D.h"
 #include "simulation/VecField2D.h"
 #include "util/Time.h"
 

@@ -75,11 +75,11 @@ void Simulator::recreate() {
 	if (_renderer2D) delete _renderer2D;
 	if (_solver) delete _solver;
 
-	const int WIDTH = PROPERTY_I(WIDTH);
-	const int HEIGHT = PROPERTY_I(HEIGHT);
+	const int WIDTH = PROPERTY_I(WIDTH_2D);
+	const int HEIGHT = PROPERTY_I(HEIGHT_2D);
 
 	_renderer2D = new Renderer2D(WIDTH, HEIGHT);
-	_grid = new Grid(WIDTH, HEIGHT);
+	_grid = new Grid2D(WIDTH, HEIGHT);
 
 	switch (PROPERTY(SOLVER_TYPE, Properties::SolverType)) {
 		case Properties::EIGEN_CG:

@@ -22,7 +22,7 @@ void NodePropertiesView::render(void* renderData) {
             _properties = _selected->buildProperties();
     }
 
-    ImGui::Begin("Properties");
+    ImGui::Begin("Node Properties");
     ImGui::PushItemWidth(-FLT_MIN);
 
     if (_selected) {

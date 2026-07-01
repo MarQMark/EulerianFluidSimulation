@@ -11,7 +11,7 @@ public:
     JacobiSolver(int width, int height);
     ~JacobiSolver() override;
 
-    float solve(Grid *grid) override;
+    float solve(Grid2D *grid) override;
 
 private:
     ScalField2D* _tmp{};

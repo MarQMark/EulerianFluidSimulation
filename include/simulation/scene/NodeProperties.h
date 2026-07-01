@@ -63,6 +63,18 @@ struct Vec3Property : NodeProperty {
     void draw() override;
 };
 
+struct IVec3Property : NodeProperty {
+    IVec3Property(const std::string& name, std::function<glm::ivec3()> get, std::function<void (glm::ivec3)> set)
+        : name(name), get(std::move(get)), set(std::move(set))
+    {}
+
+    std::string                     name;
+    std::function<glm::ivec3()>      get;
+    std::function<void (glm::ivec3)> set;
+
+    void draw() override;
+};
+
 struct ColorProperty : NodeProperty {
     ColorProperty(const std::string& name, std::function<glm::vec3()> get, std::function<void (glm::vec3)> set)
         : name(name), get(std::move(get)), set(std::move(set))

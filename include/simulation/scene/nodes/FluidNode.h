@@ -8,7 +8,7 @@
 #include "SceneNode.h"
 #include "assets/Model.h"
 #include "renderer/MarchingCubes.h"
-#include "simulation/SimulationDisplay.h"
+#include "simulation/SimulationDisplay3D.h"
 
 class FluidNode : public SceneNode {
 public:
