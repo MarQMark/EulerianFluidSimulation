@@ -4,7 +4,11 @@
 
 #include "assets/Shader.h"
 #include <filesystem>
+
+#ifdef HAS_STD_FORMAT
 #include <format>
+#endif
+
 #include <fstream>
 #include "glm/gtc/type_ptr.hpp"
 #include "util/Logger.h"
@@ -29,20 +33,20 @@ int Shader::addSource(const std::string& path, Type type) {
 
     // Check if file exists
     if (!std::filesystem::exists(path)) {
-        LOG_ERROR(std::format("File `{}` does not exist.", path));
+        LOG_ERROR("File `" + path + "` does not exist.");
         return 0;
     }
 
     // Check if regular file
     if (!std::filesystem::is_regular_file(path)) {
-        LOG_ERROR(std::format("File `{}` is not a regular file.", path));
+        LOG_ERROR("File `" + path + "` is not a regular file.");
         return 0;
     }
 
     // Read file from disk
     std::ifstream file(path, std::ios::in);
     if (!file.is_open()) {
-        LOG_ERROR(std::format("Cannot open file `{}`", path));
+        LOG_ERROR("Cannot open file `" + path + "`");
         return 0;
     }
 
@@ -50,14 +54,14 @@ int Shader::addSource(const std::string& path, Type type) {
     buffer << file.rdbuf();
 
     if (file.fail() && !file.eof()) {
-        LOG_ERROR(std::format("Error while reading file `{}`", path));
+        LOG_ERROR("Error while reading file `" + path + "`");
         return 0;
     }
 
     std::string source = buffer.str();
 
     if (source.empty()) {
-        LOG_ERROR(std::format("File `{}` is empty.", path));
+        LOG_ERROR("File `" + path + "` is empty.");
         return 0;
     }
 

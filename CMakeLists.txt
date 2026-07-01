@@ -20,6 +20,14 @@ endif()
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
+include(CheckCXXSourceCompiles)
+check_cxx_source_compiles("
+#include <format>
+int main() {
+    auto s = std::format(\"{}\", 42);
+}
+" HAS_STD_FORMAT)
+
 add_executable(EulerianFluidSimulation ${SOURCES}
         src/simulation/scene/nodes/FluidNode.cpp
         include/simulation/scene/nodes/FluidNode.h

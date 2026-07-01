@@ -3,7 +3,6 @@
 //
 
 #include "core/Config.h"
-#include <format>
 #include <fstream>
 #include <iostream>
 #include "util/Logger.h"
@@ -13,7 +12,7 @@ bool Config::load(const std::string& path) {
 
     std::ifstream file(path);
     if (!file.is_open()) {
-        LOG_WARN(std::format("Could not load config file on '{}'.", path));
+        LOG_WARN("Could not load config file on '" + path + "'.");
         return false;
     }
 

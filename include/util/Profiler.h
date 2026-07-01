@@ -2,7 +2,7 @@
 #define EULERIANFLUIDSIMULATION_PROFILER_H
 
 #include <chrono>
-#include <map>
+#include <vector>
 #include <stack>
 #include <string>
 

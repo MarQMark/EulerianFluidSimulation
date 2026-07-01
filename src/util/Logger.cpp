@@ -8,7 +8,10 @@
 #include <filesystem>
 #include <sstream>
 #include <iostream>
+
+#ifdef HAS_STD_FORMAT
 #include <format>
+#endif
 
 // Allocate memory for mutex
 std::mutex Logger::mutex;
@@ -21,8 +24,10 @@ void Logger::log(LogLevel level, const char* file, const char* function, const s
     std::lock_guard<std::mutex> lock(mutex);
     std::ostringstream oss;
 
+#ifdef HAS_STD_FORMAT
     // Timestamp
     auto timestamp = std::format("{:%Y-%m-%d %H:%M:%S}", std::chrono::system_clock::now());
+#endif
 
     // Logging color
     std::string colorCode;
@@ -37,7 +42,9 @@ void Logger::log(LogLevel level, const char* file, const char* function, const s
     auto filename = std::filesystem::path(file).filename().string();
 
     oss << colorCode
+#ifdef HAS_STD_FORMAT
         << "[" << timestamp << "] "
+#endif
         << "[" << getLevelName(level) << "] "
         << filename << " (" << function << ") "
         << message

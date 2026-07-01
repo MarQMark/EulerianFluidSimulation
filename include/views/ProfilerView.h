@@ -2,6 +2,7 @@
 #define EULERIANFLUIDSIMULATION_PROFILERVIEW_H
 
 #include <chrono>
+#include <map>
 #include <string>
 #include <vector>
 

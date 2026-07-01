@@ -6,7 +6,6 @@
 
 #include "assets/Model.h"
 #include <filesystem>
-#include <format>
 #include <iostream>
 #include "tiny_obj_loader.h"
 #include "glm/gtc/quaternion.hpp"
