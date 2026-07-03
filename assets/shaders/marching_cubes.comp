@@ -139,8 +139,8 @@ void main() {
             int v0 = edgeToVertices[i][0];
             int v1 = edgeToVertices[i][1];
 
-//            edgeVertices[i] = interp(position[v0], position[v1], cube[v0], cube[v1], uIsoLevel);
-            edgeVertices[i] = 0.5 * (position[v0] + position[v1]);
+            edgeVertices[i] = interp(position[v0], position[v1], cube[v0], cube[v1], uIsoLevel);
+//            edgeVertices[i] = 0.5 * (position[v0] + position[v1]);
         }
     }
 

@@ -45,10 +45,10 @@ void CPUSimulator3D::update() {
     			//case Properties::JACOBI:
     			//		_solver = new JacobiSolverCPU3D(width, height, depth);
     			//		break;
-    	case Properties::SELF_CG:
-    			_solver = new CGSolverCPU3D(_width, _height, _depth);
-    	default:
-    		break;
+    			case Properties::SELF_CG:
+    					_solver = new CGSolverCPU3D(_width, _height, _depth);
+    			default:
+    				break;
     	}
 
         return;
@@ -389,7 +389,7 @@ void CPUSimulator3D::vel_advect() {
         if (z == 1 || boundary(x, y, z) == BOUNDARY || boundary(x, y, z-1) == BOUNDARY)
             velField(x, y, z).z = newVel(x, y, z).z;
         else
-            velField(x, y, z).z = 0.5f * (newVel(x, y, z).y + newVel(x, y, z - 1).y);
+            velField(x, y, z).z = 0.5f * (newVel(x, y, z).z + newVel(x, y, z - 1).z);
     }
 }
 
