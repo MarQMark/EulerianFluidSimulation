@@ -3,7 +3,7 @@
 #include "simulation/Properties.h"
 
 #define LOOP_3D(x, y, z, offset)                        \
-    for (int z = offset; z < _n_depth - offset; z++)    \
+    for (int z = offset; z < _n_depth  - offset; z++)   \
     for (int y = offset; y < _n_height - offset; y++)   \
     for (int x = offset; x < _n_width  - offset; x++)   \
 
@@ -33,7 +33,7 @@ Grid3D::Grid3D(const unsigned int nWidth, const unsigned int nHeight, const unsi
     _beta = new ScalField3D(nWidth, nHeight, nDepth);
     // How cares about RAM, just download more if it's not enough
     //_A = new std::vector<DisAdvCell>();//(nWidth * nHeight * nWidth * nHeight);
-    _A = new std::map<unsigned int, DisAdvCell>;
+    _A = new std::unordered_map<unsigned int, DisAdvCell>;
 
     _divergence = new ScalField3D(nWidth, nHeight, nDepth);
     _pressure = new ScalField3D(nWidth, nHeight, nDepth);
@@ -248,7 +248,7 @@ ScalField3D & Grid3D::beta() const {
     return *_beta;
 }
 
-std::map<unsigned int, Grid3D::DisAdvCell>& Grid3D::A() const {
+std::unordered_map<unsigned int, Grid3D::DisAdvCell>& Grid3D::A() const {
     return *_A;
 }
 

@@ -237,7 +237,7 @@ void CPUSimulator3D::rho_advect() {
 
 	//################## Step 12 ##################
 	// Diffusion of rho and gamma
-	for (int it = 0; it < 7; it++) {
+	for (int it = 0; it < 3; it++) {
 		// X-dimension
 		for (int z = 1; z < _grid->depth()  - 1; z++)
 		for (int y = 1; y < _grid->height() - 1; y++)
@@ -296,7 +296,7 @@ void CPUSimulator3D::rho_advect() {
 			gamma(x, y  , z) = avg;
 		}
 
-		// Y-dimension
+		// Z-dimension
 		for (int y = 1; y < _grid->height() - 1; y++)
 		for (int x = 1; x < _grid->width()  - 1; x++)
 		for (int z = 2; z < _grid->depth()  - 1; z++) {
@@ -434,11 +434,11 @@ void CPUSimulator3D::project() {
     		continue;
 
 		auto dPressure = glm::vec3(0);
-    	if (x != 0)
+    	if (x != 1)
     		dPressure.x = pressure(x, y, z) - pressure(x - 1, y, z);
-    	if (y != 0)
+    	if (y != 1)
     		dPressure.y = pressure(x, y, z) - pressure(x, y - 1, z);
-    	if (z != 0)
+    	if (z != 1)
     		dPressure.z = pressure(x, y, z) - pressure(x, y, z - 1);
 
     	vel(x, y, z) -= dPressure;
