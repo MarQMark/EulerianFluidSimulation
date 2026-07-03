@@ -4,7 +4,7 @@
 #include <cstring>
 #include <vector>
 
-#include "glm/vec2.hpp"
+#include "glm/vec3.hpp"
 
 class ScalField3D {
 public:
@@ -120,11 +120,7 @@ public:
         return _field.end();
     }
 
-    float interpolate(glm::vec2 pos) const;
-    float BilinearInterpolation(const glm::vec2 &pos,
-                                          int low_x,
-                                          int low_y,
-                                          int comp) const;
+    float interpolate(glm::vec3 pos) const;
 
     void clear();
     unsigned int size() const;

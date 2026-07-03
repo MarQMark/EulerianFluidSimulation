@@ -115,10 +115,6 @@ public:
     }
 
     float interpolate(glm::vec2 pos) const;
-    float BilinearInterpolation(const glm::vec2 &pos,
-                                          int low_x,
-                                          int low_y,
-                                          int comp) const;
 
     void clear();
     unsigned int size() const;

@@ -37,8 +37,8 @@
 #define ADD(cat, token, name, desc, val)    ADD_D(cat, token, 0, name, desc, val)
 
 #define ADD_HIDDEN_D(token, dim, val)  add_property(token, new Property("", "", val, dim));
-#define ADD_HIDDEN_2D(token, dim, val) ADD_HIDDEN_D(token, 2, val)
-#define ADD_HIDDEN_3D(token, dim, val) ADD_HIDDEN_D(token, 3, val)
+#define ADD_HIDDEN_2D(token, val) ADD_HIDDEN_D(token, 2, val)
+#define ADD_HIDDEN_3D(token, val) ADD_HIDDEN_D(token, 3, val)
 #define ADD_HIDDEN(token, val)         ADD_HIDDEN_D(token, 0, val)
 
 static constexpr unsigned int COUNTER_START = __COUNTER__ + 1;
@@ -152,9 +152,9 @@ private:
         ADD(controls_steps, DISABLE_ADD_FORCE, "Disable Add Force", "", false);
         ADD(controls_steps, DISABLE_PROJECT, "Disable Projection", "", false);
 
-        ADD_HIDDEN(WIDTH_3D, 10)
-        ADD_HIDDEN(HEIGHT_3D, 10)
-        ADD_HIDDEN(DEPTH_3D, 10)
+        ADD_HIDDEN_3D(WIDTH_3D, 10)
+        ADD_HIDDEN_3D(HEIGHT_3D, 10)
+        ADD_HIDDEN_3D(DEPTH_3D, 10)
 
         ADD_HIDDEN(SIMULATION_STEPS, 0)
         ADD_HIDDEN(MAX_VALUE, 0)
