@@ -1,6 +1,9 @@
 #ifndef EULERIANFLUIDSIMULATION_ISIMULATOR_H
 #define EULERIANFLUIDSIMULATION_ISIMULATOR_H
 
+#include <vector>
+#include "simulation/Properties.h"
+
 class ISimulator {
 public:
     virtual ~ISimulator() = default;
@@ -25,6 +28,8 @@ protected:
     virtual void vel_advect() = 0;
     virtual void diffuse() = 0;
     virtual void project() = 0;
+
+    static bool availableSolvers(const std::vector<Properties::SolverType>& solvers);
 };
 
 #endif //EULERIANFLUIDSIMULATION_ISIMULATOR_H

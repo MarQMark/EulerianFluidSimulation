@@ -52,7 +52,7 @@ void Properties::Property<int>::draw(){
 }
 template<>
 void Properties::Property<float>::draw(){
-    Util::AddTextField(std::string(name + std::to_string(dimension)).c_str(), value, description);
+    Util::AddTextField(name, value, description);
 }
 template<>
 void Properties::Property<unsigned int>::draw(){
@@ -65,18 +65,45 @@ void Properties::Property<bool>::draw(){
 }
 template<>
 void Properties::Property<Properties::InitShape>::draw(){
-    const char* shapes[] = {"Full", "Half", "Square", "Empty"};
-    Util::AddCombo(name, value, shapes, IM_ARRAYSIZE(shapes), description);
+    const char* shapeNames[] = {"Full", "Half", "Square", "Empty"};
+    constexpr InitShape shapes[] = {FULL, HALF, SQUARE, EMPTY};
+    Util::AddCombo(name, value, shapes, shapeNames, IM_ARRAYSIZE(shapes), description);
 }
 template<>
 void Properties::Property<Properties::DrawMode>::draw(){
-    const char* shapes[] = {"Velocity", "Density", "Divergence", "Pressure", "Fluid", "Gamma", "Beta"};
-    Util::AddCombo(name, value, shapes, IM_ARRAYSIZE(shapes), description);
+    const char* modeNames[] = {"Velocity", "Density", "Divergence", "Pressure", "Fluid", "Gamma", "Beta"};
+    constexpr DrawMode modes[] = { VELOCITY, DENSITY, DIVERGENCE, PRESSURE, FLUID, GAMMA, BETA};
+    Util::AddCombo(name, value, modes, modeNames, IM_ARRAYSIZE(modes), description);
 }
 template<>
 void Properties::Property<Properties::SolverType>::draw(){
-    const char* shapes[] = {"Eigen CG", "Eigen BiCGSTAB", "Self CG", "Jacobi"};
-    Util::AddCombo(name, value, shapes, IM_ARRAYSIZE(shapes), description);
+    std::vector<const char*> solverNames;
+    auto* solvers = PROPERTY(AVLB_SOLVERS, std::vector<Properties::SolverType>*);
+    for (const auto s : *solvers) {
+        switch (s) {
+            case EIGEN_CG:
+                solverNames.push_back("Eigen CG");
+                break;
+            case EIGEN_BiCGSTAB:
+                solverNames.push_back("Eigen BiCGSTAB");
+                break;
+            case SELF_CG:
+                solverNames.push_back("Self CG");
+                break;
+            case JACOBI:
+                solverNames.push_back("Jacobi");
+                break;
+            default:;
+        }
+    }
+
+    if (solverNames.empty())
+        ImGui::Text("No solver available");
+    else
+        Util::AddCombo(name, value, solvers->data(),solverNames.data(), solverNames.size(), description);
 }
 template<>
 void Properties::Property<Properties::SimulatorType>::draw(){}
+
+template<>
+void Properties::Property<std::vector<Properties::SolverType>*>::draw() {}

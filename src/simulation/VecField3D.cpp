@@ -17,133 +17,75 @@ VecField3D::VecField3D(const VecField3D &field, const bool copy) : _width(field.
         memcpy(_field.data(), field._field.data(), field.size() * sizeof(glm::vec3));
 }
 
-#if 0
-glm::vec2 VecField2D::interpolate(glm::vec2 pos) {
-    pos += glm::vec2(.5);
-    const int x = (int)pos.x;
-    const int y = (int)pos.y;
-
-    int ix1 = x;
-    int ix2 = x + 1;
-    if(pos.x - (float)x < 0.5f) {
-        ix1 = x - 1;
-        ix2 = x;
+static inline glm::vec3 StaggeredOffset3D(const int comp) {
+    switch (comp) {
+        case 0:  return glm::vec3(-1.0f, -0.5f, -0.5f);
+        case 1:  return glm::vec3(-0.5f, -1.0f, -0.5f);
+        case 2:
+        default: return glm::vec3(-0.5f, -0.5f, -1.0f);
     }
-    int iy1 = y;
-    int iy2 = y + 1;
-    if(pos.y - (float)y < 0.5f) {
-        iy1 = y - 1;
-        iy2 = y;
-    }
+}
 
-    ix1 = std::clamp(ix1, 0, (int)_width - 1);
-    ix2 = std::clamp(ix2, 0, (int)_width - 1);
-    iy1 = std::clamp(iy1, 0, (int)_height - 1);
-    iy2 = std::clamp(iy2, 0, (int)_height - 1);
+float VecField3D::trilinear_interpolation(const glm::vec3 &pos, const int low_x, const int low_y, const int low_z, const int comp) {
+    const glm::vec3 off = StaggeredOffset3D(comp);
 
-    glm::vec2 v[4] = {
-        (*this)(ix1, iy1),
-        (*this)(ix1, iy2),
-        (*this)(ix2, iy1),
-        (*this)(ix2, iy2),
+    const float x0 = low_x + off.x;
+    const float y0 = low_y + off.y;
+    const float z0 = low_z + off.z;
+
+    const float tx = pos.x - x0;
+    const float ty = pos.y - y0;
+    const float tz = pos.z - z0;
+
+    const float v000 = (*this)(low_x,     low_y,     low_z    )[comp];
+    const float v001 = (*this)(low_x,     low_y,     low_z + 1)[comp];
+    const float v010 = (*this)(low_x,     low_y + 1, low_z    )[comp];
+    const float v011 = (*this)(low_x,     low_y + 1, low_z + 1)[comp];
+    const float v100 = (*this)(low_x + 1, low_y,     low_z    )[comp];
+    const float v101 = (*this)(low_x + 1, low_y,     low_z + 1)[comp];
+    const float v110 = (*this)(low_x + 1, low_y + 1, low_z    )[comp];
+    const float v111 = (*this)(low_x + 1, low_y + 1, low_z + 1)[comp];
+
+    const float v00 = v000 * (1.0f - tz) + v001 * tz;
+    const float v01 = v010 * (1.0f - tz) + v011 * tz;
+    const float v10 = v100 * (1.0f - tz) + v101 * tz;
+    const float v11 = v110 * (1.0f - tz) + v111 * tz;
+
+    const float vLow  = v00 * (1.0f - ty) + v01 * ty;
+    const float vHigh = v10 * (1.0f - ty) + v11 * ty;
+
+    return vLow * (1.0f - tx) + vHigh * tx;
+}
+
+#define EPSILON 1.0e-10f
+
+glm::vec3 VecField3D::interpolate(const glm::vec3 pos) {
+    auto lowIndex = [](const float coord, const float offset) {
+        return (int)(std::floor(coord - offset) + EPSILON);
     };
 
-    float x1 = (float)ix1 + 0.5f;
-    float x2 = (float)ix2 + 0.5f;
-    float y1 = (float)iy1 + 0.5f;
-    float y2 = (float)iy2 + 0.5f;
+    const glm::vec3 offU = StaggeredOffset3D(0);
+    const int lx_u = lowIndex(pos.x, offU.x);
+    const int ly_u = lowIndex(pos.y, offU.y);
+    const int lz_u = lowIndex(pos.z, offU.z);
+    const float vx = trilinear_interpolation(pos, lx_u, ly_u, lz_u, 0);
 
-    const float dx2x1 = x2 - x1;
-    glm::vec2 fxy1 = ((x2 - pos.x)/dx2x1) * v[0] + ((pos.x - x1)/dx2x1) * v[2];
-    glm::vec2 fxy2 = ((x2 - pos.x)/dx2x1) * v[1] + ((pos.x - x1)/dx2x1) * v[3];
-    if(dx2x1 < 1e-9) {
-        fxy1 = v[1];
-        fxy2 = v[3];
-    }
+    const glm::vec3 offV = StaggeredOffset3D(1);
+    const int lx_v = lowIndex(pos.x, offV.x);
+    const int ly_v = lowIndex(pos.y, offV.y);
+    const int lz_v = lowIndex(pos.z, offV.z);
+    const float vy = trilinear_interpolation(pos, lx_v, ly_v, lz_v, 1);
 
-    const float dy2y1 = y2 - y1;
-    glm::vec2 fxy = ((y2 - pos.y)/dy2y1) * fxy1 + ((pos.y - y1)/dy2y1) * fxy2;
-    if(dy2y1 < 1e-9)
-        fxy = fxy1;
+    const glm::vec3 offW = StaggeredOffset3D(2);
+    const int lx_w = lowIndex(pos.x, offW.x);
+    const int ly_w = lowIndex(pos.y, offW.y);
+    const int lz_w = lowIndex(pos.z, offW.z);
+    const float vz = trilinear_interpolation(pos, lx_w, ly_w, lz_w, 2);
 
-    return fxy;
-}
-#elif 0
-glm::vec2 VecField2D::interpolate(glm::vec2 pos) {
-    // pos is in cell-center space: cell (i,j) has center at (i+0.5, j+0.5)
-    // Find the left/bottom neighbor index
-    float px = pos.x - 0.5f;
-    float py = pos.y - 0.5f;
-
-    int x0 = (int)std::floor(px);
-    int y0 = (int)std::floor(py);
-    int x1 = x0 + 1;
-    int y1 = y0 + 1;
-
-    // Fractional part [0,1) — no branching needed
-    float tx = px - (float)x0;
-    float ty = py - (float)y0;
-
-    // Clamp indices to valid range
-    x0 = std::clamp(x0, 0, (int)_width  - 1);
-    x1 = std::clamp(x1, 0, (int)_width  - 1);
-    y0 = std::clamp(y0, 0, (int)_height - 1);
-    y1 = std::clamp(y1, 0, (int)_height - 1);
-
-    // Bilinear interpolation
-    glm::vec2 v00 = (*this)(x0, y0);
-    glm::vec2 v10 = (*this)(x1, y0);
-    glm::vec2 v01 = (*this)(x0, y1);
-    glm::vec2 v11 = (*this)(x1, y1);
-
-    glm::vec2 row0 = glm::mix(v00, v10, tx);
-    glm::vec2 row1 = glm::mix(v01, v11, tx);
-    return glm::mix(row0, row1, ty);
-}
-#else
-float VecField3D::BilinearInterpolation(const glm::vec3 &pos,
-                                          int low_x,
-                                          int low_y,
-                                          int comp)
-{
-    // TODO - Implement correctly
-    // float x_low_inter, x_high_inter;
-    //
-    // // Interpolate between y values at the lower x positions
-    // x_low_inter = (((low_y + 0.5 * (1 - comp)) - pos[1])
-    //                 * (*this)(low_x, low_y)[comp])
-    //             + ((pos[1] - (low_y - 0.5 - 0.5 * comp))
-    //                 * (*this)(low_x, low_y + 1)[comp]);
-    // // Interpolate between y values at the higher x positions
-    // x_high_inter = (((low_y + 0.5 * (1 - comp)) - pos[1])
-    //                 * (*this)(low_x + 1, low_y)[comp])
-    //              + ((pos[1] - (low_y - 0.5 - 0.5 * comp))
-    //                 * (*this)(low_x + 1, low_y + 1)[comp]);
-    //
-    // // Interpolate between the averaged values at the low and high x positions
-    // return ((low_x + 0.5 * comp - pos[0]) * x_low_inter)
-    //     + ((pos[0] - (low_x - 0.5 - 0.5 * (1 - comp))) * x_high_inter);
+    return glm::vec3(vx, vy, vz);
 }
 
-#define EPSILON 1.0e-10
-glm::vec3 VecField3D::interpolate(glm::vec3 pos) {
-    // TODO - Implement correctly
-    // float Vx, Vy;
-    //
-    // // Interpolate the x component
-    // int low_x = (int)(std::floor(pos[0] + 1) + EPSILON);
-    // int low_y = (int)(pos[1] + 0.5 + EPSILON);
-    // Vx = BilinearInterpolation(pos, low_x, low_y, 0);
-    //
-    // // Interpolate the y component
-    // low_x = (int)(pos[0] + 0.5);
-    // low_y = (int)(floor(pos[1] + 1) + EPSILON);
-    // Vy = BilinearInterpolation(pos, low_x, low_y, 1);
-    //
-    // return glm::vec3(Vx, Vy);
-    return glm::vec3(0.0, 0.0, 0.0);
-}
-#endif
+#undef EPSILON
 
 void VecField3D::clear() {
     memset(_field.data(), 0, size() * sizeof(glm::vec3));

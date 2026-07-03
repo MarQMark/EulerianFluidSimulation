@@ -4,24 +4,30 @@
 #include "ISolver.h"
 #include "assets/Shader.h"
 #include "compute/StorageBuffer.h"
-#include "simulation/ScalField2D.h"
 
-class JacobiSolver : public ISolver {
+class JacobiSolverCPU2D final : public ISolverCPU2D {
 public:
-    JacobiSolver(int width, int height);
-    ~JacobiSolver() override;
+    JacobiSolverCPU2D(int width, int height);
+    ~JacobiSolverCPU2D() override;
 
     float solve(Grid2D *grid) override;
 
 private:
     ScalField2D* _tmp{};
 
-#ifdef USE_GPU
+    void impl_mat_mul(ScalField2D& result, const ScalField2D& x, const ScalField2D& rho, const ScalField2D& boundary) const;
+};
+
+class JacobiSolverOpenGL2D final : public ISolverOpenGL2D {
+public:
+    JacobiSolverOpenGL2D(int width, int height);
+    ~JacobiSolverOpenGL2D() override;
+
+    float solve(Grid2D *grid) override;
+
+private:
     Shader* _shader_jp{};
     StorageBuffer* _gpu_tmp{};
-#endif
-
-    void impl_mat_mul(ScalField2D& result, const ScalField2D& x, const ScalField2D& rho, const ScalField2D& boundary) const;
 };
 
 #endif //EULERIANFLUIDSIMULATION_JACOBISOLVER_H

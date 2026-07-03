@@ -7,23 +7,25 @@
 #include "util/Logger.h"
 
 OpenGLSimulator2D::OpenGLSimulator2D(const unsigned width, const unsigned height) : ISimulator2D(width, height) {
-    _vel_pass_1 = new Shader({{ "assets/shaders/vel_advect_pass1.comp", Shader::COMPUTE }});
-    _vel_pass_2 = new Shader({{ "assets/shaders/vel_advect_pass2.comp", Shader::COMPUTE }});
-    _add_force = new Shader({{ "assets/shaders/add_force.comp", Shader::COMPUTE }});
+    _vel_pass_1 = new Shader({{ "assets/shaders/openGL_2D/vel_advect_pass1.comp", Shader::COMPUTE }});
+    _vel_pass_2 = new Shader({{ "assets/shaders/openGL_2D/vel_advect_pass2.comp", Shader::COMPUTE }});
+    _add_force = new Shader({{ "assets/shaders/openGL_2D/add_force.comp", Shader::COMPUTE }});
 
     _grid = new Grid2D(width, height);
 
+    const bool validSolver = availableSolvers(std::vector({
+    Properties::JACOBI,
+    Properties::SELF_CG}));
+
+    if (validSolver)
     switch (PROPERTY(SOLVER_TYPE, Properties::SolverType)) {
-        case Properties::EIGEN_CG:
-        case Properties::EIGEN_BiCGSTAB:
-            LOG_WARN("Invalid Solver for Simulation type");
-            break;
         case Properties::JACOBI:
-            _solver = new JacobiSolver(width, height);
+            _solver = new JacobiSolverOpenGL2D(width, height);
             break;
         case Properties::SELF_CG:
+            _solver = new CGSolverOpenGL2D(width, height);
         default:
-            _solver = new CGSolver(width, height);
+            break;
     }
 
     _data = new SimulationDisplay2D::RenderData2D();
@@ -41,32 +43,6 @@ void* OpenGLSimulator2D::getRenderData() {
 }
 
 void OpenGLSimulator2D::vel_extrapolate() {
-    _grid->gpuUpload();
-
-    const int w     = _grid->width();
-    const int h     = _grid->height();
-    const int gx = (w - 2 + 15) / 16;
-    const int gy = (h - 2 + 15) / 16;
-
-    _vel_pass_1->bind();
-    _grid->gpuVel     ->bind(0);
-    _grid->gpuTmpVel  ->bind(1);
-    _grid->gpuBoundary->bind(2);
-    _vel_pass_1->setInt  ("uWidth",    w);
-    _vel_pass_1->setInt  ("uHeight",   h);
-    _vel_pass_1->setFloat("uDt",       PROPERTY_F(DT));
-    _vel_pass_1->setInt  ("uSubsteps", 4);
-    _vel_pass_1->dispatch(gx, gy);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-    _vel_pass_2->bind();
-    _grid->gpuVel     ->bind(0);   // read-write output
-    _grid->gpuTmpVel  ->bind(1);   // read-only input from pass 1
-    _grid->gpuBoundary->bind(2);
-    _vel_pass_2->setInt("uWidth",  w);
-    _vel_pass_2->setInt("uHeight", h);
-    _vel_pass_2->dispatch(gx, gy);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void OpenGLSimulator2D::rho_advect() {
@@ -97,10 +73,37 @@ void OpenGLSimulator2D::add_force() {
 }
 
 void OpenGLSimulator2D::vel_advect() {
+    _grid->gpuUpload();
+
+    const int w     = _grid->width();
+    const int h     = _grid->height();
+    const int gx = (w - 2 + 15) / 16;
+    const int gy = (h - 2 + 15) / 16;
+
+    _vel_pass_1->bind();
+    _grid->gpuVel     ->bind(0);
+    _grid->gpuTmpVel  ->bind(1);
+    _grid->gpuBoundary->bind(2);
+    _vel_pass_1->setInt  ("uWidth",    w);
+    _vel_pass_1->setInt  ("uHeight",   h);
+    _vel_pass_1->setFloat("uDt",       PROPERTY_F(DT));
+    _vel_pass_1->setInt  ("uSubsteps", 4);
+    _vel_pass_1->dispatch(gx, gy);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    _vel_pass_2->bind();
+    _grid->gpuVel     ->bind(0);   // read-write output
+    _grid->gpuTmpVel  ->bind(1);   // read-only input from pass 1
+    _grid->gpuBoundary->bind(2);
+    _vel_pass_2->setInt("uWidth",  w);
+    _vel_pass_2->setInt("uHeight", h);
+    _vel_pass_2->dispatch(gx, gy);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void OpenGLSimulator2D::diffuse() {
 }
 
 void OpenGLSimulator2D::project() {
+
 }

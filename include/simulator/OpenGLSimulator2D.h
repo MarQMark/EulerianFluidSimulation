@@ -30,7 +30,7 @@ private:
     Shader* _add_force{};
 
     Grid2D* _grid{};
-    ISolver* _solver{};
+    ISolverOpenGL2D* _solver{};
     SimulationDisplay2D::RenderData2D* _data;
 };
 

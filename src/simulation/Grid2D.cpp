@@ -81,7 +81,12 @@ Grid2D::Grid2D(const unsigned int nWidth, const unsigned int nHeight)
         if (y == 0) (*_rho)(x, y) = 0.f;
         if (x == 0) (*_rho)(x, y) = 0.f;
         if (x == _n_width  - 1) (*_rho)(x, y) = 0.f;
-        if (x == _n_height - 1) (*_rho)(x, y) = 0.f;
+        if (y == _n_height - 1) (*_rho)(x, y) = 0.f;
+
+        if (y == 0) (*_boundary)(x, y) = 1.f;
+        if (x == 0) (*_boundary)(x, y) = 1.f;
+        if (x == _n_width  - 1) (*_boundary)(x, y) = 1.f;
+        if (y == _n_height - 1) (*_boundary)(x, y) = 1.f;
     }
 
     SET_PROPERTY_F(TOTAL_RHO, 0.f);

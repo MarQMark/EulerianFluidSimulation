@@ -1,6 +1,8 @@
 #include "solver/CGSolver.h"
 
+#include "simulation/Grid3D.h"
 #include "simulation/Properties.h"
+#include "simulation/ScalField3D.h"
 #include "util/Profiler.h"
 
 
@@ -11,25 +13,110 @@ static constexpr int SCALAR_BETA      = 3;
 static constexpr int SCALAR_GAMMA_OLD = 4;
 static constexpr int SCALAR_COUNT     = 5;
 
-CGSolver::CGSolver(const int width, const int height) : ISolver(width, height) {
+CGSolverCPU2D::CGSolverCPU2D(const int width, const int height) : ISolverCPU2D(width, height) {
     _t   = new ScalField2D(width, height);
     _tmp = new ScalField2D(width, height);
     _r   = new ScalField2D(width, height);
     _d   = new ScalField2D(width, height);
+}
 
-#ifdef USE_GPU
-    _shader_as  = new Shader({{"assets/shaders/cg_add_scaled.comp", Shader::COMPUTE }});
-    _shader_mm  = new Shader({{"assets/shaders/cg_mat_mul.comp", Shader::COMPUTE }});
-    _shader_ss  = new Shader({{"assets/shaders/cg_set_subtract.comp", Shader::COMPUTE }});
-    _shader_sa  = new Shader({{"assets/shaders/cg_scale_add.comp", Shader::COMPUTE }});
+CGSolverCPU2D::~CGSolverCPU2D() {
+    delete _t;
+    delete _tmp;
+    delete _r;
+    delete _d;
+}
 
-    _shader_asg = new Shader({{"assets/shaders/cg_add_scaled_gpu.comp", Shader::COMPUTE }});
-    _shader_sag = new Shader({{"assets/shaders/cg_scale_add_gpu.comp", Shader::COMPUTE }});
+float CGSolverCPU2D::solve(Grid2D* grid) {
+    const auto& divergence = grid->divergence();
+    const auto& rho        = grid->rho();
+    const auto& boundary   = grid->boundary();
+    auto&       pressure        = grid->pressure();
 
-    _shader_dp2 = new Shader({{"assets/shaders/cg_dot2_pass.comp", Shader::COMPUTE }});
-    _shader_r2  = new Shader({{"assets/shaders/cg_reduce2.comp", Shader::COMPUTE }});
+    const int   steps          = PROPERTY_I(MAX_STEPS);
+    const float errorThreshold = PROPERTY_F(SOLVER_THRESHOLD);
 
-    _shader_us  = new Shader({{"assets/shaders/cg_update_scalars.comp", Shader::COMPUTE }});
+    auto& t   = *_t;   t.clear();
+    auto& tmp = *_tmp; tmp.clear();
+    auto& r   = *_r;   r = divergence;
+
+    pressure = divergence;
+    impl_mat_mul(t, pressure, rho, boundary);
+    r -= t;
+    auto& d = *_d; d = r;
+
+    float sqrtLen = r.sqLen();
+    if (sqrtLen < errorThreshold)
+        return sqrtLen;
+
+    for (int i = 0; i < steps; i++) {
+        impl_mat_mul(t, d, rho, boundary);
+        const float alpha = sqrtLen / d.dot(t);
+        pressure.addScaled(d, alpha);
+
+        if (i & 0x3F) {
+            r.addScaled(t, -alpha);
+        }
+        else {
+            impl_mat_mul(t, pressure, rho, boundary);
+            r = divergence;
+            r -= t;
+        }
+
+        const float oldSqrtLen = sqrtLen;
+        sqrtLen = r.sqLen();
+        if (sqrtLen < errorThreshold)
+            return sqrtLen;
+
+        const float beta = sqrtLen / oldSqrtLen;
+        d *= beta;
+        d += r;
+    }
+
+    return sqrtLen;
+}
+
+void CGSolverCPU2D::impl_mat_mul(ScalField2D &result, const ScalField2D &x,
+                             const ScalField2D &rho, const ScalField2D &boundary) const
+{
+    for (int y = 0; y < _height; y++) {
+        for (int x_ = 0; x_ < _width; x_++) {
+            if (rho(x_, y) <= 0.5f || boundary(x_, y) == 1) {
+                result(x_, y) = x(x_, y);
+                continue;
+            }
+            float sum    = 0.0f;
+            int   nCount = 0;
+
+            auto sampleNeighbor = [&](const int nx, const int ny) {
+                if (nx < 0 || nx >= _width || ny < 0 || ny >= _height) return;
+                if (nx == 0 || nx == _width-1 || ny == 0 || ny == _height-1) return;
+                if (boundary(nx, ny) > 0.5f) return;
+                nCount++;
+                if (rho(nx, ny) > 0.5f)
+                    sum += x(nx, ny);
+            };
+
+            sampleNeighbor(x_-1, y); sampleNeighbor(x_+1, y);
+            sampleNeighbor(x_, y-1); sampleNeighbor(x_, y+1);
+            result(x_, y) = sum - (float)nCount * x(x_, y);
+        }
+    }
+}
+
+CGSolverOpenGL2D::CGSolverOpenGL2D(const int width, const int height) : ISolverOpenGL2D(width, height){
+    _shader_as  = new Shader({{"assets/shaders/openGL_CG/cg_add_scaled.comp", Shader::COMPUTE }});
+    _shader_mm  = new Shader({{"assets/shaders/openGL_CG/cg_mat_mul.comp", Shader::COMPUTE }});
+    _shader_ss  = new Shader({{"assets/shaders/openGL_CG/cg_set_subtract.comp", Shader::COMPUTE }});
+    _shader_sa  = new Shader({{"assets/shaders/openGL_CG/cg_scale_add.comp", Shader::COMPUTE }});
+
+    _shader_asg = new Shader({{"assets/shaders/openGL_CG/cg_add_scaled_gpu.comp", Shader::COMPUTE }});
+    _shader_sag = new Shader({{"assets/shaders/openGL_CG/cg_scale_add_gpu.comp", Shader::COMPUTE }});
+
+    _shader_dp2 = new Shader({{"assets/shaders/openGL_CG/cg_dot2_pass.comp", Shader::COMPUTE }});
+    _shader_r2  = new Shader({{"assets/shaders/openGL_CG/cg_reduce2.comp", Shader::COMPUTE }});
+
+    _shader_us  = new Shader({{"assets/shaders/openGL_CG/cg_update_scalars.comp", Shader::COMPUTE }});
 
     const int n = width * height;
     _gpu_r   = new StorageBuffer(n * sizeof(float));
@@ -65,16 +152,9 @@ CGSolver::CGSolver(const int width, const int height) : ISolver(width, height) {
             _gpu_reduce_chain.push_back(new StorageBuffer(2 * _reduceChain[i] * sizeof(float)));
         }
     }
-#endif
 }
 
-CGSolver::~CGSolver() {
-    delete _t;
-    delete _tmp;
-    delete _r;
-    delete _d;
-
-#ifdef USE_GPU
+CGSolverOpenGL2D::~CGSolverOpenGL2D() {
     delete _shader_as;
     delete _shader_mm;
     delete _shader_ss;
@@ -95,16 +175,14 @@ CGSolver::~CGSolver() {
     delete _gpu_dot2;
     for (const auto* buf : _gpu_reduce_chain)
         delete buf;
-#endif
 }
 
-float CGSolver::solve(Grid2D* grid) {
+float CGSolverOpenGL2D::solve(Grid2D *grid) {
     const auto& divergence = grid->divergence();
     const auto& rho        = grid->rho();
     const auto& boundary   = grid->boundary();
     auto&       pressure   = grid->pressure();
 
-#ifdef USE_GPU
     Profiler* profiler = Profiler::Get();
 
     profiler->start("6.1 Solver Start");
@@ -334,8 +412,29 @@ float CGSolver::solve(Grid2D* grid) {
     grid->gpuPressure->download(pressure.data());
     profiler->stop();
     return gamma_last;
+}
 
-#else
+CGSolverCPU3D::CGSolverCPU3D(const int width, const int height, const int depth)
+        : ISolverCPU3D(width, height, depth){
+    _t   = new ScalField3D(width, height, depth);
+    _tmp = new ScalField3D(width, height, depth);
+    _r   = new ScalField3D(width, height, depth);
+    _d   = new ScalField3D(width, height, depth);
+}
+
+CGSolverCPU3D::~CGSolverCPU3D() {
+    delete _t;
+    delete _tmp;
+    delete _r;
+    delete _d;
+}
+
+float CGSolverCPU3D::solve(Grid3D *grid) {
+    const auto& divergence = grid->divergence();
+    const auto& rho        = grid->rho();
+    const auto& boundary   = grid->boundary();
+    auto&       pressure   = grid->pressure();
+
     const int   steps          = PROPERTY_I(MAX_STEPS);
     const float errorThreshold = PROPERTY_F(SOLVER_THRESHOLD);
 
@@ -377,33 +476,36 @@ float CGSolver::solve(Grid2D* grid) {
     }
 
     return sqrtLen;
-#endif
 }
 
-void CGSolver::impl_mat_mul(ScalField2D &result, const ScalField2D &x,
-                             const ScalField2D &rho, const ScalField2D &boundary) const
-{
-    for (int y = 0; y < _height; y++) {
-        for (int x_ = 0; x_ < _width; x_++) {
-            if (rho(x_, y) <= 0.5f || boundary(x_, y) == 1) {
-                result(x_, y) = x(x_, y);
-                continue;
-            }
-            float sum    = 0.0f;
-            int   nCount = 0;
-
-            auto sampleNeighbor = [&](const int nx, const int ny) {
-                if (nx < 0 || nx >= _width || ny < 0 || ny >= _height) return;
-                if (nx == 0 || nx == _width-1 || ny == 0 || ny == _height-1) return;
-                if (boundary(nx, ny) > 0.5f) return;
-                nCount++;
-                if (rho(nx, ny) > 0.5f)
-                    sum += x(nx, ny);
-            };
-
-            sampleNeighbor(x_-1, y); sampleNeighbor(x_+1, y);
-            sampleNeighbor(x_, y-1); sampleNeighbor(x_, y+1);
-            result(x_, y) = sum - (float)nCount * x(x_, y);
+void CGSolverCPU3D::impl_mat_mul(ScalField3D &result, const ScalField3D &xField, const ScalField3D &rho, const ScalField3D &boundary) const {
+    for (int z = 0; z < _depth; z++)
+    for (int y = 0; y < _height; y++)
+    for (int x = 0; x < _width; x++) {
+        if (rho(x, y, z) <= 0.5f || boundary(x, y, z) == 1) {
+            result(x, y, z) = xField(x, y, z);
+            continue;
         }
+        float sum    = 0.0f;
+        int   nCount = 0;
+
+        auto sampleNeighbor = [&](const int nx, const int ny, const int nz) {
+            if (nx < 0 || nx >= _width || ny < 0 || ny >= _height || nz < 0 || nz >= _depth)
+                return;
+            if (nx == 0 || nx == _width-1 || ny == 0 || ny == _height-1 || nz == 0 || nz == _depth-1)
+                return;
+            if (boundary(nx, ny, nz) > 0.5f) return;
+            nCount++;
+            if (rho(nx, ny, nz) > 0.5f)
+                sum += xField(nx, ny, nz);
+        };
+
+        sampleNeighbor(x-1, y, z);
+        sampleNeighbor(x+1, y, z);
+        sampleNeighbor(x, y-1, z);
+        sampleNeighbor(x, y+1, z);
+        sampleNeighbor(x, y, z+1);
+        sampleNeighbor(x, y, z-1);
+        result(x, y, z) = sum - (float)nCount * xField(x, y, z);
     }
 }

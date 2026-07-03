@@ -79,13 +79,8 @@ public:
     unsigned int height() const;
     unsigned int depth() const;
 
-    float BilinearInterpolation(const glm::vec3 &pos,
-                                          int low_x,
-                                          int low_y,
-                                          int comp);
-
     const glm::vec3* data() const { return _field.data(); }
-    glm::vec3* data()           { return _field.data(); }
+    glm::vec3* data()             { return _field.data(); }
 
 private:
     unsigned int _width = 0;
@@ -93,6 +88,8 @@ private:
     unsigned int _depth = 0;
 
     std::vector<glm::vec3> _field;
+
+    float trilinear_interpolation(const glm::vec3 &pos, int low_x, int low_y, int low_z, int comp);
 };
 
 

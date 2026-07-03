@@ -13,7 +13,7 @@ public:
     static void AddBasicTextField(const std::string& name, std::string& text, const std::string& description = "");
 
     template<typename T>
-    static void AddCombo(const std::string& name, T& value, const char* options[], int len, const std::string& description = "");
+    static void AddCombo(const std::string& name, T& value, const T* options, const char* optionNames[], int len, const std::string& description = "");
 
     static void ApplyTheme();
     static void SectionHeader(const char *title);
@@ -28,7 +28,7 @@ private:
 };
 
 template<typename T>
-void Util::AddCombo(const std::string& name, T& value, const char** options, const int len, const std::string& description) {
+void Util::AddCombo(const std::string& name, T& value, const T* options, const char** optionNames, const int len, const std::string& description) {
     ImGui::PushStyleColor(ImGuiCol_Text, {0.44f, 0.46f, 0.53f, 1.00f});
     ImGui::TextUnformatted(name.c_str());
     Util::AddTooltip(description);
@@ -36,11 +36,17 @@ void Util::AddCombo(const std::string& name, T& value, const char** options, con
     ImGui::SameLine(label_width());
     ImGui::SetNextItemWidth(-FLT_MIN);
 
-    if (ImGui::BeginCombo(("##Combo" + name).c_str(), options[static_cast<int>(value)])) {
+    int preview = 0;
+    for (int i = 0; i < len; ++i) {
+        if (value == options[i])
+            preview = i;
+    }
+
+    if (ImGui::BeginCombo(("##Combo" + name).c_str(), optionNames[preview])) {
         for (int i = 0; i < len; ++i) {
             bool selected = (value == static_cast<T>(i));
-            if (ImGui::Selectable(options[i], selected))
-                value = static_cast<T>(i);
+            if (ImGui::Selectable(optionNames[i], selected))
+                value = options[i];
             if (selected)
                 ImGui::SetItemDefaultFocus();
         }

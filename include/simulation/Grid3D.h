@@ -66,7 +66,7 @@ public:
     ScalField3D& gamma() const;
     ScalField3D& beta() const;
     std::map<unsigned int, DisAdvCell>& A() const;
-    void addA(unsigned int i, unsigned int j, unsigned int k, float val) const;
+    void addA(unsigned int i, unsigned int j, float val) const;
 
     ScalField3D& divergence() const;
     ScalField3D& pressure() const;

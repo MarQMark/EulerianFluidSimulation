@@ -84,6 +84,13 @@ Grid3D::Grid3D(const unsigned int nWidth, const unsigned int nHeight, const unsi
         if (x == _n_width  - 1) (*_rho)(x, y, z) = 0.f;
         if (y == _n_height - 1) (*_rho)(x, y, z) = 0.f;
         if (z == _n_depth  - 1) (*_rho)(x, y, z) = 0.f;
+
+        if (z == 0) (*_boundary)(x, y, z) = 1.f;
+        if (y == 0) (*_boundary)(x, y, z) = 1.f;
+        if (x == 0) (*_boundary)(x, y, z) = 1.f;
+        if (x == _n_width  - 1) (*_boundary)(x, y, z) = 1.f;
+        if (y == _n_height - 1) (*_boundary)(x, y, z) = 1.f;
+        if (z == _n_depth  - 1) (*_boundary)(x, y, z) = 1.f;
     }
 
     SET_PROPERTY_F(TOTAL_RHO, 0.f);
@@ -245,8 +252,7 @@ std::map<unsigned int, Grid3D::DisAdvCell>& Grid3D::A() const {
     return *_A;
 }
 
-void Grid3D::addA(const unsigned int i, const unsigned int j, const unsigned int k, const float val) const {
-    // TODO - FIX FOR 3D
+void Grid3D::addA(const unsigned int i, const unsigned int j, const float val) const {
     const unsigned int idx = i * size() + j;
     if (_A->contains(idx))
         (*_A)[idx] += {i, j, val};

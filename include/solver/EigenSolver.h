@@ -8,12 +8,12 @@
 
 #include "simulation/ScalField2D.h"
 
-class EigenSolver : public ISolver {
+class EigenSolver2D : public ISolverCPU2D {
 public:
-    ~EigenSolver() override;
+    ~EigenSolver2D() override;
 
 protected:
-    EigenSolver(int width, int height);
+    EigenSolver2D(int width, int height);
 
     Eigen::SparseMatrix<float, Eigen::RowMajor>* _A{};
     Eigen::VectorXf* _b{};
@@ -22,17 +22,17 @@ protected:
     void determine_equations(const ScalField2D &divergence, const ScalField2D &rho, const ScalField2D &boundary) const;
 };
 
-class EigenCGSolver : public EigenSolver {
+class EigenCGSolver2D : public EigenSolver2D {
 public:
-    EigenCGSolver(int width, int height);
+    EigenCGSolver2D(int width, int height);
 
 protected:
     float solve(Grid2D* grid) override;
 };
 
-class EigenBiCGSTABSolver : public EigenSolver {
+class EigenBiCGSTABSolver2D : public EigenSolver2D {
 public:
-    EigenBiCGSTABSolver(int width, int height);
+    EigenBiCGSTABSolver2D(int width, int height);
 
 protected:
     float solve(Grid2D* grid) override;

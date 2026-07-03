@@ -3,8 +3,7 @@
 
 #include "ISimulator3D.h"
 #include "simulation/SimulationDisplay3D.h"
-
-class Grid3D;
+#include "solver/ISolver.h"
 
 class CPUSimulator3D final : public ISimulator3D {
 public:
@@ -22,9 +21,13 @@ private:
     void add_force() override;
     void vel_advect() override;
     void diffuse() override;
+
+    void enforce_wall_boundaries() const;
+
     void project() override;
 
     Grid3D* _grid{};
+    ISolverCPU3D* _solver{};
     SimulationDisplay3D::RenderData3D* _data;
 };
 

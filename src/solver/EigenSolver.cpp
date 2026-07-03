@@ -6,15 +6,15 @@
 using SpMat = Eigen::SparseMatrix<float, Eigen::RowMajor>;
 using VecXf = Eigen::VectorXf;
 
-EigenSolver::EigenSolver(const int width, const int height) : ISolver(width, height) {
+EigenSolver2D::EigenSolver2D(const int width, const int height) : ISolverCPU2D(width, height) {
     _A  = new Eigen::SparseMatrix<float, Eigen::RowMajor>(_size, _size);
     _b  = new Eigen::VectorXf(_size);
     _x0 = new Eigen::VectorXf(_size);
 }
 
-EigenSolver::~EigenSolver() { delete _A; delete _b; delete _x0; }
+EigenSolver2D::~EigenSolver2D() { delete _A; delete _b; delete _x0; }
 
-void EigenSolver::determine_equations(const ScalField2D &divergence, const ScalField2D &rho, const ScalField2D &boundary) const
+void EigenSolver2D::determine_equations(const ScalField2D &divergence, const ScalField2D &rho, const ScalField2D &boundary) const
 {
     auto idx = [&](int x, int y){ return y * _width + x; };
     std::vector<Eigen::Triplet<float>> triplets;
@@ -44,8 +44,8 @@ void EigenSolver::determine_equations(const ScalField2D &divergence, const ScalF
     _A->setFromTriplets(triplets.begin(), triplets.end());
 }
 
-EigenCGSolver::EigenCGSolver(const int w, const int h) : EigenSolver(w, h) {}
-float EigenCGSolver::solve(Grid2D* grid) {
+EigenCGSolver2D::EigenCGSolver2D(const int w, const int h) : EigenSolver2D(w, h) {}
+float EigenCGSolver2D::solve(Grid2D* grid) {
     determine_equations(grid->divergence(), grid->rho(), grid->boundary());
     Eigen::ConjugateGradient<SpMat,Eigen::Lower|Eigen::Upper,
                              Eigen::DiagonalPreconditioner<float>> solver;
@@ -59,8 +59,8 @@ float EigenCGSolver::solve(Grid2D* grid) {
     return (float)solver.error();
 }
 
-EigenBiCGSTABSolver::EigenBiCGSTABSolver(const int w, const int h) : EigenSolver(w, h) {}
-float EigenBiCGSTABSolver::solve(Grid2D* grid) {
+EigenBiCGSTABSolver2D::EigenBiCGSTABSolver2D(const int w, const int h) : EigenSolver2D(w, h) {}
+float EigenBiCGSTABSolver2D::solve(Grid2D* grid) {
     determine_equations(grid->divergence(), grid->rho(), grid->boundary());
     Eigen::BiCGSTAB<SpMat, Eigen::DiagonalPreconditioner<float>> solver;
     solver.setMaxIterations(PROPERTY_I(MAX_STEPS));

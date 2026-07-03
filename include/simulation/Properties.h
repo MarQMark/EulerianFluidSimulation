@@ -66,6 +66,7 @@ public:
     PROP_TOKEN(PUSH_FORCE)
     PROP_TOKEN(PUSH_ENABLED)
 
+    PROP_TOKEN(AVLB_SOLVERS)
     PROP_TOKEN(SOLVER_TYPE)
     PROP_TOKEN(SOLVER_CHECK_INTERVAL)
     PROP_TOKEN(MAX_STEPS)
@@ -160,11 +161,12 @@ private:
         ADD_HIDDEN(TOTAL_RHO, 0.f)
         ADD_HIDDEN(SOLVE_STEPS, 0)
 
-        ADD_HIDDEN(SIMULATION_TYPE, SimulatorType::CPU_3D);
-        ADD_HIDDEN(SIMULATION_REBUILD, false);
-        ADD_HIDDEN(SIMULATION_RESET, false);
-        ADD_HIDDEN(SIMULATION_INITIALIZED, false);
-        ADD_HIDDEN(SIMULATION_GRID_RESIZED, false);
+        ADD_HIDDEN(SIMULATION_TYPE, SimulatorType::CPU_3D)
+        ADD_HIDDEN(SIMULATION_REBUILD, false)
+        ADD_HIDDEN(SIMULATION_RESET, false)
+        ADD_HIDDEN(SIMULATION_INITIALIZED, false)
+        ADD_HIDDEN(SIMULATION_GRID_RESIZED, false)
+        ADD_HIDDEN(AVLB_SOLVERS, new std::vector<SolverType>())
     }
     ~Properties();
 
@@ -191,6 +193,9 @@ private:
     public:
         Property(const std::string &name, const std::string &description, T value, const int dimension = 0)
             : IProperty(name, description, dimension), value(value) {
+        }
+        ~Property() override {
+            if constexpr (std::is_pointer_v<T>) delete value;
         }
         T value;
         void draw() override;

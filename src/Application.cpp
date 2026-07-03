@@ -75,8 +75,8 @@ void Application::rebuild() {
     switch (PROPERTY(SIMULATION_TYPE, Properties::SimulatorType)) {
         case Properties::OPENGL_2D:
         {
-    		int WIDTH	= PROPERTY_I(WIDTH_2D);
-    		int HEIGHT	= PROPERTY_I(HEIGHT_2D);
+    		const int WIDTH	 = PROPERTY_I(WIDTH_2D);
+    		const int HEIGHT = PROPERTY_I(HEIGHT_2D);
 
     		_simulator = new OpenGLSimulator2D(WIDTH, HEIGHT);
             _display = new SimulationDisplay2D(WIDTH, HEIGHT);
@@ -86,9 +86,9 @@ void Application::rebuild() {
         {
             _display = new SimulationDisplay3D(_window);
 
-    		int WIDTH	= PROPERTY_I(WIDTH_3D);
-    		int HEIGHT	= PROPERTY_I(HEIGHT_3D);
-    		int DEPTH	= PROPERTY_I(DEPTH_3D);
+    		const int WIDTH	 = PROPERTY_I(WIDTH_3D);
+    		const int HEIGHT = PROPERTY_I(HEIGHT_3D);
+    		const int DEPTH	 = PROPERTY_I(DEPTH_3D);
 
     		_simulator = new CPUSimulator3D(WIDTH, HEIGHT, DEPTH);
             break;
@@ -96,8 +96,8 @@ void Application::rebuild() {
         case Properties::CPU_2D:
         default:
         {
-    		int WIDTH	= PROPERTY_I(WIDTH_2D);
-    		int HEIGHT	= PROPERTY_I(HEIGHT_2D);
+    		const int WIDTH	 = PROPERTY_I(WIDTH_2D);
+    		const int HEIGHT = PROPERTY_I(HEIGHT_2D);
 
             _simulator = new CPUSimulator2D(WIDTH, HEIGHT);
             _display = new SimulationDisplay2D(WIDTH, HEIGHT);

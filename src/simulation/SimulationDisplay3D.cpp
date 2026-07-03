@@ -41,6 +41,6 @@ void SimulationDisplay3D::update(void* renderData) {
 
     _scene->getFluid()->setRenderData(data);
 
-    _scene->update(Time::Get()->dt);
+    _scene->update(Time::Get()->dt / 1000.f);
     _renderer->render(_scene);
 }

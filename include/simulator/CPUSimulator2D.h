@@ -25,7 +25,7 @@ private:
     void project() override;
 
     Grid2D* _grid{};
-    ISolver* _solver{};
+    ISolverCPU2D* _solver{};
     SimulationDisplay2D::RenderData2D* _data;
 
     glm::vec2 trace_along_field(glm::vec2 start, float D, int substeps) const;

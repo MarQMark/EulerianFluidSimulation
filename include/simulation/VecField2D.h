@@ -78,10 +78,6 @@ public:
     unsigned int width() const;
     unsigned int height() const;
 
-    float BilinearInterpolation(const glm::vec2 &pos,
-                                          int low_x,
-                                          int low_y,
-                                          int comp);
 
     const glm::vec2* data() const { return _field.data(); }
     glm::vec2* data()           { return _field.data(); }
@@ -91,6 +87,8 @@ private:
     unsigned int _height = 0;
 
     std::vector<glm::vec2> _field;
+
+    float bilinear_interpolation(const glm::vec2 &pos, int low_x, int low_y, int comp);
 };
 
 

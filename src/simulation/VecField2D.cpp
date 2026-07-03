@@ -54,10 +54,10 @@ glm::vec2 VecField2D::interpolate(glm::vec2 pos) {
     float y2 = (float)iy2 + 0.5f;
 
     const float dx2x1 = x2 - x1;
-    glm::vec2 fxy1 = ((x2 - pos.x)/dx2x1) * v[0] + ((pos.x - x1)/dx2x1) * v[2];
-    glm::vec2 fxy2 = ((x2 - pos.x)/dx2x1) * v[1] + ((pos.x - x1)/dx2x1) * v[3];
+    glm::vec2 fxy1 = ((x2 - pos.x)/dx2x1) * v.x + ((pos.x - x1)/dx2x1) * v[2];
+    glm::vec2 fxy2 = ((x2 - pos.x)/dx2x1) * v.y + ((pos.x - x1)/dx2x1) * v[3];
     if(dx2x1 < 1e-9) {
-        fxy1 = v[1];
+        fxy1 = v.y;
         fxy2 = v[3];
     }
 
@@ -100,46 +100,79 @@ glm::vec2 VecField2D::interpolate(glm::vec2 pos) {
     glm::vec2 row1 = glm::mix(v01, v11, tx);
     return glm::mix(row0, row1, ty);
 }
-#else
-float VecField2D::BilinearInterpolation(const glm::vec2 &pos,
-                                          int low_x,
-                                          int low_y,
-                                          int comp)
-{
-    float x_low_inter, x_high_inter;
-
+#elif 0
+float VecField2D::BilinearInterpolation(const glm::vec2 &pos, const int low_x, const int low_y, const int comp) {
     // Interpolate between y values at the lower x positions
-    x_low_inter = (((low_y + 0.5 * (1 - comp)) - pos[1])
-                    * (*this)(low_x, low_y)[comp])
-                + ((pos[1] - (low_y - 0.5 - 0.5 * comp))
-                    * (*this)(low_x, low_y + 1)[comp]);
+    const float lInter = (((low_y + 0.5 * (1 - comp)) - pos.y) * (*this)(low_x, low_y)[comp])
+                       + ((pos.y - (low_y - 0.5 - 0.5 * comp)) * (*this)(low_x, low_y + 1)[comp]);
     // Interpolate between y values at the higher x positions
-    x_high_inter = (((low_y + 0.5 * (1 - comp)) - pos[1])
-                    * (*this)(low_x + 1, low_y)[comp])
-                 + ((pos[1] - (low_y - 0.5 - 0.5 * comp))
-                    * (*this)(low_x + 1, low_y + 1)[comp]);
+    const float hInter = (((low_y + 0.5 * (1 - comp)) - pos.y) * (*this)(low_x + 1, low_y)[comp])
+                       + ((pos.y - (low_y - 0.5 - 0.5 * comp)) * (*this)(low_x + 1, low_y + 1)[comp]);
 
     // Interpolate between the averaged values at the low and high x positions
-    return ((low_x + 0.5 * comp - pos[0]) * x_low_inter)
-        + ((pos[0] - (low_x - 0.5 - 0.5 * (1 - comp))) * x_high_inter);
+    return ((low_x + 0.5 * comp - pos.x) * lInter) + ((pos.x - (low_x - 0.5 - 0.5 * (1 - comp))) * hInter);
 }
 
 #define EPSILON 1.0e-10
-glm::vec2 VecField2D::interpolate(glm::vec2 pos) {
-    float Vx, Vy;
-
+glm::vec2 VecField2D::interpolate(const glm::vec2 pos) {
     // Interpolate the x component
-    int low_x = (int)(std::floor(pos[0] + 1) + EPSILON);
-    int low_y = (int)(pos[1] + 0.5 + EPSILON);
-    Vx = BilinearInterpolation(pos, low_x, low_y, 0);
+    int low_x = (int)(std::floor(pos.x + 1) + EPSILON);
+    int low_y = (int)(pos.y + 0.5 + EPSILON);
+    const float vx = BilinearInterpolation(pos, low_x, low_y, 0);
 
     // Interpolate the y component
-    low_x = (int)(pos[0] + 0.5);
-    low_y = (int)(floor(pos[1] + 1) + EPSILON);
-    Vy = BilinearInterpolation(pos, low_x, low_y, 1);
+    low_x = (int)(pos.x + 0.5);
+    low_y = (int)(floor(pos.y + 1) + EPSILON);
+    const float vy = BilinearInterpolation(pos, low_x, low_y, 1);
 
-    return glm::vec2(Vx, Vy);
+    return glm::vec2(vx, vy);
 }
+#else
+static inline glm::vec2 StaggeredOffset(const int comp) {
+    return (comp == 0)  ? glm::vec2(-1.0f, -0.5f)
+                        : glm::vec2(-0.5f, -1.0f);
+}
+
+float VecField2D::bilinear_interpolation(const glm::vec2 &pos, const int low_x, const int low_y, const int comp) {
+    const glm::vec2 off = StaggeredOffset(comp);
+
+    const float x0 = low_x + off.x;
+    const float y0 = low_y + off.y;
+
+    const float tx = pos.x - x0;
+    const float ty = pos.y - y0;
+
+    const float v00 = (*this)(low_x,     low_y    )[comp];
+    const float v01 = (*this)(low_x,     low_y + 1)[comp];
+    const float v10 = (*this)(low_x + 1, low_y    )[comp];
+    const float v11 = (*this)(low_x + 1, low_y + 1)[comp];
+
+    const float vLow  = v00 * (1.0f - ty) + v01 * ty;
+    const float vHigh = v10 * (1.0f - ty) + v11 * ty;
+
+    return vLow * (1.0f - tx) + vHigh * tx;
+}
+
+#define EPSILON 1.0e-10f
+
+glm::vec2 VecField2D::interpolate(const glm::vec2 pos) {
+    auto lowIndex = [](const float coord, const float offset) {
+        return (int)(std::floor(coord - offset) + EPSILON);
+    };
+
+    const glm::vec2 offU = StaggeredOffset(0);
+    const int low_x_u = lowIndex(pos.x, offU.x);
+    const int low_y_u = lowIndex(pos.y, offU.y);
+    const float vx = bilinear_interpolation(pos, low_x_u, low_y_u, 0);
+
+    const glm::vec2 offV = StaggeredOffset(1);
+    const int low_x_v = lowIndex(pos.x, offV.x);
+    const int low_y_v = lowIndex(pos.y, offV.y);
+    const float vy = bilinear_interpolation(pos, low_x_v, low_y_v, 1);
+
+    return glm::vec2(vx, vy);
+}
+#undef EPSILON
 #endif
 
 void VecField2D::clear() {

@@ -8,10 +8,10 @@
 #include "ISolver.h"
 #include "assets/Shader.h"
 
-class CGSolver : public ISolver {
+class CGSolverCPU2D final : public ISolverCPU2D {
 public:
-    CGSolver(int width, int height);
-    ~CGSolver() override;
+    CGSolverCPU2D(int width, int height);
+    ~CGSolverCPU2D() override;
     float solve(Grid2D* grid) override;
 
 private:
@@ -21,8 +21,16 @@ private:
     ScalField2D* _tmp{};
     ScalField2D* _r{};
     ScalField2D* _d{};
+};
 
-#ifdef USE_GPU
+class CGSolverOpenGL2D final : public ISolverOpenGL2D {
+public:
+    CGSolverOpenGL2D(int width, int height);
+    ~CGSolverOpenGL2D() override;
+
+    float solve(Grid2D* grid) override;
+
+private:
     Shader* _shader_as{};
     Shader* _shader_mm{};
     Shader* _shader_ss{};
@@ -46,7 +54,21 @@ private:
     std::vector<int> _reduceChain;
     std::vector<float> _scalars_cpu;
     int _numGroups = 0;
-#endif
+};
+
+class CGSolverCPU3D final : public ISolverCPU3D {
+public:
+    CGSolverCPU3D(int width, int height, int depth);
+    ~CGSolverCPU3D() override;
+    float solve(Grid3D* grid) override;
+
+private:
+    void impl_mat_mul(ScalField3D& result, const ScalField3D& xField, const ScalField3D& rho, const ScalField3D& boundary) const;
+
+    ScalField3D* _t{};
+    ScalField3D* _tmp{};
+    ScalField3D* _r{};
+    ScalField3D* _d{};
 };
 
 

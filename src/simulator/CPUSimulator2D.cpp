@@ -20,19 +20,27 @@
 CPUSimulator2D::CPUSimulator2D(const unsigned width, const unsigned height) : ISimulator2D(width, height) {
     _grid = new Grid2D(width, height);
 
+	const bool validSolver = availableSolvers(std::vector({
+		Properties::JACOBI,
+		Properties::SELF_CG,
+		Properties::EIGEN_CG,
+		Properties::EIGEN_BiCGSTAB}));
+
+	if (validSolver)
 	switch (PROPERTY(SOLVER_TYPE, Properties::SolverType)) {
 		case Properties::EIGEN_CG:
-			_solver = new EigenCGSolver(width, height);
+			_solver = new EigenCGSolver2D(width, height);
 			break;
 		case Properties::EIGEN_BiCGSTAB:
-			_solver = new EigenBiCGSTABSolver(width, height);
+			_solver = new EigenBiCGSTABSolver2D(width, height);
 			break;
 		case Properties::JACOBI:
-			_solver = new JacobiSolver(width, height);
+			_solver = new JacobiSolverCPU2D(width, height);
 			break;
 		case Properties::SELF_CG:
+			_solver = new CGSolverCPU2D(width, height);
 		default:
-			_solver = new CGSolver(width, height);
+			break;
 	}
 
 	_data = new SimulationDisplay2D::RenderData2D();
