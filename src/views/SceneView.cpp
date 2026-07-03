@@ -92,7 +92,7 @@ void SceneView::render(void* renderData) {
     ImGui::SeparatorText("");
 
     // --- Particle Spawns ---
-    if (ImGui::Button("Add Particle Spawn Cube", ImVec2(totalWidth, 0))) {
+    if (ImGui::Button("Add Fluid Spawn Cube", ImVec2(totalWidth, 0))) {
         _editor->addParticleSpawn("");
     }
 
@@ -104,7 +104,7 @@ void SceneView::render(void* renderData) {
         ImGuiFileDialog::Instance()->Close();
     }
 
-    if (ImGui::Button("Add Particle Spawn Model", ImVec2(totalWidth, 0))) {
+    if (ImGui::Button("Add Fluid Spawn Model", ImVec2(totalWidth, 0))) {
         IGFD::FileDialogConfig config;
         config.path = ".";
         ImGuiFileDialog::Instance()->OpenDialog("LoadParticleSpawnModel", "Choose Model", ".obj", config);

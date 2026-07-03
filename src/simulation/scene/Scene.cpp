@@ -3,10 +3,10 @@
 //
 
 #include "simulation/scene/Scene.h"
-#include "simulation/scene/nodes/BoundingBoxParticleSpawnNode.h"
+#include "simulation/scene/nodes/BoundingBoxFluidSpawnNode.h"
 #include "simulation/scene/nodes/ForceFieldNode.h"
 #include "simulation/scene/nodes/ModelNode.h"
-#include "simulation/scene/nodes/ModelParticleSpawnNode.h"
+#include "simulation/scene/nodes/ModelFluidSpawnNode.h"
 #include "core/Config.h"
 #include <algorithm>
 
@@ -63,7 +63,7 @@ void Scene::addSceneNode(std::unique_ptr<SceneNode> node) {
     if (auto* forceField = dynamic_cast<ForceFieldNode*>(node.get()))
         forceFields.push_back(forceField);
 
-    if (auto* particleSpawn = dynamic_cast<IParticleSpawn*>(node.get()))
+    if (auto* particleSpawn = dynamic_cast<IFluidSpawn*>(node.get()))
         particleSpawns.push_back(particleSpawn);
 
     node->scene = this;
@@ -75,8 +75,8 @@ void Scene::removeSceneNode(const SceneNode* node) {
     std::erase_if(boundingBoxes,  [&](const BoundingBoxNode* n) { return n == node; });
     std::erase_if(forceFields,    [&](const ForceFieldNode* n)  { return n == node; });
 
-    if (const auto* ps = dynamic_cast<const IParticleSpawn*>(node))
-        std::erase_if(particleSpawns, [&](const IParticleSpawn* n) { return n == ps; });
+    if (const auto* ps = dynamic_cast<const IFluidSpawn*>(node))
+        std::erase_if(particleSpawns, [&](const IFluidSpawn* n) { return n == ps; });
 
     std::erase_if(sceneNodes, [&](const std::unique_ptr<SceneNode>& n) { return n.get() == node; });
 }
@@ -101,7 +101,7 @@ std::vector<ForceFieldNode*> Scene::getForceFields() const {
     return forceFields;
 }
 
-std::vector<IParticleSpawn*> Scene::getParticleSpawns() const {
+std::vector<IFluidSpawn*> Scene::getFluidSpawns() const {
     return particleSpawns;
 }
 
@@ -207,10 +207,10 @@ std::unique_ptr<SceneNode> Scene::nodeFromJson(const nlohmann::json& j) {
         return std::make_unique<ForceFieldNode>(j);
 
     if (type == "BoundingBoxParticleSpawnNode")
-        return std::make_unique<BoundingBoxParticleSpawnNode>(j);
+        return std::make_unique<BoundingBoxFluidSpawnNode>(j);
 
     if (type == "ModelParticleSpawnNode")
-        return std::make_unique<ModelParticleSpawnNode>(j);
+        return std::make_unique<ModelFluidSpawnNode>(j);
 
     throw std::runtime_error("Unknown node type: " + type);
 }

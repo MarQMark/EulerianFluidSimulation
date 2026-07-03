@@ -9,8 +9,8 @@
 #include "../Transform.h"
 #include "SceneNode.h"
 
-class BoundingBoxNode;
 struct Triangle;
+class BoundingBoxNode;
 class Model;
 
 class ModelNode : public Transform, public SceneNode, public IBounded {
@@ -19,7 +19,7 @@ public:
     ModelNode(const nlohmann::json json);
 
     Model* getModel() const;
-    std::vector<Triangle> getWorldSpaceTriangles() const;
+    std::vector<Triangle> getWorldSpaceVertices() const;
 
     AABB getBoundingBox() const;
     AABB getWorldBoundingBox() const override;

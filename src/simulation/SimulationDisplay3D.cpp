@@ -34,8 +34,7 @@ SimulationDisplay3D::~SimulationDisplay3D() {
 void SimulationDisplay3D::update(void* renderData) {
     const auto* data = static_cast<RenderData3D *>(renderData);
 
-    // Initialize simulation if simulation is not paused but uninitialized (just started)
-    if (!PROPERTY_B(PAUSED) && !PROPERTY_B(SIMULATION_INITIALIZED)) {
+    if (!PROPERTY_B(SIMULATION_INITIALIZED)) {
         _editor->initSimulation(data->grid);
     }
 

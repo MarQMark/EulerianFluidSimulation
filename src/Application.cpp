@@ -41,7 +41,7 @@ void Application::update() {
     while (!_window->shouldClose()) {
     	Time::Get()->update();
 
-    	if (!PROPERTY_B(PAUSED) || PROPERTY_I(SIMULATION_STEPS) > 0) {
+    	if (!PROPERTY_B(PAUSED) || PROPERTY_I(SIMULATION_STEPS) > 0 || !PROPERTY_B(SIMULATION_INITIALIZED)) {
     		_simulator->update();
 
     		if (PROPERTY_I(SIMULATION_STEPS) > 0)

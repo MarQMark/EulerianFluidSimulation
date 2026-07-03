@@ -5,6 +5,7 @@
 #include "simulation/scene/nodes/FluidNode.h"
 #include "renderer/MarchingCubes.h"
 #include "simulation/Grid3D.h"
+#include "simulation/Properties.h"
 #include "simulation/scene/Scene.h"
 #include "simulation/scene/nodes/BoundingBoxNode.h"
 
@@ -31,7 +32,7 @@ void FluidNode::setRenderData(const SimulationDisplay3D::RenderData3D* data) {
 }
 
 void FluidNode::update(float deltaTime) {
-    if (!_renderData)
+    if (!_renderData || !PROPERTY_B(SIMULATION_INITIALIZED))
         return;
 
     _cubes->updateMesh(

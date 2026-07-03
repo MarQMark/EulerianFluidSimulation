@@ -14,25 +14,7 @@
 
 CPUSimulator3D::CPUSimulator3D(const unsigned int width, const unsigned int height, const  unsigned int depth)
 	: ISimulator3D(width, height, depth) {
-
-	const bool validSolver = availableSolvers(std::vector({
-		//Properties::JACOBI,
-		Properties::SELF_CG}));
-
-	if (validSolver)
-		switch (PROPERTY(SOLVER_TYPE, Properties::SolverType)) {
-		//case Properties::JACOBI:
-		//		_solver = new JacobiSolverCPU3D(width, height, depth);
-		//		break;
-		case Properties::SELF_CG:
-				_solver = new CGSolverCPU3D(width, height, depth);
-		default:
-				break;
-		}
-
-    _grid = new Grid3D(width, height, depth);
     _data = new SimulationDisplay3D::RenderData3D;
-    _data->grid = _grid;
 }
 
 CPUSimulator3D::~CPUSimulator3D() {
@@ -41,12 +23,35 @@ CPUSimulator3D::~CPUSimulator3D() {
 }
 
 void CPUSimulator3D::update() {
-    if (PROPERTY_B(SIMULATION_GRID_RESIZED)) {
+    // Setup grid if not initialized
+	// TODO - Move this function into layer above? Recreate whole Simulator object on uninitialied
+    if (!PROPERTY_B(SIMULATION_INITIALIZED)) {
+    	_width = PROPERTY_I(WIDTH_3D);
+    	_height = PROPERTY_I(HEIGHT_3D);
+    	_depth = PROPERTY_I(DEPTH_3D);
+
         delete _grid;
-        _grid = new Grid3D(PROPERTY_I(WIDTH_3D), PROPERTY_I(HEIGHT_3D), PROPERTY_I(DEPTH_3D));
+        _grid = new Grid3D(_width, _height, _depth);
         _data->grid = _grid;
 
-        SET_PROPERTY_B(SIMULATION_GRID_RESIZED, false);
+    	const bool validSolver = availableSolvers(std::vector({
+			//Properties::JACOBI,
+			Properties::SELF_CG}));
+
+    	delete _solver;
+
+    	if (validSolver)
+    		switch (PROPERTY(SOLVER_TYPE, Properties::SolverType)) {
+    			//case Properties::JACOBI:
+    			//		_solver = new JacobiSolverCPU3D(width, height, depth);
+    			//		break;
+    	case Properties::SELF_CG:
+    			_solver = new CGSolverCPU3D(_width, _height, _depth);
+    	default:
+    		break;
+    	}
+
+        return;
     }
 
 	Profiler* profiler = Profiler::Get();
@@ -449,7 +454,7 @@ void CPUSimulator3D::project() {
 
     	vel(x, y, z) -= dPressure;
     }
-	
+
 	enforce_wall_boundaries();
 }
 

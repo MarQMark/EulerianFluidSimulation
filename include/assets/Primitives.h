@@ -40,6 +40,25 @@ namespace Primitives {
             };
         }
 
+        static std::vector<Triangle> GetTriangles() {
+            std::vector<Vertex> vertices        = BoxGeometry::GetVertices();
+            std::vector<unsigned int> indices   = BoxGeometry::GetIndices();
+
+            std::vector<Triangle> triangles = {};
+
+            for (int i = 0 ; i < indices.size() ; i += 3) {
+                triangles.push_back(
+                    {
+                        vertices[indices[i]].position,
+                        vertices[indices[i + 1]].position,
+                        vertices[indices[i + 2]].position
+                    }
+                );
+            }
+
+            return triangles;
+        }
+
         static std::vector<unsigned int> GetIndices() {
             return {
                 0, 2, 1, 0, 3, 2,

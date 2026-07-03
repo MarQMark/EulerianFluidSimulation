@@ -64,6 +64,9 @@ void MarchingCubes::updateMesh(const ScalField3D& field, AABB domain) {
     _mcShader->setVec3("uDomainSize", domain.size);
     _mcShader->setVec3("uDomainCenter", domain.center);
 
+    _edgeToVerticeTable->bind(0);
+    _edgeTable->bind(1);
+    _triangleTable->bind(2);
     _vertexCountBuffer->bind(3);
     _vertexBuffer->bind(4);
     _indexCountBuffer->bind(5);
@@ -75,6 +78,7 @@ void MarchingCubes::updateMesh(const ScalField3D& field, AABB domain) {
     const int gy = (field.height() + 7) / 8;
     const int gz = (field.depth() + 7) / 8;
     _mcShader->dispatch(gx, gy, gz);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT);
 
     int vertexCount = 0;
     _vertexCountBuffer->download(&vertexCount);

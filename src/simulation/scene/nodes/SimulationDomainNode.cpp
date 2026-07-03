@@ -35,7 +35,6 @@ NodeProperties SimulationDomainNode::buildProperties() {
             SET_PROPERTY_I(HEIGHT_3D, _domain.resolution.y);
             SET_PROPERTY_I(DEPTH_3D, _domain.resolution.z);
 
-            SET_PROPERTY_B(SIMULATION_GRID_RESIZED, true);
             SET_PROPERTY_B(PAUSED, true);
             SET_PROPERTY_B(SIMULATION_INITIALIZED, false);
         }

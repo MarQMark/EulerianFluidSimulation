@@ -3,22 +3,57 @@
 //
 
 #include "core/Editor.h"
-#include "simulation/scene/nodes/BoundingBoxNode.h"
-#include "simulation/scene/nodes/BoundingBoxParticleSpawnNode.h"
-#include "simulation/scene/nodes/ModelParticleSpawnNode.h"
+#include "simulation/scene/nodes/BoundingBoxFluidSpawnNode.h"
+#include "simulation/scene/nodes/ModelFluidSpawnNode.h"
 #include <memory>
-
 #include "simulation/Grid3D.h"
 #include "simulation/Properties.h"
 
 void Editor::initSimulation(Grid3D* grid) {
-    for (int z = 0 ; z < grid->rho().depth() ; z++) {
-        for (int y = 0 ; y < grid->rho().height() * 0.5 ; y++) {
-            for (int x = 0 ; x < grid->rho().width() ; x++) {
-                (grid->rho())(x, y, z) = 1.0f;
-            }
-        }
+    // --- Init Fluid ---
+    Shader initFluid({{ "assets/shaders/fluid_init.comp", Shader::COMPUTE }});
+    StorageBuffer rhoBuffer(grid->rho().size() * sizeof(float));
+    rhoBuffer.clear();
+
+    std::vector<Triangle> triangles;
+
+    for (const auto& s : scene->getFluidSpawns()) {
+        const auto& shape = s->getFluidSpawn().shape;
+        triangles.insert(
+            triangles.end(),
+            shape.begin(),
+            shape.end()
+        );
     }
+
+    if (!triangles.empty()) {
+        StorageBuffer triangleBuffer(triangles.size() * sizeof(Triangle));
+        triangleBuffer.upload(triangles.data());
+
+        initFluid.bind();
+        initFluid.setInt("uWidth",  grid->rho().width());
+        initFluid.setInt("uHeight", grid->rho().height());
+        initFluid.setInt("uDepth",  grid->rho().depth());
+
+        initFluid.setInt("uTriangleCount", triangles.size());
+
+        auto domain = scene->getSimulationDomain()->getWorldBoundingBox();
+        initFluid.setVec3("uDomainSize", domain.size);
+        initFluid.setVec3("uDomainCenter", domain.center);
+
+        triangleBuffer.bind(0);
+        rhoBuffer.bind(1);
+
+        const int gx = (grid->rho().width() + 7) / 8;
+        const int gy = (grid->rho().height() + 7) / 8;
+        const int gz = (grid->rho().depth() + 7) / 8;
+        initFluid.dispatch(gx, gy, gz);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+        rhoBuffer.download(grid->rho().data());
+    }
+
+    // --- Init Boundaries ---
+    // TODO - Boundaries
 
     SET_PROPERTY_B(SIMULATION_INITIALIZED, true);
 }
@@ -46,7 +81,7 @@ void Editor::removeForceField(const ForceFieldNode* forceFieldNode) const {
 
 void Editor::addParticleSpawn(const std::string& path) {
     if (path.empty()) {
-        auto bbParticleSpawnNode = std::make_unique<BoundingBoxParticleSpawnNode>(std::string("Particle Spawn"));
+        auto bbParticleSpawnNode = std::make_unique<BoundingBoxFluidSpawnNode>(std::string("Fluid Spawn"));
 
         selectedNode = bbParticleSpawnNode.get();
         scene->addSceneNode(std::move(bbParticleSpawnNode));
@@ -54,7 +89,7 @@ void Editor::addParticleSpawn(const std::string& path) {
     }
 
     auto model = std::make_shared<Model>(path);
-    auto modelParticleSpawnNode = std::make_unique<ModelParticleSpawnNode>(std::string("Particle Spawn"), model);
+    auto modelParticleSpawnNode = std::make_unique<ModelFluidSpawnNode>(std::string("Fluid Spawn"), model);
     selectedNode = modelParticleSpawnNode.get();
     scene->addSceneNode(std::move(modelParticleSpawnNode));
 }

@@ -7,15 +7,15 @@
 
 #include "assets/Model.h"
 #include "ModelNode.h"
-#include "simulation/scene/IParticleSpawn.h"
+#include "simulation/scene/IFluidSpawn.h"
 #include "SceneNode.h"
 
-class ModelParticleSpawnNode : public ModelNode, public IParticleSpawn {
+class ModelFluidSpawnNode : public ModelNode, public IFluidSpawn {
 public:
-    ModelParticleSpawnNode(const std::string& name, const std::shared_ptr<Model>& model);
-    ModelParticleSpawnNode(const nlohmann::json json);
+    ModelFluidSpawnNode(const std::string& name, const std::shared_ptr<Model>& model);
+    ModelFluidSpawnNode(const nlohmann::json json);
 
-    ParticleSpawn getParticleSpawn() override;
+    FluidSpawn getFluidSpawn() override;
 
     NodeProperties buildProperties() override;
 
@@ -25,7 +25,7 @@ public:
 private:
     void init();
 
-    ParticleSpawn particleSpawn;
+    FluidSpawn particleSpawn;
 };
 
 #endif //SPHLASH_MODELPARTICLESPAWNNODE_H
