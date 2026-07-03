@@ -36,7 +36,7 @@ NodeProperties SimulationDomainNode::buildProperties() {
             SET_PROPERTY_I(DEPTH_3D, _domain.resolution.z);
 
             SET_PROPERTY_B(PAUSED, true);
-            SET_PROPERTY_B(SIMULATION_INITIALIZED, false);
+            SET_PROPERTY_B(SIMULATION_RESET, true);
         }
     ));
 

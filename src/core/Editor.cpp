@@ -54,8 +54,6 @@ void Editor::initSimulation(Grid3D* grid) {
 
     // --- Init Boundaries ---
     // TODO - Boundaries
-
-    SET_PROPERTY_B(SIMULATION_INITIALIZED, true);
 }
 
 void Editor::setScene(Scene* scene) {

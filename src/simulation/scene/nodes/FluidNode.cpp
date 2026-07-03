@@ -32,7 +32,7 @@ void FluidNode::setRenderData(const SimulationDisplay3D::RenderData3D* data) {
 }
 
 void FluidNode::update(float deltaTime) {
-    if (!_renderData || !PROPERTY_B(SIMULATION_INITIALIZED))
+    if (!_renderData)
         return;
 
     _cubes->updateMesh(

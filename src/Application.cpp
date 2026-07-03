@@ -41,7 +41,7 @@ void Application::update() {
     while (!_window->shouldClose()) {
     	Time::Get()->update();
 
-    	if (!PROPERTY_B(PAUSED) || PROPERTY_I(SIMULATION_STEPS) > 0 || !PROPERTY_B(SIMULATION_INITIALIZED)) {
+    	if ((!PROPERTY_B(PAUSED) || PROPERTY_I(SIMULATION_STEPS) > 0) && PROPERTY_B(SIMULATION_INITIALIZED)) {
     		_simulator->update();
 
     		if (PROPERTY_I(SIMULATION_STEPS) > 0)
@@ -59,6 +59,8 @@ void Application::update() {
 
     	if (PROPERTY_B(SIMULATION_REBUILD))
     		rebuild();
+    	if (PROPERTY_B(SIMULATION_RESET))
+			reset();
     }
 }
 
@@ -109,18 +111,58 @@ void Application::rebuild() {
 		_views->addView(name, v);
 }
 
+void Application::reset() {
+	SET_PROPERTY_B(SIMULATION_RESET, false);
+
+	if (_simulator) delete _simulator;
+
+	switch (PROPERTY(SIMULATION_TYPE, Properties::SimulatorType)) {
+		case Properties::OPENGL_2D:
+		{
+			const int WIDTH	 = PROPERTY_I(WIDTH_2D);
+			const int HEIGHT = PROPERTY_I(HEIGHT_2D);
+
+			_simulator = new OpenGLSimulator2D(WIDTH, HEIGHT);
+			break;
+		}
+		case Properties::CPU_3D:
+		{
+			const int WIDTH	 = PROPERTY_I(WIDTH_3D);
+			const int HEIGHT = PROPERTY_I(HEIGHT_3D);
+			const int DEPTH	 = PROPERTY_I(DEPTH_3D);
+
+			_simulator = new CPUSimulator3D(WIDTH, HEIGHT, DEPTH);
+			break;
+		}
+		case Properties::CPU_2D:
+		default:
+		{
+			const int WIDTH	 = PROPERTY_I(WIDTH_2D);
+			const int HEIGHT = PROPERTY_I(HEIGHT_2D);
+
+			_simulator = new CPUSimulator2D(WIDTH, HEIGHT);
+			break;
+		}
+	}
+
+	_display->reset(_simulator->getRenderData());
+
+	SET_PROPERTY_B(SIMULATION_INITIALIZED, true);
+}
+
 void Application::input_handler() {
-	/*
     const bool searching = _views->getView<PropertiesView>("Properties")->searching();
 
+	if(ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R) && !searching)
+		SET_PROPERTY_B(SIMULATION_REBUILD, true);
     if(ImGui::IsKeyPressed(ImGuiKey_R) && !searching)
-    	SET_PROPERTY_B(SIMULATION_REBUILD, true);
+    	SET_PROPERTY_B(SIMULATION_RESET, true);
     if (ImGui::IsKeyPressed(ImGuiKey_P) && !searching)
     	SET_PROPERTY_B(PAUSED, !PROPERTY_B(PAUSED));
-    if (ImGui::IsKeyPressed(ImGuiKey_S) && !searching)
-    	ADD_PROPERTY_I(SIMULATION_STEPS, 1);
     if (ImGui::IsKeyPressed(ImGuiKey_G) && !searching)
     	SET_PROPERTY_B(GRAVITY_ENABLED, !PROPERTY_B(GRAVITY_ENABLED));
+	if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_S) && !searching)
+		ADD_PROPERTY_I(SIMULATION_STEPS, 1);
 
     /*if (ImGui::IsKeyPressed(ImGuiKey_F1) && !searching) {
     	if (!_views->getView("FieldViewerVel"))

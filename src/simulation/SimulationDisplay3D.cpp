@@ -33,13 +33,13 @@ SimulationDisplay3D::~SimulationDisplay3D() {
 
 void SimulationDisplay3D::update(void* renderData) {
     const auto* data = static_cast<RenderData3D *>(renderData);
-
-    if (!PROPERTY_B(SIMULATION_INITIALIZED)) {
-        _editor->initSimulation(data->grid);
-    }
-
     _scene->getFluid()->setRenderData(data);
 
     _scene->update(Time::Get()->dt / 1000.f);
     _renderer->render(_scene);
+}
+
+void SimulationDisplay3D::reset(void* simulationData) {
+    const auto* data = static_cast<RenderData3D *>(simulationData);
+    _editor->initSimulation(data->grid);
 }

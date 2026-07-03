@@ -23,6 +23,7 @@ public:
     ~SimulationDisplay3D() override;
 
     void update(void* renderData) override;
+    void reset(void* simulationData) override;
 
 private:
     Renderer3D* _renderer{};

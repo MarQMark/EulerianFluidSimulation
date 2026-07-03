@@ -23,19 +23,6 @@ void PropertiesView::render(void* renderData) {
         ImGui::SetWindowFocus("Properties");
     }
 
-    if(ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R) && !_show_search)
-        SET_PROPERTY_B(SIMULATION_REBUILD, true);
-    if(ImGui::IsKeyPressed(ImGuiKey_R) && !_show_search)
-        SET_PROPERTY_B(SIMULATION_RESET, true);
-    if(ImGui::IsKeyPressed(ImGuiKey_I) && !_show_search)
-        SET_PROPERTY_B(SIMULATION_INITIALIZED, false);
-    if (ImGui::IsKeyPressed(ImGuiKey_P) && !_show_search)
-        SET_PROPERTY_B(PAUSED, !PROPERTY_B(PAUSED));
-    if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_S) && !_show_search)
-        ADD_PROPERTY_I(SIMULATION_STEPS, 1);
-    if (ImGui::IsKeyPressed(ImGuiKey_G) && !_show_search)
-        SET_PROPERTY_B(GRAVITY_ENABLED, !PROPERTY_B(GRAVITY_ENABLED));
-
     if (_show_search)
         render_search();
     else

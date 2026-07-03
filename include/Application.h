@@ -19,6 +19,7 @@ private:
     Views* _views{};
 
     void rebuild();
+    void reset();
 
     void input_handler();
 };
