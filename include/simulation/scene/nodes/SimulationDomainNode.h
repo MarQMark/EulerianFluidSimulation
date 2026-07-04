@@ -16,6 +16,8 @@ public:
     SimulationDomainNode();
     explicit SimulationDomainNode(const nlohmann::json& json);
     NodeProperties buildProperties() override;
+    nlohmann::json toJson() const override;
+    std::string getTypeName() const override;
 
 private:
     SimulationDomain _domain;

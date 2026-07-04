@@ -10,6 +10,8 @@
 #include "simulation/scene/nodes/BoundingBoxNode.h"
 
 FluidNode::FluidNode() {
+    savable = false;
+
     // --- Model ---
     auto fluidMesh = std::make_unique<Mesh>("FluidMesh", 1, 1);
     _cubes = new MarchingCubes(fluidMesh.get());

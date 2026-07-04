@@ -18,7 +18,15 @@ SimulationDomainNode::SimulationDomainNode()
 }
 
 SimulationDomainNode::SimulationDomainNode(const nlohmann::json& json) : BoundingBoxNode(json) {
-    // TODO - Read from json
+    _domain.resolution = {
+        json["resolution"][0].get<int>(),
+        json["resolution"][1].get<int>(),
+        json["resolution"][2].get<int>()
+    };
+
+    SET_PROPERTY_I(WIDTH_3D, _domain.resolution.x);
+    SET_PROPERTY_I(HEIGHT_3D, _domain.resolution.y);
+    SET_PROPERTY_I(DEPTH_3D, _domain.resolution.z);
 }
 
 NodeProperties SimulationDomainNode::buildProperties() {
@@ -41,4 +49,16 @@ NodeProperties SimulationDomainNode::buildProperties() {
     ));
 
     return properties;
+}
+
+nlohmann::json SimulationDomainNode::toJson() const {
+    nlohmann::json j = BoundingBoxNode::toJson();
+
+    j["resolution"] = { _domain.resolution.x, _domain.resolution.y, _domain.resolution.z };
+
+    return j;
+}
+
+std::string SimulationDomainNode::getTypeName() const {
+    return "SimulationDomainNode";
 }

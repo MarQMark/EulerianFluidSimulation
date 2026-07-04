@@ -51,8 +51,14 @@ void Scene::addSceneNode(std::unique_ptr<SceneNode> node) {
     if (auto *fluid = dynamic_cast<FluidNode*>(node.get()))
         this->fluid = fluid;
 
-    if (auto *domain = dynamic_cast<SimulationDomainNode*>(node.get()))
+    if (auto *domain = dynamic_cast<SimulationDomainNode*>(node.get())) {
+        // Remove old simulation domain
+        if (this->simulationDomain) {
+            removeSceneNode(this->simulationDomain);
+        }
+
         this->simulationDomain = domain;
+    }
 
     if (auto* model = dynamic_cast<ModelNode*>(node.get()))
         models.push_back(model);
@@ -118,20 +124,20 @@ void Scene::saveScene(const std::string& path) const {
     Config config;
 
     // Simulation domain
-    nlohmann::json domain;
-    domain["position"] = {
-        simulationDomain->getPosition().x,
-        simulationDomain->getPosition().y,
-        simulationDomain->getPosition().z
-    };
-
-    domain["scale"] = {
-        simulationDomain->getScale().x,
-        simulationDomain->getScale().y,
-        simulationDomain->getScale().z
-    };
-
-    config.set<nlohmann::json>("simulationDomain", domain);
+    // nlohmann::json domain;
+    // domain["position"] = {
+    //     simulationDomain->getPosition().x,
+    //     simulationDomain->getPosition().y,
+    //     simulationDomain->getPosition().z
+    // };
+    //
+    // domain["scale"] = {
+    //     simulationDomain->getScale().x,
+    //     simulationDomain->getScale().y,
+    //     simulationDomain->getScale().z
+    // };
+    //
+    // config.set<nlohmann::json>("simulationDomain", domain);
 
     // Scene Nodes
     nlohmann::json nodes = nlohmann::json::array();
@@ -155,17 +161,17 @@ void Scene::loadScene(const std::string& path) {
 
     if (config.load(path)) {
         // Set simulation domain
-        auto domain = config.get<nlohmann::json>("simulationDomain", {});
-        simulationDomain->setPosition(glm::vec3(
-            domain["position"][0].get<float>(),
-            domain["position"][1].get<float>(),
-            domain["position"][2].get<float>()
-        ));
-        simulationDomain->setScale(glm::vec3(
-            domain["scale"][0].get<float>(),
-            domain["scale"][1].get<float>(),
-            domain["scale"][2].get<float>()
-        ));
+        // auto domain = config.get<nlohmann::json>("simulationDomain", {});
+        // simulationDomain->setPosition(glm::vec3(
+        //     domain["position"][0].get<float>(),
+        //     domain["position"][1].get<float>(),
+        //     domain["position"][2].get<float>()
+        // ));
+        // simulationDomain->setScale(glm::vec3(
+        //     domain["scale"][0].get<float>(),
+        //     domain["scale"][1].get<float>(),
+        //     domain["scale"][2].get<float>()
+        // ));
 
         // Load scene nodes
         for (auto &node : config.get<nlohmann::json>("nodes", {})) {
@@ -206,11 +212,14 @@ std::unique_ptr<SceneNode> Scene::nodeFromJson(const nlohmann::json& j) {
     if (type == "ForceFieldNode")
         return std::make_unique<ForceFieldNode>(j);
 
-    if (type == "BoundingBoxParticleSpawnNode")
+    if (type == "BoundingBoxFluidSpawnNode")
         return std::make_unique<BoundingBoxFluidSpawnNode>(j);
 
-    if (type == "ModelParticleSpawnNode")
+    if (type == "ModelFluidSpawnNode")
         return std::make_unique<ModelFluidSpawnNode>(j);
+
+    if (type == "SimulationDomainNode")
+        return std::make_unique<SimulationDomainNode>(j);
 
     throw std::runtime_error("Unknown node type: " + type);
 }

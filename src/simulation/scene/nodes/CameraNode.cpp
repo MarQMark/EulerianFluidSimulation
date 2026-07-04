@@ -13,6 +13,7 @@ CameraNode::CameraNode(Window* window, glm::vec3 position) : window(window) {
     deletable = false;
     sceneGraphHideable = false;
     gizmoEnabled = false;
+    savable = false;
 
     // Load config
     if (config.load("./configs/camera.json")) {
