@@ -15,15 +15,6 @@ ModelFluidSpawnNode::ModelFluidSpawnNode(const std::string& name, const std::sha
 }
 
 ModelFluidSpawnNode::ModelFluidSpawnNode(const nlohmann::json json) : ModelNode(json) {
-    // Particle spawn
-    // particleSpawn.restDensity = json["restDensity"];
-    // particleSpawn.particleSpacing = json["particleSpacing"];
-    // particleSpawn.color = glm::vec3(
-        // json["color"][0].get<float>(),
-        // json["color"][1].get<float>(),
-        // json["color"][2].get<float>()
-    // );
-
     init();
 }
 

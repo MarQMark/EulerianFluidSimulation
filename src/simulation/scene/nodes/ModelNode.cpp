@@ -22,26 +22,18 @@ ModelNode::ModelNode(const std::string& name, const std::shared_ptr<Model>& mode
 
 ModelNode::ModelNode(const nlohmann::json json) : SceneNode(json) {
     // Transform
-    position = {
-        json["position"][0].get<float>(),
-        json["position"][1].get<float>(),
-        json["position"][2].get<float>()
-    };
-    rotation = {
-        json["rotation"][3].get<float>(),
-        json["rotation"][0].get<float>(),
-        json["rotation"][1].get<float>(),
-        json["rotation"][2].get<float>()
-    };
-    scale = {
-        json["scale"][0].get<float>(),
-        json["scale"][1].get<float>(),
-        json["scale"][2].get<float>()
-    };
+    auto pos = json.value("position", std::vector{position.x, position.y, position.z});
+    position = { pos[0], pos[1], pos[2] };
+
+    auto rot = json.value("rotation", std::vector{rotation.x, rotation.y, rotation.z, rotation.w});
+    rotation = { rot[3], rot[0], rot[1], rot[2] };
+
+    auto scl = json.value("scale", std::vector{scale.x, scale.y, scale.z});
+    scale = { scl[0], scl[1], scl[2] };
 
     // ModelNode
-    boundary = json["boundary"];
-    model = std::make_shared<Model>(json["path"]);
+    boundary = json.value("boundary", boundary);
+    model = std::make_shared<Model>(json.value("path", "assets/models/suzanne.obj"));
 
     // Add bounding box node as child
     auto bbNode = std::make_unique<BoundingBoxNode>("Bounding Box", glm::vec4(1.0f));

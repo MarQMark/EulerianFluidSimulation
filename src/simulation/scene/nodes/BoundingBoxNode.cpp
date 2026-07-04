@@ -20,22 +20,20 @@ BoundingBoxNode::BoundingBoxNode(const std::string& name, glm::vec3 color) {
 
 BoundingBoxNode::BoundingBoxNode(const nlohmann::json json) : SceneNode(json) {
     // Transform
-    position = {
-        json["position"][0].get<float>(),
-        json["position"][1].get<float>(),
-        json["position"][2].get<float>()
-    };
-    scale = {
-        json["scale"][0].get<float>(),
-        json["scale"][1].get<float>(),
-        json["scale"][2].get<float>()
-    };
+    auto pos = json.value("position", std::vector{position.x, position.y, position.z});
+    position = { pos[0], pos[1], pos[2] };
+
+    auto scl = json.value("scale", std::vector{scale.x, scale.y, scale.z});
+    scale = { scl[0], scl[1], scl[2] };
 
     Transform::updateTransform();
 
     mesh = Mesh::createWireframeBox(name);
     material = std::make_unique<Material>("Wireframe", Shader::createBox());
-    material->setVec3("color", { json["color"][0], json["color"][1], json["color"][2] });
+
+    auto clr = json.value("color", std::vector{color.x, color.y, color.z});
+    color = { clr[0], clr[1], clr[2] };
+    material->setVec3("color", { clr[0], clr[1], clr[2] });
 }
 
 void BoundingBoxNode::update(float deltaTime) { }

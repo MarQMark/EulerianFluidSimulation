@@ -23,28 +23,20 @@ ForceFieldNode::ForceFieldNode(const std::string& name) {
 
 ForceFieldNode::ForceFieldNode(const nlohmann::json json) : SceneNode(json) {
     // Transform
-    position = {
-        json["position"][0].get<float>(),
-        json["position"][1].get<float>(),
-        json["position"][2].get<float>()
-    };
-    rotation = {
-        json["rotation"][3].get<float>(),
-        json["rotation"][0].get<float>(),
-        json["rotation"][1].get<float>(),
-        json["rotation"][2].get<float>()
-    };
-    scale = {
-        json["scale"][0].get<float>(),
-        json["scale"][1].get<float>(),
-        json["scale"][2].get<float>()
-    };
+    auto pos = json.value("position", std::vector{position.x, position.y, position.z});
+    position = { pos[0], pos[1], pos[2] };
+
+    auto rot = json.value("rotation", std::vector{rotation.x, rotation.y, rotation.z, rotation.w});
+    rotation = { rot[3], rot[0], rot[1], rot[2] };
+
+    auto scl = json.value("scale", std::vector{scale.x, scale.y, scale.z});
+    scale = { scl[0], scl[1], scl[2] };
 
     ForceFieldNode::updateTransform();
 
     // Forcefield
-    forceField.active = json["active"];
-    forceField.strength = json["strength"];
+    forceField.active = json.value("active", forceField.active);
+    forceField.strength = json.value("strength", forceField.strength);
 
     model = std::make_unique<Model>("assets/models/forceField.obj", false);
 

@@ -87,10 +87,6 @@ void Scene::removeSceneNode(const SceneNode* node) {
     std::erase_if(sceneNodes, [&](const std::unique_ptr<SceneNode>& n) { return n.get() == node; });
 }
 
-void Scene::setSimulationDomain(SimulationDomainNode* domain) {
-    simulationDomain = domain;
-}
-
 BoundingBoxNode* Scene::getSimulationDomain() const {
     return simulationDomain;
 }
@@ -123,31 +119,11 @@ std::vector<SceneNode*> Scene::getSceneNodes() const {
 void Scene::saveScene(const std::string& path) const {
     Config config;
 
-    // Simulation domain
-    // nlohmann::json domain;
-    // domain["position"] = {
-    //     simulationDomain->getPosition().x,
-    //     simulationDomain->getPosition().y,
-    //     simulationDomain->getPosition().z
-    // };
-    //
-    // domain["scale"] = {
-    //     simulationDomain->getScale().x,
-    //     simulationDomain->getScale().y,
-    //     simulationDomain->getScale().z
-    // };
-    //
-    // config.set<nlohmann::json>("simulationDomain", domain);
-
     // Scene Nodes
     nlohmann::json nodes = nlohmann::json::array();
     for (int i = 0 ; i < sceneNodes.size(); i++) {
         if (!sceneNodes[i]->isSavable())
             continue;
-
-        // Skip simulation domain as saved separately
-        // if (sceneNodes[i]->hasTag(FluidSimulation::SimulationDomainTag))
-            // continue;
 
         nodes.push_back(sceneNodes[i]->toJson());
     }
@@ -160,18 +136,7 @@ void Scene::loadScene(const std::string& path) {
     Config config;
 
     if (config.load(path)) {
-        // Set simulation domain
-        // auto domain = config.get<nlohmann::json>("simulationDomain", {});
-        // simulationDomain->setPosition(glm::vec3(
-        //     domain["position"][0].get<float>(),
-        //     domain["position"][1].get<float>(),
-        //     domain["position"][2].get<float>()
-        // ));
-        // simulationDomain->setScale(glm::vec3(
-        //     domain["scale"][0].get<float>(),
-        //     domain["scale"][1].get<float>(),
-        //     domain["scale"][2].get<float>()
-        // ));
+        resetScene();
 
         // Load scene nodes
         for (auto &node : config.get<nlohmann::json>("nodes", {})) {
