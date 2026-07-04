@@ -87,7 +87,7 @@ void Scene::removeSceneNode(const SceneNode* node) {
     std::erase_if(sceneNodes, [&](const std::unique_ptr<SceneNode>& n) { return n.get() == node; });
 }
 
-BoundingBoxNode* Scene::getSimulationDomain() const {
+SimulationDomainNode* Scene::getSimulationDomain() const {
     return simulationDomain;
 }
 

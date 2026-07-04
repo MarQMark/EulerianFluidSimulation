@@ -7,8 +7,9 @@
 
 #include "BoundingBoxNode.h"
 
-struct SimulationDomain {
+struct SimulationDomainSettings {
     glm::ivec3 resolution = glm::ivec3(10, 10, 10);
+    float percentageFilled = 0.0f;
 };
 
 class SimulationDomainNode : public BoundingBoxNode {
@@ -19,8 +20,9 @@ public:
     nlohmann::json toJson() const override;
     std::string getTypeName() const override;
 
+    SimulationDomainSettings getDomainSettings() const;
 private:
-    SimulationDomain _domain;
+    SimulationDomainSettings _settings;
 };
 
 #endif //EULERIANFLUIDSIMULATION_SIMULATIONDOMAINNODE_H

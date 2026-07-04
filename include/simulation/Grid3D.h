@@ -1,8 +1,6 @@
 #ifndef GRID3D_H
 #define GRID3D_H
 
-#include <map>
-
 #include "ScalField3D.h"
 #include "VecField3D.h"
 #include "compute/StorageBuffer.h"

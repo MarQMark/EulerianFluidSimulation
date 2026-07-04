@@ -31,7 +31,7 @@ public:
     CameraNode* getCamera() const;
     FluidNode* getFluid() const;
 
-    BoundingBoxNode* getSimulationDomain() const;
+    SimulationDomainNode* getSimulationDomain() const;
 
     std::vector<ModelNode*> getModels() const;
     std::vector<BoundingBoxNode*> getBoundingBoxes() const;

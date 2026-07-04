@@ -8,10 +8,13 @@
 #include "simulation/scene/nodes/ForceFieldNode.h"
 #include "simulation/scene/Scene.h"
 
+class ScalField3D;
 class Grid3D;
 
 class Editor {
 public:
+    Editor();
+
     void initSimulation(Grid3D* grid);
 
     void setScene(Scene* scene);
@@ -38,8 +41,13 @@ public:
     // --- Window Resizes ---
     void updateRenderingSize(int width, int height) const;
 private:
-    Scene* scene;
-    SceneNode* selectedNode = nullptr;
+    void initFluid(ScalField3D& rho) const;
+
+    Scene* _scene;
+    SceneNode* _selectedNode = nullptr;
+
+    std::unique_ptr<Shader> _sdfShader;
+    std::unique_ptr<Shader> _baseFluidFillShader;
 };
 
 #endif //SPHLASH_EDITOR_H

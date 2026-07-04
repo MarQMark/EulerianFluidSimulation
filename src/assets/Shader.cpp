@@ -20,6 +20,13 @@ Shader::Shader(std::initializer_list<std::pair<std::string, Type>> sources, bool
         this->compile();
 }
 
+Shader::Shader(const std::string& source, Type type, bool compile) {
+    addSource(source, type);
+
+    if (compile)
+        this->compile();
+}
+
 Shader::~Shader() {
     glDeleteProgram(shader);
 }
