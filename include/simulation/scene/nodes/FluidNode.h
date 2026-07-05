@@ -20,6 +20,8 @@ public:
     void update(float deltaTime) override;
     void draw(const glm::mat4& view, const glm::mat4& projection) const override;
     NodeProperties buildProperties() override;
+    std::string getTypeName() const override;
+    std::string getDefaultName() const override;
 
 private:
     std::shared_ptr<Model> _fluidModel;

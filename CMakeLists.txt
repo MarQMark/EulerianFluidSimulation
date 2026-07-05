@@ -49,6 +49,7 @@ add_library(imgui
 target_include_directories(imgui PUBLIC
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
+    ${IMGUI_DIR}/misc/cpp
     external/ImGuiFileDialog
 )
 

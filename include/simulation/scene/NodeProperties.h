@@ -99,6 +99,18 @@ struct Texture2DProperty : NodeProperty {
     void draw() override;
 };
 
+struct StringProperty : NodeProperty {
+    StringProperty(const std::string& name, std::function<std::string()> get, std::function<void (std::string)> set)
+        : name(name), get(std::move(get)), set(std::move(set))
+    {};
+
+    std::string                         name;
+    std::function<std::string()>        get;
+    std::function<void (std::string)>   set;
+
+    void draw() override;
+};
+
 struct Section {
     std::string name;
     int index;

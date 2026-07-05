@@ -24,6 +24,8 @@ public:
     const std::string& getName() const;
     void setName(const std::string& name);
 
+    virtual std::string getDefaultName() const;
+
     bool isVisible() const;
     void setVisible(bool visible);
 
@@ -54,9 +56,11 @@ public:
     virtual std::string getTypeName() const;
 
     std::vector<SceneNode*> getChildren() const;
+    NodeProperties buildProperties() override;
 
 protected:
     std::string name;
+
     Scene* scene;
 
     bool visible = true;

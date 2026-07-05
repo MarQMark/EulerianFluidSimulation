@@ -40,6 +40,8 @@ public:
 
     NodeProperties buildProperties() override;
 
+    std::string getDefaultName() const override;
+
 private:
     void updateVectors();
 

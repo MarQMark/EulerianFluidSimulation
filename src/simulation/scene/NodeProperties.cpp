@@ -6,6 +6,7 @@
 #include "imgui.h"
 #include "ImGuiFileDialog.h"
 #include "glm/gtc/type_ptr.hpp"
+#include "imgui_stdlib.h"
 
 void FloatProperty::draw() {
     ImGui::Text("%s:", name.c_str());
@@ -82,6 +83,15 @@ void Texture2DProperty::draw() {
         config.path = ".";
         ImGuiFileDialog::Instance()->OpenDialog("LoadTexture", "Choose location", ".png", config);
     }
+}
+
+void StringProperty::draw() {
+    ImGui::Text("%s:", name.c_str());
+    const std::string id = "##" + name;
+
+    std::string v = get();
+    if (ImGui::InputText(id.c_str(), &v))
+        set(v);
 }
 
 void NodeProperties::addSection(const std::string& section) {

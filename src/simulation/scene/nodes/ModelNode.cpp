@@ -3,8 +3,9 @@
 //
 
 #include "simulation/scene/nodes/ModelNode.h"
-#include "../../../../include/simulation/scene/nodes/BoundingBoxNode.h"
+#include "simulation/scene/nodes/BoundingBoxNode.h"
 #include "assets/Model.h"
+#include "simulation/scene/Scene.h"
 
 ModelNode::ModelNode(const std::string& name, const std::shared_ptr<Model>& model) {
     this->name = name;
@@ -86,7 +87,7 @@ void ModelNode::draw(const glm::mat4& view, const glm::mat4& projection) const {
 }
 
 NodeProperties ModelNode::buildProperties() {
-    NodeProperties properties;
+    NodeProperties properties = SceneNode::buildProperties();
 
     properties.addSection("Transform");
     properties.addProperty(std::make_unique<Vec3Property>(

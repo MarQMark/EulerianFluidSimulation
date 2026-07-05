@@ -26,7 +26,7 @@ FluidSpawn ModelFluidSpawnNode::getFluidSpawn() {
 }
 
 NodeProperties ModelFluidSpawnNode::buildProperties() {
-    NodeProperties properties;
+    NodeProperties properties = SceneNode::buildProperties();
 
     properties.addSection("Transform");
     properties.addProperty(std::make_unique<Vec3Property>(
@@ -62,13 +62,7 @@ std::string ModelFluidSpawnNode::getTypeName() const {
 void ModelFluidSpawnNode::init() {
     this->model->clearMaterials();
 
-    // Add unshaded material
-    Material wireframe("Wireframe", Shader::createDefaultUnshaded());
-    wireframe.setFillMode(FillMode::Wireframe);
-    wireframe.setCullFaces(false);
-    // wireframe.setVec3("albedo", glm::vec3(particleSpawn.color.x, particleSpawn.color.y, particleSpawn.color.z));
-
-    this->model->addMaterial(wireframe);
+    this->model->addMaterial(Material::createWireframe());
     for (const auto m : this->model->getMeshes())
         m->setMaterialIndex(0);
 

@@ -2,7 +2,7 @@
 // Created by ruut on 5/31/26.
 //
 
-#include "../../../../include/simulation/scene/nodes/SceneNode.h"
+#include "simulation/scene/nodes/SceneNode.h"
 
 SceneNode::SceneNode(const nlohmann::json j) {
     this->name = j["name"];
@@ -16,6 +16,10 @@ const std::string& SceneNode::getName() const {
 
 void SceneNode::setName(const std::string& name) {
     this->name = name;
+}
+
+std::string SceneNode::getDefaultName() const {
+    return "Node";
 }
 
 bool SceneNode::isVisible() const {
@@ -88,6 +92,19 @@ std::vector<SceneNode*> SceneNode::getChildren() const {
         result.push_back(c.get());
 
     return result;
+}
+
+NodeProperties SceneNode::buildProperties() {
+    NodeProperties properties;
+
+    properties.addSection("Node");
+    properties.addProperty(std::make_unique<StringProperty>(
+        "Name",
+        [this] () { return name; },
+        [this] (std::string n) { setName(n); }
+    ));
+
+    return properties;
 }
 
 bool SceneNode::isDeletable() const {

@@ -34,13 +34,7 @@ NodeProperties BoundingBoxFluidSpawnNode::buildProperties() {
 }
 
 nlohmann::json BoundingBoxFluidSpawnNode::toJson() const {
-    nlohmann::json j = BoundingBoxNode::toJson();
-
-    // j["restDensity"] = fluidSpawn.restDensity;
-    // j["particleSpacing"] = fluidSpawn.particleSpacing;
-    // j["color"] = { fluidSpawn.color.x, fluidSpawn.color.y, fluidSpawn.color.z };
-
-    return j;
+    return BoundingBoxNode::toJson();
 }
 
 std::string BoundingBoxFluidSpawnNode::getTypeName() const {

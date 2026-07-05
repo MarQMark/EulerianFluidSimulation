@@ -77,7 +77,7 @@ AABB BoundingBoxNode::getWorldBoundingBox() const {
 }
 
 NodeProperties BoundingBoxNode::buildProperties() {
-    NodeProperties properties;
+    NodeProperties properties = SceneNode::buildProperties();
 
     properties.addSection("Transform");
     properties.addProperty(std::make_unique<Vec3Property>(

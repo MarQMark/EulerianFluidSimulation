@@ -163,6 +163,11 @@ void Scene::resetScene() {
 
     for (auto* node : toRemove)
         removeSceneNode(node);
+
+    // Reset remaining nodes to default name
+    for (auto& node : sceneNodes) {
+        node->setName(node->getDefaultName());
+    }
 }
 
 std::unique_ptr<SceneNode> Scene::nodeFromJson(const nlohmann::json& j) {

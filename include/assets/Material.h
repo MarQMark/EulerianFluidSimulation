@@ -37,6 +37,7 @@ public:
 
     void setTexture(const std::string& name, std::shared_ptr<ITexture> tex);
 
+    static Material createWireframe();
 private:
     std::string name;
     std::shared_ptr<Shader> shader;

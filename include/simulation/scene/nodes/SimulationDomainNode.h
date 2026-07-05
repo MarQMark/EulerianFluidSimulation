@@ -21,6 +21,8 @@ public:
     std::string getTypeName() const override;
 
     SimulationDomainSettings getDomainSettings() const;
+    std::string getDefaultName() const override;
+
 private:
     SimulationDomainSettings _settings;
 };

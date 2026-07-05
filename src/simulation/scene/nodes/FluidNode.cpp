@@ -10,14 +10,15 @@
 #include "simulation/scene/nodes/BoundingBoxNode.h"
 
 FluidNode::FluidNode() {
+    name = "Fluid";
     savable = false;
+    gizmoEnabled = false;
 
     // --- Model ---
     auto fluidMesh = std::make_unique<Mesh>("FluidMesh", 1, 1);
     _cubes = new MarchingCubes(fluidMesh.get());
     _fluidModel = std::make_shared<Model>("Fluid", std::move(fluidMesh));
 
-    setSceneGraphVisible(false);
     setDeletable(false);
 
     Material fluidMaterial("Fluid", Shader::createDefaultShaded());
@@ -50,5 +51,13 @@ void FluidNode::draw(const glm::mat4& view, const glm::mat4& projection) const {
 }
 
 NodeProperties FluidNode::buildProperties() {
-    return {};
+    return SceneNode::buildProperties();
+}
+
+std::string FluidNode::getTypeName() const {
+    return "FluidNode";
+}
+
+std::string FluidNode::getDefaultName() const {
+    return "Fluid";
 }

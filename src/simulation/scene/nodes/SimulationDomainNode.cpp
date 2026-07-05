@@ -80,3 +80,7 @@ std::string SimulationDomainNode::getTypeName() const {
 SimulationDomainSettings SimulationDomainNode::getDomainSettings() const {
     return _settings;
 }
+
+std::string SimulationDomainNode::getDefaultName() const {
+    return "Simulation Domain";
+}
