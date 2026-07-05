@@ -19,7 +19,7 @@ void Editor::initSimulation(Grid3D* grid) {
     initFluid(grid->rho());
 
     // --- Init Boundaries ---
-    // TODO - Boundaries
+    initBoundaries(grid->boundary());
 }
 
 void Editor::setScene(Scene* scene) {
@@ -134,6 +134,62 @@ void Editor::initFluid(ScalField3D& rho) const {
         _sdfShader->dispatch(gx, gy, gz);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
         rhoBuffer.download(rho.data());
+    }
+}
+
+void Editor::initBoundaries(ScalField3D& boundary) const {
+    SimulationDomainNode* simulationDomainNode = _scene->getSimulationDomain();
+
+    const int width = boundary.width();
+    const int height = boundary.height();
+    const int depth = boundary.depth();
+
+    const int gx = (width + 7) / 8;
+    const int gy = (height + 7) / 8;
+    const int gz = (depth + 7) / 8;
+
+    StorageBuffer boundaryBuffer(boundary.size() * sizeof(float));
+    boundaryBuffer.clear();
+
+    // Fluid Spawns Init
+    std::vector<Triangle> triangles;
+
+    for (const auto& model : _scene->getModels()) {
+        if (!model->isBoundary())
+            return;
+
+        const auto& shape = model->getWorldSpaceTriangles();
+        triangles.insert(
+            triangles.end(),
+            shape.begin(),
+            shape.end()
+        );
+    }
+
+    if (!triangles.empty()) {
+        StorageBuffer triangleBuffer(triangles.size() * sizeof(Triangle));
+        triangleBuffer.upload(triangles.data());
+
+        _sdfShader->bind();
+        _sdfShader->setInt("uWidth",  boundary.width());
+        _sdfShader->setInt("uHeight", boundary.height());
+        _sdfShader->setInt("uDepth",  boundary.depth());
+
+        _sdfShader->setInt("uTriangleCount", triangles.size());
+
+        _sdfShader->setFloat("uValueInside", 1.0f);
+        _sdfShader->setFloat("uValueOutside", 0.0f);
+
+        auto domain = simulationDomainNode->getWorldBoundingBox();
+        _sdfShader->setVec3("uDomainSize", domain.size);
+        _sdfShader->setVec3("uDomainCenter", domain.center);
+
+        triangleBuffer.bind(0);
+        boundaryBuffer.bind(1);
+
+        _sdfShader->dispatch(gx, gy, gz);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+        boundaryBuffer.download(boundary.data());
     }
 }
 

@@ -42,6 +42,7 @@ public:
     void updateRenderingSize(int width, int height) const;
 private:
     void initFluid(ScalField3D& rho) const;
+    void initBoundaries(ScalField3D& boundary) const;
 
     Scene* _scene;
     SceneNode* _selectedNode = nullptr;

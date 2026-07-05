@@ -19,7 +19,7 @@ public:
     ModelNode(const nlohmann::json json);
 
     Model* getModel() const;
-    std::vector<Triangle> getWorldSpaceVertices() const;
+    std::vector<Triangle> getWorldSpaceTriangles() const;
 
     AABB getBoundingBox() const;
     AABB getWorldBoundingBox() const override;

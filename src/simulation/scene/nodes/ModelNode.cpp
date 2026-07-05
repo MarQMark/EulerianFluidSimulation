@@ -49,7 +49,7 @@ Model* ModelNode::getModel() const {
     return model.get();
 }
 
-std::vector<Triangle> ModelNode::getWorldSpaceVertices() const {
+std::vector<Triangle> ModelNode::getWorldSpaceTriangles() const {
     return model->getWorldSpaceTriangles(transform);
 }
 

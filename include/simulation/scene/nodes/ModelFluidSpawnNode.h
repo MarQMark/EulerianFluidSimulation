@@ -19,7 +19,6 @@ public:
 
     NodeProperties buildProperties() override;
 
-    nlohmann::json toJson() const override;
     std::string getTypeName() const override;
 
 private:

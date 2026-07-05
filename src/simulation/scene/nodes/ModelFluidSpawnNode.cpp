@@ -52,42 +52,7 @@ NodeProperties ModelFluidSpawnNode::buildProperties() {
         [this] (bool on) { boundingBox->setVisible(on); }
     ));
 
-    // properties.addSection("Particle Spawn");
-    // properties.addProperty(std::make_unique<FloatProperty>(
-    //     "Rest Density",
-    //     [this] () { return particleSpawn.restDensity; },
-    //     [this] (float mass) { particleSpawn.restDensity = mass; },
-    //     0.0, INFINITY, 1.0f
-    // ));
-    // properties.addProperty(std::make_unique<FloatProperty>(
-    //     "Particle Spacing",
-    //     [this] () { return particleSpawn.particleSpacing; },
-    //     [this] (float spacing) { particleSpawn.particleSpacing = spacing; },
-    //     0.001f, INFINITY, 0.0001f
-    // ));
-    // properties.addProperty(std::make_unique<ColorProperty>(
-    //     "Particle Color",
-    //     [this] () { return glm::vec3(particleSpawn.color.x, particleSpawn.color.y, particleSpawn.color.z); },
-    //     [this] (glm::vec3 color)
-    //     {
-    //         particleSpawn.color = glm::vec3(color.x, color.y, color.z);
-    //
-    //         model->getMaterial(0)->bind();
-    //         model->getMaterial(0)->setVec3("albedo", color);
-    //     }
-    // ));
-
     return properties;
-}
-
-nlohmann::json ModelFluidSpawnNode::toJson() const {
-    nlohmann::json j = ModelNode::toJson();
-
-    // j["restDensity"] = particleSpawn.restDensity;
-    // j["particleSpacing"] = particleSpawn.particleSpacing;
-    // j["color"] = { particleSpawn.color.x, particleSpawn.color.y, particleSpawn.color.z };
-
-    return j;
 }
 
 std::string ModelFluidSpawnNode::getTypeName() const {
