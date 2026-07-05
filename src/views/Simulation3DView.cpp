@@ -2,6 +2,7 @@
 #include "imgui.h"
 #include "ImGuizmo.h"
 #include "core/Editor.h"
+#include "core/Input.h"
 #include "glm/gtc/type_ptr.hpp"
 #include "renderer/Renderer3D.h"
 #include "simulation/Properties.h"
@@ -51,19 +52,19 @@ void Simulation3DView::render(void* renderData) {
         static ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
         static ImGuizmo::MODE mode = ImGuizmo::MODE::WORLD;
 
-        if (ImGui::IsKeyPressed(ImGuiKey_F))
+        if (Input::Get()->isKeyPressed(Window::Key::F))
             operation = ImGuizmo::TRANSLATE;
 
-        if (ImGui::IsKeyPressed(ImGuiKey_G))
+        if (Input::Get()->isKeyPressed(Window::Key::G))
             operation = ImGuizmo::ROTATE;
 
-        if (ImGui::IsKeyPressed(ImGuiKey_H))
+        if (Input::Get()->isKeyPressed(Window::Key::H))
             operation = ImGuizmo::SCALE;
 
-        if (ImGui::IsKeyPressed(ImGuiKey_J))
+        if (Input::Get()->isKeyPressed(Window::Key::J))
             mode = ImGuizmo::MODE::WORLD;
 
-        if (ImGui::IsKeyPressed(ImGuiKey_K))
+        if (Input::Get()->isKeyPressed(Window::Key::K))
             mode = ImGuizmo::MODE::LOCAL;
 
         ImGui::SetNextWindowPos({ viewportPos.x + 5, viewportPos.y + 5 });

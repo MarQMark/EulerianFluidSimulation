@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "core/Input.h"
 #include "glm/geometric.hpp"
 #include "imgui/imgui.h"
 #include "simulation/Grid2D.h"
@@ -29,7 +30,7 @@ void Simulation2DView::render(void* renderData) {
 
     ImGui::Begin("Simulation 2D View");
 
-    if(ImGui::IsKeyPressed(ImGuiKey_M)) {
+    if(Input::Get()->isKeyPressed(Window::Key::M)) {
         _mode = (Mode)((_mode + 1) % END);
     }
 
@@ -68,7 +69,7 @@ void Simulation2DView::render(void* renderData) {
     if (ImGui::IsItemHovered()) {
         const ImVec2 mouse = ImGui::GetIO().MousePos;
 
-        const float multi = ImGui::IsKeyDown(ImGuiKey_LeftShift) ? 7.f : 2.f;
+        const float multi = Input::Get()->isKeyDown(Window::Key::LeftShift) ? 7.f : 2.f;
         ADD_PROPERTY_F(BRUSH_SIZE, ImGui::GetIO().MouseWheel * multi);
 
         constexpr ImU32 color = IM_COL32(255, 0, 0, 255);

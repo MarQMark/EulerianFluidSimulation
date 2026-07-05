@@ -163,7 +163,8 @@ public:
     Window(int width, int height, std::string  title);
     ~Window();
 
-    void update() const;
+    void processEvents() const;
+    void swapBuffers() const;
     bool shouldClose() const;
 
     void setCursorMode(CursorMode mode) const;

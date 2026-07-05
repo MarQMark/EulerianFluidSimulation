@@ -86,9 +86,12 @@ Window::~Window() {
     glfwTerminate();
 }
 
-void Window::update() const {
-    glfwSwapBuffers(_win);
+void Window::processEvents() const {
     glfwPollEvents();
+}
+
+void Window::swapBuffers() const {
+    glfwSwapBuffers(_win);
 }
 
 bool Window::shouldClose() const {

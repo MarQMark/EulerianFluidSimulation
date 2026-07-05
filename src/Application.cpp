@@ -1,8 +1,7 @@
 #include "Application.h"
 
 #include <ranges>
-
-#include "core/InputManager.h"
+#include "core/Input.h"
 #include "simulation/Properties.h"
 #include "simulator/CPUSimulator2D.h"
 #include "simulator/CPUSimulator3D.h"
@@ -17,7 +16,7 @@
 
 Application::Application() {
     _window = new Window(1280, 720, "Eulerian Fluid Simulation");
-	Input.addInputWindow(_window);
+	Input::Get()->addInputWindow(_window);
 
     _views = new Views(_window);
     _views->addView("Properties", new PropertiesView());
@@ -39,6 +38,7 @@ Application::~Application() {
 
 void Application::update() {
     while (!_window->shouldClose()) {
+    	_window->processEvents();
     	Time::Get()->update();
 
     	if ((!PROPERTY_B(PAUSED) || PROPERTY_I(SIMULATION_STEPS) > 0) && PROPERTY_B(SIMULATION_INITIALIZED)) {
@@ -50,12 +50,12 @@ void Application::update() {
 
         _display->update(_simulator->getRenderData());
         _views->update(_simulator->getRenderData());
-    	_window->update();
+    	_window->swapBuffers();
 
         input_handler();
 
     	Time::Get()->limitFPS();
-    	Input.reset();
+    	Input::Get()->update();
 
     	if (PROPERTY_B(SIMULATION_REBUILD))
     		rebuild();
@@ -151,53 +151,14 @@ void Application::reset() {
 }
 
 void Application::input_handler() {
-    const bool searching = _views->getView<PropertiesView>("Properties")->searching();
-
-	if(ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R) && !searching)
+	if (Input::Get()->isKeyDown(Window::Key::LeftControl) && Input::Get()->isKeyPressed(Window::Key::R))
 		SET_PROPERTY_B(SIMULATION_REBUILD, true);
-    if(ImGui::IsKeyPressed(ImGuiKey_R) && !searching)
+    if(Input::Get()->isKeyPressed(Window::Key::R))
     	SET_PROPERTY_B(SIMULATION_RESET, true);
-    if (ImGui::IsKeyPressed(ImGuiKey_P) && !searching)
+    if (Input::Get()->isKeyPressed(Window::Key::P) || Input::Get()->isKeyPressed(Window::Key::Space))
     	SET_PROPERTY_B(PAUSED, !PROPERTY_B(PAUSED));
-    if (ImGui::IsKeyPressed(ImGuiKey_G) && !searching)
+    if (Input::Get()->isKeyPressed(Window::Key::G))
     	SET_PROPERTY_B(GRAVITY_ENABLED, !PROPERTY_B(GRAVITY_ENABLED));
-	if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_S) && !searching)
+	if (Input::Get()->isKeyDown(Window::Key::LeftControl) && Input::Get()->isKeyPressed(Window::Key::S))
 		ADD_PROPERTY_I(SIMULATION_STEPS, 1);
-
-    /*if (ImGui::IsKeyPressed(ImGuiKey_F1) && !searching) {
-    	if (!_views->getView("FieldViewerVel"))
-    		_views->addView("FieldViewerVel", new FieldViewerView(&_grid->vel(), "Velocity Viewer"));
-    	else
-    		_views->deleteView("FieldViewerVel");
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_F2) && !searching) {
-    	if (!_views->getView("FieldViewerRho"))
-    		_views->addView("FieldViewerRho", new FieldViewerView(&_grid->rho(), "Rho Viewer"));
-    	else
-    		_views->deleteView("FieldViewerRho");
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_F3) && !searching) {
-    	if (!_views->getView("FieldViewerGamma"))
-    		_views->addView("FieldViewerGamma", new FieldViewerView(&_grid->gamma(), "Gamma Viewer"));
-    	else
-    		_views->deleteView("FieldViewerGamma");
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_F4) && !searching) {
-    	if (!_views->getView("FieldViewerBeta"))
-    		_views->addView("FieldViewerBeta", new FieldViewerView(&_grid->beta(), "Beta Viewer"));
-    	else
-    		_views->deleteView("FieldViewerBeta");
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_F5) && !searching) {
-    	if (!_views->getView("FieldViewerDiv"))
-    		_views->addView("FieldViewerDiv", new FieldViewerView(&_grid->divergence(), "Divergence Viewer"));
-    	else
-    		_views->deleteView("FieldViewerDiv");
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_F6) && !searching) {
-    	if (!_views->getView("FieldViewerPressure"))
-    		_views->addView("FieldViewerPressure", new FieldViewerView(&_grid->pressure(), "Pressure Viewer"));
-    	else
-    		_views->deleteView("FieldViewerPressure");
-    }*/
 }

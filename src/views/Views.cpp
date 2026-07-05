@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 
 #include "ImGuizmo.h"
+#include "core/Input.h"
 #include "simulation/Properties.h"
 
 Views::Views(const Window* window) {
@@ -112,8 +113,7 @@ void Views::update(void* renderData) {
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
     }
 
-    // bool show_demo_window = true;
-    // ImGui::ShowDemoWindow(&show_demo_window);
+    Input::Get()->setInputBlocked(io.WantTextInput);
 
     for (const auto view: _views | std::views::values)
         view->render(renderData);

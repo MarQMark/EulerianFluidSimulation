@@ -3,7 +3,7 @@
 //
 
 #include "simulation/scene/nodes/CameraNode.h"
-#include "core/InputManager.h"
+#include "core/Input.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "simulation/scene/NodeProperties.h"
@@ -48,61 +48,61 @@ void CameraNode::reset() {
 void CameraNode::update(float deltaTime) {
     float velocity = movementSpeed * deltaTime;
 
-    if (Input.isKeyPressed(Window::Key::LeftShift))
+    if (Input::Get()->isKeyDown(Window::Key::LeftShift))
         velocity *= speedMultiplier;
 
     // Movement
-    if (Input.isKeyPressed(Window::Key::W))
+    if (Input::Get()->isKeyDown(Window::Key::W))
         position += front * velocity;
-    if (Input.isKeyPressed(Window::Key::S))
+    if (Input::Get()->isKeyDown(Window::Key::S))
         position -= front * velocity;
-    if (Input.isKeyPressed(Window::Key::A))
+    if (Input::Get()->isKeyDown(Window::Key::A))
         position -= right * velocity;
-    if (Input.isKeyPressed(Window::Key::D))
+    if (Input::Get()->isKeyDown(Window::Key::D))
         position += right * velocity;
 
-    if (Input.isKeyPressed(Window::Key::E))
+    if (Input::Get()->isKeyDown(Window::Key::E))
         position += worldUp * velocity;
-    if (Input.isKeyPressed(Window::Key::Q))
+    if (Input::Get()->isKeyDown(Window::Key::Q))
         position -= worldUp * velocity;
 
     // Mouse Look (Keyboard)
-    if (Input.isKeyPressed(Window::Key::Up))
+    if (Input::Get()->isKeyDown(Window::Key::Up))
         pitch += keyboardSensitivity * deltaTime;
-    if (Input.isKeyPressed(Window::Key::Down))
+    if (Input::Get()->isKeyDown(Window::Key::Down))
         pitch -= keyboardSensitivity * deltaTime;
-    if (Input.isKeyPressed(Window::Key::Left))
+    if (Input::Get()->isKeyDown(Window::Key::Left))
         yaw -= keyboardSensitivity * deltaTime;
-    if (Input.isKeyPressed(Window::Key::Right))
+    if (Input::Get()->isKeyDown(Window::Key::Right))
         yaw += keyboardSensitivity * deltaTime;
 
     // Axis aligned presets
-    if (Input.isKeyPressed(Window::Key::F1)) {
+    if (Input::Get()->isKeyPressed(Window::Key::F1)) {
         position = { 0.0, 0.0, position.z == 0.0 ? 2.0f : position.z };
         pitch   = 0.0f;
         yaw     = -90.f;
     }
 
-    if (Input.isKeyPressed(Window::Key::F2)) {
+    if (Input::Get()->isKeyPressed(Window::Key::F2)) {
         position = { position.x == 0.0 ? -2.0f : position.x, 0.0, 0.0 };
         pitch   = 0.0f;
         yaw     = 0.0f;
     }
 
-    if (Input.isKeyPressed(Window::Key::F3)) {
+    if (Input::Get()->isKeyPressed(Window::Key::F3)) {
         position = { 0.0, position.y == 0.0 ? 2.0f : position.y, 0.0 };
         pitch   = -89.99f;
         yaw     = -90.0f;
     }
 
-    if (Input.isKeyPressed(Window::Key::F5))
+    if (Input::Get()->isKeyPressed(Window::Key::F5))
         mode = Mode::PERSPECTIVE;
 
-    if (Input.isKeyPressed(Window::Key::F6))
+    if (Input::Get()->isKeyPressed(Window::Key::F6))
         mode = Mode::ORTHOGRAPHIC;
 
     // Update mouse camera controls only if currently hovering the correct window or dragging
-    if ((Input.isMouseButtonPressed(Window::MouseButton::LEFT) && Input.isKeyPressed(Window::Key::LeftControl)) || Input.isMouseButtonPressed(Window::MouseButton::RIGHT)) {
+    if ((Input::Get()->isMouseButtonDown(Window::MouseButton::LEFT) && Input::Get()->isKeyDown(Window::Key::LeftControl)) || Input::Get()->isMouseButtonDown(Window::MouseButton::RIGHT)) {
         if (updateMouse) {
             mouseDragging = true;
             window->setCursorMode(Window::CursorMode::CURSOR_HIDDEN);
@@ -115,7 +115,7 @@ void CameraNode::update(float deltaTime) {
     if (!updateMouse && !mouseDragging)
         return;
 
-    auto mousePos = Input.getMousePosition();
+    auto mousePos = Input::Get()->getMousePosition();
 
     float xDelta = prevMousePosition.x - mousePos.x;
     float yDelta = prevMousePosition.y - mousePos.y;
@@ -126,22 +126,22 @@ void CameraNode::update(float deltaTime) {
     }
 
     // Mouse Look (MOUSE)
-    if (Input.isMouseButtonPressed(Window::MouseButton::RIGHT)) {
+    if (Input::Get()->isMouseButtonDown(Window::MouseButton::RIGHT)) {
         yaw -= xDelta * mouseSensitivity;
         pitch += yDelta * mouseSensitivity;
         pitch = glm::clamp(pitch, -89.99f, 89.99f);
     }
 
     // Mouse Pan
-    if (Input.isMouseButtonPressed(Window::MouseButton::LEFT) && Input.isKeyPressed(Window::Key::LeftControl)) {
+    if (Input::Get()->isMouseButtonDown(Window::MouseButton::LEFT) && Input::Get()->isKeyDown(Window::Key::LeftControl)) {
         position += right * xDelta * orthoScale * orthoSensitivity;
         position -= up    * yDelta * orthoScale * orthoSensitivity;
     }
 
-    prevMousePosition = Input.getMousePosition();
+    prevMousePosition = Input::Get()->getMousePosition();
 
     // Mouse Scroll
-    glm::vec2 mouseScroll = Input.getSrollDelta();
+    glm::vec2 mouseScroll = Input::Get()->getSrollDelta();
     if (mouseScroll.y != 0.0) {
         if (mode == Mode::PERSPECTIVE)
             position += front * mouseScroll.y * perspectiveScrollSensitivity;

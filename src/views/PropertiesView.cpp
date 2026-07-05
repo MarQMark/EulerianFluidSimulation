@@ -6,6 +6,7 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "core/Input.h"
 #include "imgui/misc/cpp/imgui_stdlib.h"
 #include "simulation/Properties.h"
 #include "util/GuiHelper.h"
@@ -16,7 +17,7 @@ void PropertiesView::render(void* renderData) {
 
     ImGui::Begin("Properties");
 
-    if(ImGui::IsKeyPressed(ImGuiKey_Slash)) {
+    if (Input::Get()->isKeyPressed(Window::Key::Slash)) {
         _focus_search = true;
         _show_search = true;
         _search_shown = false;
@@ -29,10 +30,6 @@ void PropertiesView::render(void* renderData) {
         render_categories();
 
     ImGui::End();
-}
-
-bool PropertiesView::searching() const {
-    return _focused;
 }
 
 void PropertiesView::render_categories() {

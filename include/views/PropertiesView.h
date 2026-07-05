@@ -11,8 +11,6 @@ public:
 
     void render(void* renderData) override;
 
-    bool searching() const;
-
 private:
     bool _show_search = false;
     bool _focus_search = false;

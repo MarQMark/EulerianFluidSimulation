@@ -7,6 +7,7 @@
 #include "imgui.h"
 #include "ImGuiFileDialog.h"
 #include "core/Editor.h"
+#include "core/Input.h"
 
 SceneView::SceneView(Editor* editor, Renderer3D* renderer)
     : _editor(editor), _renderer(renderer)
@@ -58,7 +59,7 @@ void SceneView::render(void* renderData) {
             if (isSelected)
                 ImGui::PopStyleColor(3);
 
-            if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && Input::Get()->isKeyPressed(Window::Key::Escape)) {
                 if (isSelected) {
                     _editor->setSelected(nullptr);
                 }
