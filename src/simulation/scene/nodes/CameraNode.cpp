@@ -112,8 +112,10 @@ void CameraNode::update(float deltaTime) {
         window->setCursorMode(Window::CursorMode::CURSOR_NORMAL);
     }
 
-    if (!updateMouse && !mouseDragging)
+    if (!updateMouse && !mouseDragging) {
+        updateVectors();
         return;
+    }
 
     auto mousePos = Input::Get()->getMousePosition();
 

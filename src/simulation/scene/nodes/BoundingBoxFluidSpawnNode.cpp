@@ -11,12 +11,12 @@ BoundingBoxFluidSpawnNode::BoundingBoxFluidSpawnNode(const std::string& name)
     : BoundingBoxNode(name, glm::vec3(1.0f, 0.0, 0.0))
 {
     // Init particle spawn
-    _mesh = Mesh::createBox("Box");
+    _mesh = Mesh::createCube("Box");
     _fluidSpawn.shape = _mesh->getWorldSpaceTriangles(glm::mat4(1.0f));
 }
 
 BoundingBoxFluidSpawnNode::BoundingBoxFluidSpawnNode(const nlohmann::json json) : BoundingBoxNode(json) {
-    _mesh = Mesh::createBox("Box");
+    _mesh = Mesh::createCube("Box");
     _fluidSpawn.shape = _mesh->getWorldSpaceTriangles(glm::mat4(1.0f));
 }
 

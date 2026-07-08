@@ -13,7 +13,7 @@ BoundingBoxNode::BoundingBoxNode(const std::string& name, glm::vec3 color) {
     this->name = name;
     this->color = color;
 
-    mesh = Mesh::createWireframeBox(name);
+    mesh = Mesh::createWireframeCube(name);
     material = std::make_unique<Material>("Wireframe", Shader::createBox());
     material->setVec3("color", color);
 }
@@ -28,7 +28,7 @@ BoundingBoxNode::BoundingBoxNode(const nlohmann::json json) : SceneNode(json) {
 
     Transform::updateTransform();
 
-    mesh = Mesh::createWireframeBox(name);
+    mesh = Mesh::createWireframeCube(name);
     material = std::make_unique<Material>("Wireframe", Shader::createBox());
 
     auto clr = json.value("color", std::vector{color.x, color.y, color.z});

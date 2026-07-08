@@ -1,0 +1,170 @@
+#version 430
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+struct Vertex {
+    vec3 position;
+    vec3 normal;
+    vec2 uv;
+};
+
+layout(std430, binding = 0) readonly buffer BufRho { float rho[]; };
+layout(std430, binding = 1) buffer BufVertexCount { int count; } vertexCount;
+layout(std430, binding = 2) buffer BufVertex { Vertex vertices[]; };
+layout(std430, binding = 3) buffer BufIndexCount { int count; } indexCount;
+layout(std430, binding = 4) buffer BufIndex { int indices[]; };
+
+uniform int   uWidth;
+uniform int   uHeight;
+uniform int   uDepth;
+
+uniform vec3  uDomainSize;
+uniform vec3  uDomainCenter;
+
+int idx(int x, int y, int z) { return z * uWidth * uHeight + y * uWidth + x; }
+
+void topFace(vec3 pos, vec3 cellSize) {
+    int baseVertexIndex = atomicAdd(vertexCount.count, 4);
+    vertices[baseVertexIndex + 0].position = pos + vec3(0, cellSize.y, 0);
+    vertices[baseVertexIndex + 0].normal = vec3(0.0, 1.0, 0.0);
+    vertices[baseVertexIndex + 1].position = pos + vec3(cellSize.x, cellSize.y, 0);
+    vertices[baseVertexIndex + 1].normal = vec3(0.0, 1.0, 0.0);
+    vertices[baseVertexIndex + 2].position = pos + vec3(cellSize.x, cellSize.y, cellSize.z);
+    vertices[baseVertexIndex + 2].normal = vec3(0.0, 1.0, 0.0);
+    vertices[baseVertexIndex + 3].position = pos + vec3(0, cellSize.y,  cellSize.z);
+    vertices[baseVertexIndex + 3].normal = vec3(0.0, 1.0, 0.0);
+
+    int baseIndicesIndex = atomicAdd(indexCount.count, 6);
+    indices[baseIndicesIndex + 0] = baseVertexIndex + 0;
+    indices[baseIndicesIndex + 1] = baseVertexIndex + 2;
+    indices[baseIndicesIndex + 2] = baseVertexIndex + 1;
+    indices[baseIndicesIndex + 3] = baseVertexIndex + 0;
+    indices[baseIndicesIndex + 4] = baseVertexIndex + 3;
+    indices[baseIndicesIndex + 5] = baseVertexIndex + 2;
+}
+
+void bottomFace(vec3 pos, vec3 cellSize) {
+    int baseVertexIndex = atomicAdd(vertexCount.count, 4);
+    vertices[baseVertexIndex + 0].position = pos;
+    vertices[baseVertexIndex + 0].normal = vec3(0.0, -1.0, 0.0);
+    vertices[baseVertexIndex + 1].position = pos + vec3(cellSize.x, 0.0, 0);
+    vertices[baseVertexIndex + 1].normal = vec3(0.0, -1.0, 0.0);
+    vertices[baseVertexIndex + 2].position = pos + vec3(cellSize.x, 0.0, cellSize.z);
+    vertices[baseVertexIndex + 2].normal = vec3(0.0, -1.0, 0.0);
+    vertices[baseVertexIndex + 3].position = pos + vec3(0, 0.0,  cellSize.z);
+    vertices[baseVertexIndex + 3].normal = vec3(0.0, -1.0, 0.0);
+
+    int baseIndicesIndex = atomicAdd(indexCount.count, 6);
+    indices[baseIndicesIndex + 0] = baseVertexIndex + 0;
+    indices[baseIndicesIndex + 1] = baseVertexIndex + 1;
+    indices[baseIndicesIndex + 2] = baseVertexIndex + 2;
+    indices[baseIndicesIndex + 3] = baseVertexIndex + 0;
+    indices[baseIndicesIndex + 4] = baseVertexIndex + 2;
+    indices[baseIndicesIndex + 5] = baseVertexIndex + 3;
+}
+
+void leftFace(vec3 pos, vec3 cellSize) {
+    int baseVertexIndex = atomicAdd(vertexCount.count, 4);
+    vertices[baseVertexIndex + 0].position = pos;
+    vertices[baseVertexIndex + 0].normal = vec3(-1.0, 0.0, 0.0);
+    vertices[baseVertexIndex + 1].position = pos + vec3(0.0, 0.0, cellSize.z);
+    vertices[baseVertexIndex + 1].normal = vec3(-1.0, 0.0, 0.0);
+    vertices[baseVertexIndex + 2].position = pos + vec3(0.0, cellSize.y, cellSize.z);
+    vertices[baseVertexIndex + 2].normal = vec3(-1.0, 0.0, 0.0);
+    vertices[baseVertexIndex + 3].position = pos + vec3(0.0, cellSize.y, 0.0);
+    vertices[baseVertexIndex + 3].normal = vec3(-1.0, 0.0, 0.0);
+
+    int baseIndicesIndex = atomicAdd(indexCount.count, 6);
+    indices[baseIndicesIndex + 0] = baseVertexIndex + 0;
+    indices[baseIndicesIndex + 1] = baseVertexIndex + 1;
+    indices[baseIndicesIndex + 2] = baseVertexIndex + 2;
+    indices[baseIndicesIndex + 3] = baseVertexIndex + 0;
+    indices[baseIndicesIndex + 4] = baseVertexIndex + 2;
+    indices[baseIndicesIndex + 5] = baseVertexIndex + 3;
+}
+
+void rightFace(vec3 pos, vec3 cellSize) {
+    int baseVertexIndex = atomicAdd(vertexCount.count, 4);
+    vertices[baseVertexIndex + 0].position = pos + vec3(cellSize.x, 0.0, 0.0);
+    vertices[baseVertexIndex + 0].normal = vec3(1.0, 0.0, 0.0);
+    vertices[baseVertexIndex + 1].position = pos + vec3(cellSize.x, 0.0, cellSize.z);
+    vertices[baseVertexIndex + 1].normal = vec3(1.0, 0.0, 0.0);
+    vertices[baseVertexIndex + 2].position = pos + vec3(cellSize.x, cellSize.y, cellSize.z);
+    vertices[baseVertexIndex + 2].normal = vec3(1.0, 0.0, 0.0);
+    vertices[baseVertexIndex + 3].position = pos + vec3(cellSize.x, cellSize.y, 0.0);
+    vertices[baseVertexIndex + 3].normal = vec3(1.0, 0.0, 0.0);
+
+    int baseIndicesIndex = atomicAdd(indexCount.count, 6);
+    indices[baseIndicesIndex + 0] = baseVertexIndex + 0;
+    indices[baseIndicesIndex + 1] = baseVertexIndex + 2;
+    indices[baseIndicesIndex + 2] = baseVertexIndex + 1;
+    indices[baseIndicesIndex + 3] = baseVertexIndex + 0;
+    indices[baseIndicesIndex + 4] = baseVertexIndex + 3;
+    indices[baseIndicesIndex + 5] = baseVertexIndex + 2;
+}
+
+void backFace(vec3 pos, vec3 cellSize) {
+    int baseVertexIndex = atomicAdd(vertexCount.count, 4);
+    vertices[baseVertexIndex + 0].position = pos;
+    vertices[baseVertexIndex + 0].normal = vec3(0.0, 0.0, -1.0);
+    vertices[baseVertexIndex + 1].position = pos + vec3(cellSize.x, 0.0, 0.0);
+    vertices[baseVertexIndex + 1].normal = vec3(0.0, 0.0, -1.0);
+    vertices[baseVertexIndex + 2].position = pos + vec3(cellSize.x, cellSize.y, 0.0);
+    vertices[baseVertexIndex + 2].normal = vec3(0.0, 0.0, -1.0);
+    vertices[baseVertexIndex + 3].position = pos + vec3(0.0, cellSize.y, 0.0);
+    vertices[baseVertexIndex + 3].normal = vec3(0.0, 0.0, -1.0);
+
+    int baseIndicesIndex = atomicAdd(indexCount.count, 6);
+    indices[baseIndicesIndex + 0] = baseVertexIndex + 0;
+    indices[baseIndicesIndex + 1] = baseVertexIndex + 2;
+    indices[baseIndicesIndex + 2] = baseVertexIndex + 1;
+    indices[baseIndicesIndex + 3] = baseVertexIndex + 0;
+    indices[baseIndicesIndex + 4] = baseVertexIndex + 3;
+    indices[baseIndicesIndex + 5] = baseVertexIndex + 2;
+}
+
+void frontFace(vec3 pos, vec3 cellSize) {
+    int baseVertexIndex = atomicAdd(vertexCount.count, 4);
+    vertices[baseVertexIndex + 0].position = pos + vec3(0.0, 0.0, cellSize.z);
+    vertices[baseVertexIndex + 0].normal = vec3(0.0, 0.0, 1.0);
+    vertices[baseVertexIndex + 1].position = pos + vec3(cellSize.x, 0.0, cellSize.z);
+    vertices[baseVertexIndex + 1].normal = vec3(0.0, 0.0, 1.0);
+    vertices[baseVertexIndex + 2].position = pos + vec3(cellSize.x, cellSize.y, cellSize.z);
+    vertices[baseVertexIndex + 2].normal = vec3(0.0, 0.0, 1.0);
+    vertices[baseVertexIndex + 3].position = pos + vec3(0.0, cellSize.y, cellSize.z);
+    vertices[baseVertexIndex + 3].normal = vec3(0.0, 0.0, 1.0);
+
+    int baseIndicesIndex = atomicAdd(indexCount.count, 6);
+    indices[baseIndicesIndex + 0] = baseVertexIndex + 0;
+    indices[baseIndicesIndex + 1] = baseVertexIndex + 1;
+    indices[baseIndicesIndex + 2] = baseVertexIndex + 2;
+    indices[baseIndicesIndex + 3] = baseVertexIndex + 0;
+    indices[baseIndicesIndex + 4] = baseVertexIndex + 2;
+    indices[baseIndicesIndex + 5] = baseVertexIndex + 3;
+}
+
+void main() {
+    int x = int(gl_GlobalInvocationID.x);
+    int y = int(gl_GlobalInvocationID.y);
+    int z = int(gl_GlobalInvocationID.z);
+
+    if (x > uWidth - 1 || y > uHeight - 1 || z > uDepth - 1)
+        return;
+
+    const int id = idx(x, y, z);
+
+    if (rho[id] <= 0.5)
+        return;
+
+    const vec3 cellCount = vec3(uWidth, uHeight, uDepth);
+    const vec3 cellSize = uDomainSize / cellCount;
+    const vec3 domainMin = uDomainCenter - 0.5f * uDomainSize;
+
+    const vec3 pos = domainMin + cellSize * vec3(x, y, z);
+
+    if (x - 1 < 0 || rho[idx(x - 1, y, z)] <= 0.5)          leftFace(pos, cellSize);
+    if (x + 1 >= uWidth || rho[idx(x + 1, y, z)] <= 0.5)    rightFace(pos, cellSize);
+    if (y - 1 < 0 || rho[idx(x, y - 1, z)] <= 0.5)          bottomFace(pos, cellSize);
+    if (y + 1 >= uHeight || rho[idx(x, y + 1, z)] <= 0.5)   topFace(pos, cellSize);
+    if (z - 1 < 0 || rho[idx(x, y, z - 1)] <= 0.5)          backFace(pos, cellSize);
+    if (z + 1 >= uDepth || rho[idx(x, y, z + 1)] <= 0.5)    frontFace(pos, cellSize);
+}

@@ -21,6 +21,7 @@ public:
         COUNT
     };
 
+    Shader() = default;
     Shader(std::initializer_list<std::pair<std::string, Type>> sources, bool compile = true);
     Shader(const std::string& source, Type type, bool compile = true);
     ~Shader();

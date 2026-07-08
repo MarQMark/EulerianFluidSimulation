@@ -97,7 +97,7 @@ Model::Model(const std::string& path, bool shaded) {
             // Create default material
             auto shader = shaded ? Shader::createDefaultShaded() : Shader::createDefaultUnshaded();
             Material material(mat.name, shader);
-            material.setVec3("albedo", {mat.diffuse[0], mat.diffuse[1], mat.diffuse[2] });
+            material.setVec3("color", {mat.diffuse[0], mat.diffuse[1], mat.diffuse[2] });
 
             mesh->setMaterialIndex(this->materials.size());
             this->materials.push_back(material);
@@ -108,7 +108,7 @@ Model::Model(const std::string& path, bool shaded) {
 
     // Add default model material if no other material was loaded
     Material material("Default", Shader::createDefaultShaded());
-    material.setVec3("albedo", { 1.0f, 1.0f, 1.0f });
+    material.setVec3("color", { 1.0f, 1.0f, 1.0f });
     this->materials.push_back(material);
 
     updateLocalBoundingBox();

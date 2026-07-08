@@ -13,21 +13,27 @@ FluidNode::FluidNode() {
     name = "Fluid";
     savable = false;
     gizmoEnabled = false;
-
-    // --- Model ---
-    auto fluidMesh = std::make_unique<Mesh>("FluidMesh", 1, 1);
-    _cubes = new MarchingCubes(fluidMesh.get());
-    _fluidModel = std::make_shared<Model>("Fluid", std::move(fluidMesh));
-
     setDeletable(false);
 
+    // --- Marching Cubes Model ---
+    auto mcMesh = std::make_unique<Mesh>("FluidMesh", 1, 1);
+    _marchingCubes = new MarchingCubes(mcMesh.get());
+    _marchingCubesModel = std::make_shared<Model>("Fluid", std::move(mcMesh));
+
+    // --- Cubes Model ---
+    auto scMesh = std::make_unique<Mesh>("FluidMesh", 1, 1);
+    _simpleCubes = new SimpleCubes(scMesh.get());
+    _simpleCubesModel = std::make_shared<Model>("Fluid", std::move(scMesh));
+
     Material fluidMaterial("Fluid", Shader::createDefaultShaded());
-    fluidMaterial.setVec3("albedo", glm::vec3(1.0f, 1.0f, 1.0f));
-    _fluidModel->addMaterial(fluidMaterial);
+    fluidMaterial.setVec3("color", glm::vec3(1.0f, 1.0f, 1.0f));
+    _marchingCubesModel->addMaterial(fluidMaterial);
+    _simpleCubesModel->addMaterial(fluidMaterial);
 }
 
 FluidNode::~FluidNode() {
-    delete _cubes;
+    delete _marchingCubes;
+    delete _simpleCubes;
 }
 
 void FluidNode::setRenderData(const SimulationDisplay3D::RenderData3D* data) {
@@ -38,20 +44,51 @@ void FluidNode::update(float deltaTime) {
     if (!_renderData)
         return;
 
-    _cubes->updateMesh(
-        _renderData->grid->rho(),
-        scene->getSimulationDomain()->getWorldBoundingBox());
+    if (_settings.mode == MARCHING_CUBES) {
+        _marchingCubes->updateMesh(
+            _renderData->grid->rho(),
+            scene->getSimulationDomain()->getWorldBoundingBox());
+    }
+
+    if (_settings.mode == CUBES) {
+        _simpleCubes->update(
+            _renderData->grid->rho(),
+            scene->getSimulationDomain()->getWorldBoundingBox()
+        );
+    }
 }
 
 void FluidNode::draw(const glm::mat4& view, const glm::mat4& projection) const {
     if (!_renderData)
         return;
 
-    _fluidModel->draw(view, projection, glm::mat4(1.0f));
+    if (_settings.mode == MARCHING_CUBES) {
+        _marchingCubesModel->draw(view, projection, glm::mat4(1.0f));
+    }
+
+    if (_settings.mode == CUBES) {
+        _simpleCubesModel->draw(view, projection, glm::mat4(1.0f));
+    }
 }
 
 NodeProperties FluidNode::buildProperties() {
-    return SceneNode::buildProperties();
+    NodeProperties properties = SceneNode::buildProperties();
+
+    properties.addSection("Rendering");
+    properties.addProperty(std::make_unique<ColorProperty>(
+        "Color",
+        [this] () { return _settings.color; },
+        [this] (const glm::vec3 c) { _settings.color = c; updateMaterials(); }
+    ));
+
+    properties.addProperty(std::make_unique<EnumProperty<RenderMode>>(
+        "Render Mode",
+        [this] () { return _settings.mode; },
+        [this] (const RenderMode c) { _settings.mode = c; },
+        std::vector<std::pair<RenderMode, std::string>>{ { MARCHING_CUBES, "Marching Cubes" }, { CUBES, "Cubes" } }
+    ));
+
+    return properties;
 }
 
 std::string FluidNode::getTypeName() const {
@@ -60,4 +97,9 @@ std::string FluidNode::getTypeName() const {
 
 std::string FluidNode::getDefaultName() const {
     return "Fluid";
+}
+
+void FluidNode::updateMaterials() const {
+    _marchingCubesModel->getMaterial(0)->setVec3("color", _settings.color);
+    _simpleCubesModel->getMaterial(0)->setVec3("color", _settings.color);
 }

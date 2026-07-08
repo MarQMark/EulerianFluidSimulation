@@ -6,7 +6,7 @@ in vec3 FragPos;
 
 out vec4 FragColor;
 
-uniform vec3 albedo = vec3(1.0, 1.0, 1.0);
+uniform vec3 color = vec3(1.0, 1.0, 1.0);
 uniform float ambientStrength;
 uniform float specularStrength;
 uniform float fresnelStrength;
@@ -30,9 +30,9 @@ void main() {
     float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
 
     // Mix resulting color
-    vec3 color = albedo * (ambientStrength + diffuse);
-    color += vec3(1.0) * spec * specularStrength;
-    color += albedo * fresnel * fresnelStrength;
+    vec3 c = color * (ambientStrength + diffuse);
+    c += vec3(1.0) * spec * specularStrength;
+    c += color * fresnel * fresnelStrength;
 
-    FragColor = vec4(color, 1.0);
+    FragColor = vec4(c, 1.0);
 }

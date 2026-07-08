@@ -69,7 +69,7 @@ void Mesh::draw() const {
 
 void Mesh::drawInstanced(int count) const {
     glBindVertexArray(vao);
-    glDrawElementsInstanced(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0, count);
+    glDrawElementsInstanced(primitiveMode, indexCount, GL_UNSIGNED_INT, 0, count);
 }
 
 std::string Mesh::getName() const {
@@ -199,7 +199,7 @@ std::unique_ptr<Mesh> Mesh::createEmpty() {
     return std::make_unique<Mesh>("Empty", 0, 0);
 }
 
-std::unique_ptr<Mesh> Mesh::createBox(const std::string& name) {
+std::unique_ptr<Mesh> Mesh::createCube(const std::string& name) {
     return std::make_unique<Mesh>(
         name,
         Primitives::BoxGeometry::GetVertices(),
@@ -217,7 +217,7 @@ std::unique_ptr<Mesh> Mesh::createQuad(const std::string& name) {
     );
 }
 
-std::unique_ptr<Mesh> Mesh::createWireframeBox(const std::string& name) {
+std::unique_ptr<Mesh> Mesh::createWireframeCube(const std::string& name) {
     return std::make_unique<Mesh>(
         name,
         Primitives::BoxGeometry::GetVertices(),

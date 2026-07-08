@@ -14,7 +14,7 @@ SkyboxNode::SkyboxNode() {
     gizmoEnabled = false;
 
     // --- Skybox Model ---
-    skyboxModel = std::make_shared<Model>("Skybox", Mesh::createBox("Skybox Mesh"));
+    skyboxModel = std::make_shared<Model>("Skybox", Mesh::createCube("Skybox Mesh"));
     skyboxTexture = std::make_shared<Texture2D>("assets/textures/skybox1.png");
 
     Material skyboxMaterial("Skybox", Shader::createSkybox());

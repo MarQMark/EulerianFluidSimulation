@@ -63,9 +63,9 @@ public:
 
     // --- Factory ---
     static std::unique_ptr<Mesh> createEmpty();
-    static std::unique_ptr<Mesh> createBox(const std::string& name);
+    static std::unique_ptr<Mesh> createCube(const std::string& name);
     static std::unique_ptr<Mesh> createQuad(const std::string& name);
-    static std::unique_ptr<Mesh> createWireframeBox(const std::string& name);
+    static std::unique_ptr<Mesh> createWireframeCube(const std::string& name);
     static std::unique_ptr<Mesh> createSphere(const std::string& name, int sectorCount, int stackCount);
 private:
     void uploadToGPU();

@@ -12,7 +12,7 @@ ForceFieldNode::ForceFieldNode(const std::string& name) {
     model = std::make_unique<Model>("assets/models/forceField.obj", false);
 
     // Setup Wireframe Box Model
-    wireframeModel = std::make_unique<Model>("Wireframe Model", Mesh::createWireframeBox("Wireframe Mesh"));
+    wireframeModel = std::make_unique<Model>("Wireframe Model", Mesh::createWireframeCube("Wireframe Mesh"));
 
     Material wireframeMat("Wireframe", Shader::createBox());
     wireframeMat.setVec3("color", glm::vec3(0.2f, 0.9f, 0.2f));
@@ -41,7 +41,7 @@ ForceFieldNode::ForceFieldNode(const nlohmann::json json) : SceneNode(json) {
     model = std::make_unique<Model>("assets/models/forceField.obj", false);
 
     // Setup Wireframe Box Model
-    wireframeModel = std::make_unique<Model>("Wireframe Model", Mesh::createWireframeBox("Wireframe Mesh"));
+    wireframeModel = std::make_unique<Model>("Wireframe Model", Mesh::createWireframeCube("Wireframe Mesh"));
 
     Material wireframeMat("Wireframe", Shader::createBox());
     wireframeMat.setVec3("color", glm::vec3(0.2f, 0.9f, 0.2f));

@@ -9,6 +9,8 @@
 #include <math.h>
 #include <memory>
 #include <string>
+
+#include "imgui.h"
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
 #include "assets/Texture2D.h"
@@ -109,6 +111,52 @@ struct StringProperty : NodeProperty {
     std::function<void (std::string)>   set;
 
     void draw() override;
+};
+
+template <typename T>
+struct EnumProperty : NodeProperty {
+    EnumProperty(
+        const std::string& name,
+        std::function<T()> get,
+        std::function<void (T)> set,
+        std::vector<std::pair<T, std::string>> options
+    )
+        : name(name), get(std::move(get)), set(std::move(set)), options(options)
+    {};
+
+    std::string                             name;
+    std::function<T()>                      get;
+    std::function<void (T)>                 set;
+    std::vector<std::pair<T, std::string>>  options;
+
+    void draw() override {
+        ImGui::Text("%s:", name.c_str());
+        const std::string id = "##" + name;
+
+        T v = get();
+        std::string currentLabel;
+
+        for (auto& [value, label] : options) {
+            if (value == v) {
+                currentLabel = label;
+            }
+        }
+
+        if (ImGui::BeginCombo(id.c_str(), currentLabel.c_str())) {
+            for (auto& [value, label] : options) {
+                bool selected = value == v;
+                if (ImGui::Selectable(label.c_str(), selected)) {
+                    set(value);
+                }
+
+                if (selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+
+            ImGui::EndCombo();
+        }
+    }
 };
 
 struct Section {

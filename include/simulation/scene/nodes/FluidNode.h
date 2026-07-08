@@ -8,7 +8,19 @@
 #include "SceneNode.h"
 #include "assets/Model.h"
 #include "renderer/MarchingCubes.h"
+#include "renderer/SimpleCubes.h"
 #include "simulation/SimulationDisplay3D.h"
+
+enum RenderMode {
+    MARCHING_CUBES,
+    CUBES
+};
+
+struct RenderingSettings {
+    RenderMode mode = RenderMode::MARCHING_CUBES;
+
+    glm::vec3 color = glm::vec3(0.0f, 0.0f, 0.6f);
+};
 
 class FluidNode : public SceneNode {
 public:
@@ -24,10 +36,17 @@ public:
     std::string getDefaultName() const override;
 
 private:
-    std::shared_ptr<Model> _fluidModel;
+    void updateMaterials() const;
+
     const SimulationDisplay3D::RenderData3D* _renderData;
 
-    MarchingCubes* _cubes;
+    std::shared_ptr<Model> _marchingCubesModel;
+    std::shared_ptr<Model> _simpleCubesModel;
+
+    MarchingCubes* _marchingCubes;
+    SimpleCubes* _simpleCubes;
+
+    RenderingSettings _settings;
 };
 
 #endif //EULERIANFLUIDSIMULATION_FLUIDNODE_H
