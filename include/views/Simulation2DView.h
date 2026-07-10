@@ -1,16 +1,8 @@
 #ifndef SIMULATION2DVIEW_H
 #define SIMULATION2DVIEW_H
 
-#include <vector>
-#include <glm/vec2.hpp>
-
 #include "imgui/imgui.h"
-
 #include "Viewable.h"
-#include "simulation/Grid2D.h"
-#include "simulation/ScalField2D.h"
-#include "simulation/VecField2D.h"
-
 
 class Simulation2DView : public Viewable {
 private:
@@ -25,8 +17,6 @@ public:
 
     void render(void* renderData) override;
 
-    void setVelField(VecField2D* velField);
-
 private:
     bool _initialized = false;
 
@@ -37,8 +27,6 @@ private:
     Mode _mode = FORCE;
 
     ImVec2 _mouse_pos = ImVec2(-1, -1);
-
-    VecField2D* _vel_field{};
 };
 
 

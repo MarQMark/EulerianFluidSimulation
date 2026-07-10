@@ -2,7 +2,6 @@
 #define EULERIANFLUIDSIMULATION_STATSVIEW_H
 
 #include "Viewable.h"
-#include "simulation/Grid2D.h"
 
 class StatsView : public Viewable{
 public:

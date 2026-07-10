@@ -1,0 +1,50 @@
+#version 430
+layout(local_size_x = 16, local_size_y = 16) in;
+
+struct AdvCell { uint j; float val; };
+
+layout(std430, binding = 0)           buffer BufBeta     { uint    beta[];     };
+layout(std430, binding = 1) readonly  buffer BufA        { AdvCell A[];        };
+layout(std430, binding = 2) readonly  buffer BufCount    { uint    counts[];   };
+
+uniform int uWidth;
+uniform int uHeight;
+
+int idx(int x, int y) { return y * uWidth + x; }
+
+void atomicAddFloat(uint index, float val) {
+    uint assumed;
+    uint oldVal = beta[index];
+
+    do {
+        // Assume the value in memory is what we just read
+        assumed = oldVal;
+
+        // Convert raw memory bits to a float, do the math, convert bits back to uint
+        float currentVal = uintBitsToFloat(assumed);
+        uint newVal = floatBitsToUint(currentVal + val);
+
+        // atomicCompSwap will attempt to replace 'assumed' with 'newVal'.
+        // It returns the actual value it found in memory.
+        oldVal = atomicCompSwap(beta[index], assumed, newVal);
+
+        // If oldVal != assumed, it means another thread altered beta[index]
+        // right before we swapped, so we loop and try again with the fresh value.
+    } while (assumed != oldVal);
+}
+
+void main() {
+    int x = int(gl_GlobalInvocationID.x);
+    int y = int(gl_GlobalInvocationID.y);
+    if (x >= uWidth || y >= uHeight) return;
+
+    uint i = uint(idx(x, y));
+    uint base = i * 8u;
+
+    for (uint k = 0u; k < counts[i]; k++) {
+        uint slot = base + k;
+        atomicAddFloat(A[slot].j, A[slot].val);
+    }
+}
+
+// rv_4_comp_beta.comp

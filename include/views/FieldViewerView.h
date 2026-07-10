@@ -4,9 +4,9 @@
 #include <string>
 
 #include "Viewable.h"
-#include "../assets/Texture2D.h"
-#include "simulation/ScalField2D.h"
-#include "simulation/VecField2D.h"
+#include "assets/Texture2D.h"
+#include "simulation/data/ScalField2D.h"
+#include "simulation/data/VecField2D.h"
 
 class FieldViewerView : public Viewable {
 public:

@@ -8,7 +8,7 @@
 #include <string>
 #include "Material.h"
 #include "Mesh.h"
-#include "simulation/AABB.h"
+#include "simulation/data/AABB.h"
 
 class Model {
 public:

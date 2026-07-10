@@ -7,7 +7,7 @@
 #include "assets/Mesh.h"
 #include "assets/Shader.h"
 #include "assets/Vertex.h"
-#include "compute/StorageBuffer.h"
+#include "simulation/data/StorageBuffer.h"
 
 MarchingCubes::MarchingCubes(Mesh* mesh) {
     _mesh = mesh;

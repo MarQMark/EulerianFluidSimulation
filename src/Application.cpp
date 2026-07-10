@@ -3,9 +3,9 @@
 #include <ranges>
 #include "core/Input.h"
 #include "simulation/Properties.h"
-#include "simulator/CPUSimulator2D.h"
-#include "simulator/CPUSimulator3D.h"
-#include "simulator/OpenGLSimulator2D.h"
+#include "simulation/simulator/CPUSimulator2D.h"
+#include "simulation/simulator/CPUSimulator3D.h"
+#include "simulation/simulator/OpenGLSimulator2D.h"
 #include "util/Time.h"
 #include "views/DistributionView.h"
 #include "views/FPSView.h"
@@ -109,6 +109,8 @@ void Application::rebuild() {
 
 	for (const auto& [name, v] : _display->viewables())
 		_views->addView(name, v);
+
+	SET_PROPERTY_B(SIMULATION_INITIALIZED, true);
 }
 
 void Application::reset() {

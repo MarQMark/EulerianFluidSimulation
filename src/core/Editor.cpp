@@ -6,7 +6,7 @@
 #include "simulation/scene/nodes/BoundingBoxFluidSpawnNode.h"
 #include "simulation/scene/nodes/ModelFluidSpawnNode.h"
 #include <memory>
-#include "simulation/Grid3D.h"
+#include "simulation/data/Grid3D.h"
 #include "simulation/Properties.h"
 
 Editor::Editor() {

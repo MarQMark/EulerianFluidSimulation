@@ -3,7 +3,7 @@
 //
 
 #include "renderer/SimpleCubes.h"
-#include "compute/StorageBuffer.h"
+#include "simulation/data/StorageBuffer.h"
 #include "glm/ext/matrix_transform.hpp"
 
 SimpleCubes::SimpleCubes(Mesh* mesh) : _mesh(mesh) {

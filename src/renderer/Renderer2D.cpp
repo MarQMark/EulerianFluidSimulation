@@ -2,7 +2,8 @@
 #include <iostream>
 #include "assets/Texture2D.h"
 #include "simulation/Properties.h"
-#include "simulation/ScalField2D.h"
+#include "simulation/data/OpenGLGrid2D.h"
+#include "simulation/data/ScalField2D.h"
 
 Renderer2D::Renderer2D(const int width, const int height) : _width(width), _height(height){
     _txt = new Texture2D(_width, _height, nullptr);
@@ -46,7 +47,10 @@ void Renderer2D::drawField(std::vector<float>& data, ScalField2D& field, int cha
     }
 }
 
-void Renderer2D::render(const Grid2D *grid) {
+void Renderer2D::render(const IGrid2D *_grid) {
+    auto* grid = dynamic_cast<const OpenGLGrid2D*>(_grid);
+    if (!grid) return;
+
     std::vector<float> data(_width * _height * 4);
     /*glm::vec2 max(0);
     for(auto v : vel) {

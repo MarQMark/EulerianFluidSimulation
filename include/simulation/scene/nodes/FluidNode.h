@@ -9,7 +9,7 @@
 #include "assets/Model.h"
 #include "renderer/MarchingCubes.h"
 #include "renderer/SimpleCubes.h"
-#include "simulation/SimulationDisplay3D.h"
+#include "simulation/display/SimulationDisplay3D.h"
 
 enum RenderMode {
     MARCHING_CUBES,

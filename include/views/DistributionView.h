@@ -2,7 +2,6 @@
 #define EULERIANFLUIDSIMULATION_DISTRIBUTIONVIEW_H
 
 #include "Viewable.h"
-#include "simulation/Grid2D.h"
 
 class DistributionView : public Viewable {
 public:

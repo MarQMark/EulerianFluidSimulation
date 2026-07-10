@@ -4,7 +4,7 @@
 
 #include "imgui.h"
 #include "simulation/Properties.h"
-#include "simulation/SimulationDisplay2D.h"
+#include "simulation/display/SimulationDisplay2D.h"
 #include "util/GuiHelper.h"
 
 void StatsView::render(void* renderData) {
@@ -13,14 +13,11 @@ void StatsView::render(void* renderData) {
     if (!_visible)
         return;
     const auto* data = static_cast<SimulationDisplay2D::RenderData2D*>(renderData);
-    const auto* grid = data->grid;
+    const auto* grid = dynamic_cast<Grid2D*>(data->grid);
+    if (!grid)
+        return;
 
     ImGui::Begin("Stats");
-
-    if (!grid) {
-        ImGui::End();
-        return;
-    }
 
     float current = 0;
     float compressed = 0;

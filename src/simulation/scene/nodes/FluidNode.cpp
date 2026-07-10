@@ -4,7 +4,7 @@
 
 #include "simulation/scene/nodes/FluidNode.h"
 #include "renderer/MarchingCubes.h"
-#include "simulation/Grid3D.h"
+#include "simulation/data/Grid3D.h"
 #include "simulation/Properties.h"
 #include "simulation/scene/Scene.h"
 #include "simulation/scene/nodes/BoundingBoxNode.h"

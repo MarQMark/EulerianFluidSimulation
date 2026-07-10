@@ -7,7 +7,7 @@ layout(std430, binding = 2) readonly  buffer BufBoundary { float boundary[]; };
 
 uniform int   uWidth;
 uniform int   uHeight;
-uniform float uDt;       // positive; shader negates it for backward trace
+uniform float uDt;
 uniform int   uSubsteps;
 
 int   idx(int x, int y) { return y * uWidth + x; }
@@ -43,7 +43,6 @@ float BilinearInterpolation(const vec2 pos, int low_x, int low_y, int comp) {
     return ((low_x + 0.5 * comp - pos[0]) * x_low_inter)
     + ((pos[0] - (low_x - 0.5 - 0.5 * (1 - comp))) * x_high_inter);
 }
-
 
 #define EPSILON 1.0e-10
 vec2 sampleVel(vec2 pos) {
@@ -96,7 +95,7 @@ void main() {
     int y = int(gl_GlobalInvocationID.y) + 1;   // skip border row 0
     if (x >= uWidth - 1 || y >= uHeight - 1) return;
 
-    vec2 prevPos       = traceParticle(vec2(x, y) - 0.5);
+    vec2 prevPos      = traceParticle(vec2(x, y) - 0.5);
     newVel[idx(x, y)] = sampleVel(prevPos);
 
     /*vec2 curPos = vec2(x, y) - vec2(.5f);

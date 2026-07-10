@@ -5,10 +5,11 @@
 #include "core/Input.h"
 #include "glm/geometric.hpp"
 #include "imgui/imgui.h"
-#include "simulation/Grid2D.h"
+#include "simulation/data/Grid2D.h"
 #include "simulation/Properties.h"
-#include "simulation/SimulationDisplay2D.h"
-#include "simulation/VecField2D.h"
+#include "simulation/data/OpenGLGrid2D.h"
+#include "simulation/display/SimulationDisplay2D.h"
+#include "simulation/data/VecField2D.h"
 #include "util/Time.h"
 
 #define TOP_SPACING 10;
@@ -23,7 +24,10 @@ void Simulation2DView::render(void* renderData) {
     if (!_visible)
         return;
     const auto* data = static_cast<SimulationDisplay2D::RenderData2D*>(renderData);
-    const auto* grid = data->grid;
+    const auto* grid = dynamic_cast<OpenGLGrid2D*>(data->grid);
+    if (!grid)
+        return;
+
     auto& forces = grid->forces();
     auto& boundary = grid->boundary();
     auto& rho = grid->rho();
@@ -144,6 +148,7 @@ void Simulation2DView::render(void* renderData) {
         }
     }
 
+    auto* _vel_field = &grid->vel();
     if (_vel_field && PROPERTY_B(DRAW_VEL_ARROWS)) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         glm::vec2 gridSpacing((x_max - x_min) / _vel_field->width(), (y_max - y_min) / _vel_field->height());
@@ -197,9 +202,5 @@ void Simulation2DView::render(void* renderData) {
     }
 
     ImGui::End();
-}
-
-void Simulation2DView::setVelField(VecField2D *velField) {
-    _vel_field = velField;
 }
 

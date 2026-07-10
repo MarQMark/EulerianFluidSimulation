@@ -6,7 +6,7 @@
 #define EULERIANFLUIDSIMULATION_SIMPLECUBES_H
 
 #include "assets/Model.h"
-#include "simulation/ScalField3D.h"
+#include "simulation/data/ScalField3D.h"
 
 class StorageBuffer;
 

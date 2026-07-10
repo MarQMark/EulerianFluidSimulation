@@ -1,0 +1,46 @@
+#ifndef EULERIANFLUIDSIMULATION_IGRID_H
+#define EULERIANFLUIDSIMULATION_IGRID_H
+
+class IGrid {
+public:
+    unsigned int size() const { return  _size;}
+
+protected:
+    IGrid() = default;
+
+    unsigned int _size;
+};
+
+class IGrid2D : public IGrid{
+public:
+    virtual ~IGrid2D() = default;
+
+    unsigned int width() const {return _width;}
+    unsigned int height() const {return _height;}
+
+protected:
+    IGrid2D(const unsigned int width, const unsigned int height)
+        : _width(width), _height(height) {_size = width * height;}
+
+    unsigned int _width;
+    unsigned int _height;
+};
+
+class IGrid3D : public IGrid{
+public:
+    virtual ~IGrid3D() = default;
+
+    unsigned int width() const {return _width;}
+    unsigned int height() const {return _height;}
+    unsigned int depth() const {return _depth;}
+
+protected:
+    IGrid3D(const unsigned int width, const unsigned int height, const unsigned int depth)
+        : _width(width), _height(height), _depth(depth) {_size = width * height * depth;}
+
+    unsigned int _width;
+    unsigned int _height;
+    unsigned int _depth;
+};
+
+#endif //EULERIANFLUIDSIMULATION_IGRID_H

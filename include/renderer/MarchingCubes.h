@@ -7,9 +7,9 @@
 
 #include <memory>
 
-#include "compute/StorageBuffer.h"
-#include "simulation/AABB.h"
-#include "simulation/ScalField3D.h"
+#include "simulation/data/StorageBuffer.h"
+#include "simulation/data/AABB.h"
+#include "simulation/data/ScalField3D.h"
 
 class Shader;
 class Mesh;
