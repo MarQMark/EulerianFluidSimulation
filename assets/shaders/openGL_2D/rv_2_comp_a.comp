@@ -72,9 +72,9 @@ vec2 traceParticle(vec2 start) {
     vec2  pos   = start;
 
     for (int s = 0; s < uSubsteps; s++) {
-        vec2 k1   = sampleVel(pos);
+        vec2 k1   = sampleVel(pos - vec2(0.5));
         vec2 mid  = domainClamp(pos + k1 * (subDt * 0.5));
-        vec2 k2   = sampleVel(mid);
+        vec2 k2   = sampleVel(mid - vec2(0.5));
         vec2 next = pos + k2 * subDt;
 
         if (inWall(next)) {
@@ -102,8 +102,7 @@ void main() {
     int i = idx(x, y);
     counts[i] = 0u;
 
-    vec2 pos  = vec2(x, y);
-    vec2 prev = traceParticle(pos);
+    vec2 prev = traceParticle(vec2(x, y));
 
     int  p0x = int(floor(prev.x));
     int  p0y = int(floor(prev.y));
@@ -112,10 +111,10 @@ void main() {
     float dx1 = 1.0 - dx0;
     float dy1 = 1.0 - dy0;
 
-    float m0 = (boundary[idx(p0x  , p0y  )] != 1.0) ? dx0*dy0 : 0.0;
-    float m1 = (boundary[idx(p0x+1, p0y  )] != 1.0) ? dx1*dy0 : 0.0;
-    float m2 = (boundary[idx(p0x  , p0y+1)] != 1.0) ? dx0*dy1 : 0.0;
-    float m3 = (boundary[idx(p0x+1, p0y+1)] != 1.0) ? dx1*dy1 : 0.0;
+    float m0 = (boundary[idx(p0x  , p0y  )] < 1.0) ? dx0*dy0 : 0.0;
+    float m1 = (boundary[idx(p0x+1, p0y  )] < 1.0) ? dx1*dy0 : 0.0;
+    float m2 = (boundary[idx(p0x  , p0y+1)] < 1.0) ? dx0*dy1 : 0.0;
+    float m3 = (boundary[idx(p0x+1, p0y+1)] < 1.0) ? dx1*dy1 : 0.0;
 
     float s = m0 + m1 + m2 + m3;
     if (s < 1e-9) return;

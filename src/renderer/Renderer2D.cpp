@@ -47,8 +47,7 @@ void Renderer2D::drawField(std::vector<float>& data, ScalField2D& field, int cha
     }
 }
 
-void Renderer2D::render(const IGrid2D *_grid) {
-    auto* grid = dynamic_cast<const OpenGLGrid2D*>(_grid);
+void Renderer2D::render(IGrid2D *grid) {
     if (!grid) return;
 
     std::vector<float> data(_width * _height * 4);

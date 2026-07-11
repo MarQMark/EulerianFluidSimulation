@@ -13,7 +13,7 @@ JacobiSolverCPU2D::~JacobiSolverCPU2D() {
 }
 
 float JacobiSolverCPU2D::solve(IGrid2D *_grid) {
-    const auto* grid = dynamic_cast<Grid2D*>(_grid);
+    auto* grid = dynamic_cast<Grid2D*>(_grid);
     if (!grid) return 0;
 
     const int iter = PROPERTY_I(MAX_STEPS);

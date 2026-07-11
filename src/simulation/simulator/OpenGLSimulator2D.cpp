@@ -68,11 +68,14 @@ void* OpenGLSimulator2D::getRenderData() {
 }
 
 void OpenGLSimulator2D::update() {
-	rho_advect();
+	_grid->setDirty();
     _grid->upload();
-	add_force();
+
+	rho_advect();
 	vel_advect();
+	add_force();
 	project();
+
     _grid->download();
 }
 
@@ -81,21 +84,14 @@ void OpenGLSimulator2D::vel_extrapolate() {
 
 #define BOUNDARY 1.f
 
-#define LOOP_2D_GRID(x, y, offset)  for (int y = offset; y < _grid->height() - offset; y++) \
-									for (int x = offset; x < _grid->width()  - offset; x++)
+#define LOOP_2D_GRID(x, y, offset)  for (int (y) = offset; (y) < _grid->height() - (offset); (y)++) \
+									for (int (x) = offset; (x) < _grid->width()  - (offset); (x)++)
 
 void OpenGLSimulator2D::rho_advect() {
-auto& rho   = _grid->rho();
 	const int w = _grid->width();
 	const int h = _grid->height();
-	const int gx = (w - 2 + 15) / 16;
-	const int gy = (h - 2 + 15) / 16;
-
-
-    auto& gamma = _grid->gamma();
-	auto& beta = _grid->beta();
-	auto& boundary = _grid->boundary();
-	auto idx = [&](int x, int y) { return y * _grid->width() + x; };
+	const int gx = (w - 1 + 15) / 16;
+	const int gy = (h - 1 + 15) / 16;
 
 	//################## Step 1 ##################
 	// Advect gamma using backward semi-lagrangian
@@ -116,6 +112,7 @@ auto& rho   = _grid->rho();
 	//################## Step 3 ##################
 	// Scale A by gamma
 	_grid->gpuA().clear();
+	_grid->gpuCounts().clear();
 	_rv_2_comp_a->bind();
 	_grid->gpuA().bind(0);
 	_grid->gpuCounts().bind(1);
@@ -190,6 +187,16 @@ auto& rho   = _grid->rho();
 	_rv_9_clamp_beta->setInt("uHeight", h);
 	_rv_9_clamp_beta->dispatch(gx, gy);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	/*_grid->gpuBeta().clear();
+	_rv_4_comp_beta->bind();
+	_grid->gpuBeta().bind(0);
+	_grid->gpuA().bind(1);
+	_grid->gpuCounts().bind(2);
+	_rv_4_comp_beta->setInt("uWidth", w);
+	_rv_4_comp_beta->setInt("uHeight", h);
+	_rv_4_comp_beta->dispatch(gx, gy);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);*/
 
 	//################## Step 10 ##################
 	// Recompute gamma

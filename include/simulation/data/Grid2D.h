@@ -36,24 +36,24 @@ public:
 
     glm::vec2 traceParticle(glm::vec2 pos, float dt, int substeps) const;
 
-    VecField2D& vel() const;
+    VecField2D& vel() override;
     VecField2D& tmpVec() const;
     void swapVec();
 
-    ScalField2D& rho() const;
+    ScalField2D& rho() override;
     ScalField2D& tmpScal() const;
     void swapRho();
 
-    ScalField2D& gamma() const;
-    ScalField2D& beta() const;
+    ScalField2D& gamma() override;
+    ScalField2D& beta() override;
     std::map<unsigned int, DisAdvCell>& A() const;
     void addA(unsigned int i, unsigned int j, float val) const;
 
-    ScalField2D& divergence() const;
-    ScalField2D& pressure() const;
+    ScalField2D& divergence() override;
+    ScalField2D& pressure() override;
 
-    VecField2D& forces() const;
-    ScalField2D& boundary() const;
+    VecField2D& forces() override;
+    ScalField2D& boundary() override;
 
 private:
 

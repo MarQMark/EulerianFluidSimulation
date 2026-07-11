@@ -105,36 +105,40 @@ OpenGLGrid2D::~OpenGLGrid2D() {
     delete _pressure;
 }
 
-VecField2D& OpenGLGrid2D::vel(const bool download) const {
-    if (download) _gpu_vel->download(_vel->data());
+void OpenGLGrid2D::setDirty() {
+    _dirty = true;
+}
+
+VecField2D& OpenGLGrid2D::vel() {
+    if (_dirty) download();
     return *_vel;
 }
-ScalField2D& OpenGLGrid2D::rho(const bool download) const {
-    if (download) _gpu_rho->download(_rho->data());
+ScalField2D& OpenGLGrid2D::rho() {
+    if (_dirty) download();
     return *_rho;
 }
-ScalField2D & OpenGLGrid2D::gamma(const bool download) const {
-    if (download) _gpu_gamma->download(_gamma->data());
+ScalField2D & OpenGLGrid2D::gamma() {
+    if (_dirty) download();
     return *_gamma;
 }
-ScalField2D & OpenGLGrid2D::beta(const bool download) const {
-    if (download) _gpu_beta->download(_beta->data());
+ScalField2D & OpenGLGrid2D::beta() {
+    if (_dirty) download();
     return *_beta;
 }
-ScalField2D & OpenGLGrid2D::divergence(const bool download) const {
-    if (download) _gpu_divergence->download(_divergence->data());
+ScalField2D & OpenGLGrid2D::divergence() {
+    if (_dirty) download();
     return *_divergence;
 }
-ScalField2D & OpenGLGrid2D::pressure(const bool download) const {
-    if (download) _gpu_pressure->download(_pressure->data());
+ScalField2D & OpenGLGrid2D::pressure() {
+    if (_dirty) download();
     return *_pressure;
 }
-VecField2D & OpenGLGrid2D::forces(const bool download) const {
-    if (download) _gpu_forces->download(_forces->data());
+VecField2D & OpenGLGrid2D::forces() {
+    if (_dirty) download();
     return *_forces;
 }
-ScalField2D & OpenGLGrid2D::boundary(const bool download) const {
-    if (download) _gpu_boundary->download(_boundary->data());
+ScalField2D & OpenGLGrid2D::boundary() {
+    if (_dirty) download();
     return *_boundary;
 }
 
@@ -161,11 +165,11 @@ void OpenGLGrid2D::upload() const {
     _gpu_divergence->upload(_divergence->data());
     _gpu_pressure->upload(_pressure->data());
 
-    _gpu_beta->upload(_beta->data());
-    _gpu_gamma->upload(_gamma->data());
+    //_gpu_beta->upload(_beta->data());
+    //_gpu_gamma->upload(_gamma->data());
 }
 
-void OpenGLGrid2D::download() const {
+void OpenGLGrid2D::download() {
     _gpu_vel->download(_vel->data());
 
     _gpu_rho->download(_rho->data());
@@ -176,6 +180,8 @@ void OpenGLGrid2D::download() const {
 
     _gpu_beta->download(_beta->data());
     _gpu_gamma->download(_gamma->data());
+
+    _dirty = false;
 }
 
 #undef LOOP_2D

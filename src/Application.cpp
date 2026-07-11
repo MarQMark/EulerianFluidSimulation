@@ -163,4 +163,10 @@ void Application::input_handler() {
     	SET_PROPERTY_B(GRAVITY_ENABLED, !PROPERTY_B(GRAVITY_ENABLED));
 	if (Input::Get()->isKeyDown(Window::Key::LeftControl) && Input::Get()->isKeyPressed(Window::Key::S))
 		ADD_PROPERTY_I(SIMULATION_STEPS, 1);
+	if (Input::Get()->isKeyPressed(Window::Key::F12) && _display) {
+		for (const auto& [name, v] : _display->viewables()) {
+			if (name.find("FieldViewer") != std::string::npos)
+				v->setVisible(true);
+		}
+	}
 }

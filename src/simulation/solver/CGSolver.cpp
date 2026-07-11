@@ -29,7 +29,7 @@ CGSolverCPU2D::~CGSolverCPU2D() {
 }
 
 float CGSolverCPU2D::solve(IGrid2D* _grid) {
-    const auto* grid = dynamic_cast<Grid2D*>(_grid);
+    auto* grid = dynamic_cast<Grid2D*>(_grid);
     if (!grid) return 0;
 
     const auto& divergence = grid->divergence();
@@ -182,7 +182,7 @@ CGSolverOpenGL2D::~CGSolverOpenGL2D() {
 }
 
 float CGSolverOpenGL2D::solve(IGrid2D *_grid) {
-    const auto* grid = dynamic_cast<OpenGLGrid2D*>(_grid);
+    auto* grid = dynamic_cast<OpenGLGrid2D*>(_grid);
     if (!grid) return 0;
 
     const auto& divergence = grid->divergence();

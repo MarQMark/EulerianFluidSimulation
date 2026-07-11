@@ -69,9 +69,9 @@ vec2 traceParticle(vec2 start) {
     vec2  pos   = start;
 
     for (int s = 0; s < uSubsteps; s++) {
-        vec2 k1   = sampleVel(pos);
+        vec2 k1   = sampleVel(pos - vec2(0.5));
         vec2 mid  = domainClamp(pos + k1 * (subDt * 0.5));
-        vec2 k2   = sampleVel(mid);
+        vec2 k2   = sampleVel(mid - vec2(0.5));
         vec2 next = pos + k2 * subDt;
 
         if (inWall(next)) {
@@ -110,7 +110,7 @@ void main() {
     const int i = idx(x, y);
     if(boundary[i] == 1) return;
 
-    vec2 prevPos = traceParticle(vec2(x, y));
+    vec2 prevPos = traceParticle(vec2(x, y) - 0.5);
     newGamma[i] = sampleGamma(prevPos);
 }
 

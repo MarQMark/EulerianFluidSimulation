@@ -12,8 +12,8 @@ public:
         vel_extrapolate();
         rho_advect();
         rho_sharpen();
-        add_force();
         vel_advect();
+        add_force();
         diffuse();
         project();
     }

@@ -275,7 +275,7 @@ void CPUSimulator2D::rho_advect() {
 
 	//################## Step 5 ##################
 	// Forward trace the velocity field to add the weights to A for all cells j where beta j < 1
-	LOOP_2D_GRID(x, y, 1) {
+	/*LOOP_2D_GRID(x, y, 1) {
 		const int j = idx(x, y);
 		if (beta[j] >= 1) continue;
 
@@ -302,7 +302,7 @@ void CPUSimulator2D::rho_advect() {
 		_grid->addA(idx(p0x + 1, p0y),	 j, (1-beta[j]) * (m1 / sum));
 		_grid->addA(idx(p0x,	 p0y + 1),   j, (1-beta[j]) * (m2 / sum));
 		_grid->addA(idx(p0x + 1, p0y + 1), j, (1-beta[j]) * (m3 / sum));
-	}
+	}*/
 
 	//################## Step 6 ##################
 	// Recompute gamma
@@ -350,7 +350,7 @@ void CPUSimulator2D::rho_advect() {
 
 	//################## Step 12 ##################
 	// Diffusion of rho and gamma
-	for (int it = 0; it < 7; it++) {
+	/*for (int it = 0; it < 7; it++) {
 		// X-dimension
 		for (int y = 1; y < _grid->height() - 1; y++)
 		for (int x = 2; x < _grid->width()  - 1; x++) {
@@ -406,7 +406,7 @@ void CPUSimulator2D::rho_advect() {
 			gamma(x, y-1) = avg;
 			gamma(x, y  ) = avg;
 		}
-	}
+	}*/
 }
 
 void CPUSimulator2D::rho_sharpen() {

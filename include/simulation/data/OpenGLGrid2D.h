@@ -9,17 +9,19 @@ public:
     OpenGLGrid2D(unsigned width, unsigned height);
     ~OpenGLGrid2D() override;
 
-    void upload() const;
-    void download() const;
+    void setDirty();
 
-    VecField2D& vel(bool download = false) const;
-    ScalField2D& rho(bool download = false) const;
-    ScalField2D& gamma(bool download = false) const;
-    ScalField2D& beta(bool download = false) const;
-    ScalField2D& divergence(bool download = false) const;
-    ScalField2D& pressure(bool download = false) const;
-    VecField2D& forces(bool download = false) const;
-    ScalField2D& boundary(bool download = false) const;
+    void upload() const;
+    void download();
+
+    VecField2D& vel() override;
+    ScalField2D& rho() override;
+    ScalField2D& gamma() override;
+    ScalField2D& beta() override;
+    ScalField2D& divergence() override;
+    ScalField2D& pressure() override;
+    VecField2D& forces() override;
+    ScalField2D& boundary() override;
 
     StorageBuffer& gpuVel() const;
     StorageBuffer& gpuTmpVel() const;
@@ -60,6 +62,8 @@ private:
     ScalField2D* _boundary{};
 
     struct AdvCell { unsigned int j; float val; };
+
+    bool _dirty = false;
 };
 
 #endif //EULERIANFLUIDSIMULATION_OPENGLGRID2D_H

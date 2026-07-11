@@ -21,7 +21,7 @@ void main() {
     float s = 0.0;
     uint base = i * 8;
     for (uint k = 0u; k < counts[i]; k++)
-    s += A[base + k].val;
+        s += A[base + k].val;
 
     gamma[i] = s;
 }

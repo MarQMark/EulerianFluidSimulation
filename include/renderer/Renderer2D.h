@@ -11,7 +11,7 @@ public:
     Renderer2D(int width, int height);
     ~Renderer2D();
 
-    void render(const IGrid2D* grid);
+    void render(IGrid2D* grid);
 
     Texture2D* getTexture2D() const;
 

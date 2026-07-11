@@ -1,6 +1,9 @@
 #ifndef EULERIANFLUIDSIMULATION_IGRID_H
 #define EULERIANFLUIDSIMULATION_IGRID_H
 
+class VecField2D;
+class ScalField2D;
+
 class IGrid {
 public:
     unsigned int size() const { return  _size;}
@@ -18,9 +21,18 @@ public:
     unsigned int width() const {return _width;}
     unsigned int height() const {return _height;}
 
+    virtual VecField2D& vel() = 0;
+    virtual ScalField2D& rho() = 0;
+    virtual ScalField2D& gamma() = 0;
+    virtual ScalField2D& beta() = 0;
+    virtual ScalField2D& divergence() = 0;
+    virtual ScalField2D& pressure() = 0;
+    virtual VecField2D& forces() = 0;
+    virtual ScalField2D& boundary() = 0;
+
 protected:
     IGrid2D(const unsigned int width, const unsigned int height)
-        : _width(width), _height(height) {_size = width * height;}
+        : IGrid(), _width(width), _height(height) {_size = width * height;}
 
     unsigned int _width;
     unsigned int _height;
@@ -36,7 +48,7 @@ public:
 
 protected:
     IGrid3D(const unsigned int width, const unsigned int height, const unsigned int depth)
-        : _width(width), _height(height), _depth(depth) {_size = width * height * depth;}
+        : IGrid(), _width(width), _height(height), _depth(depth) {_size = width * height * depth;}
 
     unsigned int _width;
     unsigned int _height;

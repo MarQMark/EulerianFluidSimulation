@@ -1,92 +1,63 @@
 #include "views/FieldViewerView.h"
 
 #include <algorithm>
+#include <utility>
 
 #include "imgui.h"
 #include "renderer/Renderer2D.h"
+#include "simulation/display/SimulationDisplay2D.h"
 
-FieldViewerView::FieldViewerView(VecField2D *field, const std::string& name)
-    : _name(name), _v_field(field) {
-    _txt = new Texture2D(field->width(), field->height(), nullptr);
-}
-
-FieldViewerView::FieldViewerView(ScalField2D *field, const std::string& name)
-    : _name(name), _s_field(field) {
-    _txt = new Texture2D(field->width(), field->height(), nullptr);
+FieldViewerView::FieldViewerView(const Properties::DrawMode type, std::string name)
+    : _type(type), _name(std::move(name)){
+    _visible = false;
 }
 
 FieldViewerView::~FieldViewerView() {
     delete _txt;
 }
 
-void DrawFieldGrid(ImDrawList* dl, ImVec2 origin, float cellSize, ScalField2D& field)
-{
-    for (int y = 0; y < 25; y++)
-    {
-        for (int x = 0; x < 25; x++)
-        {
-            float v = field(x, 24 - y);
-            v = std::clamp(v, 0.0f, 1.0f);
-
-            ImU32 col = IM_COL32(
-                (int)(v * 255),
-                (int)(v * 255),
-                (int)(v * 255),
-                255
-            );
-
-            if (x == 0 && 24 - y == 0) {
-                col = IM_COL32(
-                (int)(200),
-                (int)(0),
-                (int)(205),
-                255
-            );
-            }
-
-            ImVec2 p0(
-                origin.x + x * cellSize,
-                origin.y + y * cellSize
-            );
-
-            ImVec2 p1(
-                p0.x + cellSize,
-                p0.y + cellSize
-            );
-
-            dl->AddRectFilled(p0, p1, col);
-        }
-    }
-}
-
 void FieldViewerView::render(void* renderData) {
-    if (!_v_field && !_s_field)
+    if (!_visible) return;
+    if (!renderData) return;
+    const auto* data = static_cast<SimulationDisplay2D::RenderData2D*>(renderData);
+    auto* grid = data->grid;
+    if (!grid)
         return;
+
+    if (!_txt)
+        _txt = new Texture2D(grid->width(), grid->height(), nullptr);
 
     _max = 0;
 
-    if (_v_field)
-        render_vec_field();
-    if (_s_field)
-        render_scal_field();
+    VecField2D* vField{};
+    ScalField2D* sField{};
+    switch (_type) {
+        case Properties::VELOCITY:
+            vField = &grid->vel();
+            break;
+        case Properties::FLUID:
+        case Properties::DENSITY:
+            sField = &grid->rho();
+            break;
+        case Properties::DIVERGENCE:
+            sField = &grid->divergence();
+            break;
+        case Properties::PRESSURE:
+            sField = &grid->pressure();
+            break;
+        case Properties::GAMMA:
+            sField = &grid->gamma();
+            break;
+        case Properties::BETA:
+            sField = &grid->beta();
+            break;
+        default:;
+    }
+
+    if (vField) render_vec_field(*vField);
+    if (sField) render_scal_field(*sField);
 
     ImGui::Begin(_name.c_str());
-
-    if (_s_field && _s_field->size() == 25 * 25) {
-        ImDrawList* dl = ImGui::GetWindowDrawList();
-
-        ImVec2 origin = ImGui::GetCursorScreenPos();
-
-        // pick integer cell size for perfect pixel look
-        float cellSize = 50.0f;
-
-        DrawFieldGrid(dl, origin, cellSize, *_s_field);
-
-        // advance cursor so ImGui layout doesn't overlap
-        ImGui::Dummy(ImVec2(25 * cellSize, 25 * cellSize));
-        ImGui::End();
-        return;
-    }
 
     constexpr float view_padding = 10;
     float x_min, x_max, y_min, y_max;
@@ -124,8 +95,8 @@ void FieldViewerView::render(void* renderData) {
     const float draw_w = x_max - x_min;
     const float draw_h = y_max - y_min;
 
-    const int grid_w = field_width();
-    const int grid_h = field_height();
+    const int grid_w = grid->width();
+    const int grid_h = grid->height();
 
     ImVec2 mouse = ImGui::GetMousePos();
 
@@ -166,8 +137,8 @@ void FieldViewerView::render(void* renderData) {
         ImGui::BeginTooltip();
         ImGui::Text("x: %d", cell_x);
         ImGui::Text("y: %d", cell_y);
-        if (_s_field) ImGui::Text("value: %.6f", (*_s_field)(cell_x, cell_y));
-        if (_v_field) ImGui::Text("value: (%.6f, %.6f)", (*_v_field)(cell_x, cell_y).x, (*_v_field)(cell_x, cell_y).y );
+        if (sField) ImGui::Text("value: %.6f", (*sField)(cell_x, cell_y));
+        if (vField) ImGui::Text("value: (%.6f, %.6f)", (*vField)(cell_x, cell_y).x, (*vField)(cell_x, cell_y).y );
         ImGui::EndTooltip();
     }
 
@@ -177,26 +148,14 @@ void FieldViewerView::render(void* renderData) {
     ImGui::End();
 }
 
-void FieldViewerView::render_vec_field() {
-    std::vector<float> data(_v_field->size() * 4);
-    Renderer2D::drawField(data, *_v_field, 2, _max);
+void FieldViewerView::render_vec_field(VecField2D& field) {
+    std::vector<float> data(field.size() * 4);
+    Renderer2D::drawField(data, field, 2, _max);
     _txt->update(reinterpret_cast<uint8_t *>(data.data()));
 }
 
-void FieldViewerView::render_scal_field() {
-    std::vector<float> data(_s_field->size() * 4);
-    Renderer2D::drawField(data, *_s_field, 2, _max);
+void FieldViewerView::render_scal_field(ScalField2D& field) {
+    std::vector<float> data(field.size() * 4);
+    Renderer2D::drawField(data, field, 2, _max);
     _txt->update(reinterpret_cast<uint8_t *>(data.data()));
-}
-
-unsigned int FieldViewerView::field_width() const {
-    if (_v_field) return _v_field->width();
-    if (_s_field) return _s_field->width();
-    return 0;
-}
-
-unsigned int FieldViewerView::field_height() const {
-    if (_v_field) return _v_field->height();
-    if (_s_field) return _s_field->height();
-    return 0;
 }

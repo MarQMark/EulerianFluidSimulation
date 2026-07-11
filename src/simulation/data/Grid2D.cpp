@@ -88,10 +88,10 @@ glm::vec2 Grid2D::traceParticle(const glm::vec2 start, const float dt, const int
 // start:    cell-index position (rho lives at cell centers, so pass glm::vec2(x, y))
 // dt:       signed timestep (negative = backward trace, positive = forward)
 // substeps: 1 = single Euler step (original), 4-8 = accurate with wall stopping
-    auto& vel   = this->vel();
-    const auto& walls = this->boundary();
-    const float W     = (float)this->width();
-    const float H     = (float)this->height();
+    auto& v   = *_vel;
+    const auto& walls = *_boundary;
+    const float W     = _width;
+    const float H     = _height;
 
     // Is continuous position p inside a wall or out of domain?
     // Checks the cell that contains p (floor) plus clamps to domain.
@@ -113,7 +113,7 @@ glm::vec2 Grid2D::traceParticle(const glm::vec2 start, const float dt, const int
     // Sample velocity at a cell-center position.
     // vel is face-centered so we offset by -0.5 to convert.
     auto sampleVel = [&](glm::vec2 p) -> glm::vec2 {
-        return vel.interpolate(p - glm::vec2(0.5f));
+        return v.interpolate(p - glm::vec2(0.5f));
     };
 
     // If start is already in a wall (shouldn't happen, but be safe)
@@ -160,7 +160,7 @@ glm::vec2 Grid2D::traceParticle(const glm::vec2 start, const float dt, const int
     return pos;
 }
 
-VecField2D & Grid2D::vel() const {
+VecField2D & Grid2D::vel() {
     return *_vel;
 }
 
@@ -176,7 +176,7 @@ void Grid2D::swapVec() {
     _v_tmp->clear();
 }
 
-ScalField2D & Grid2D::rho() const {
+ScalField2D & Grid2D::rho() {
     return *_rho;
 }
 
@@ -192,11 +192,11 @@ void Grid2D::swapRho() {
     _s_tmp->clear();
 }
 
-ScalField2D & Grid2D::gamma() const {
+ScalField2D & Grid2D::gamma() {
     return *_gamma;
 }
 
-ScalField2D & Grid2D::beta() const {
+ScalField2D & Grid2D::beta() {
     return *_beta;
 }
 
@@ -212,19 +212,19 @@ void Grid2D::addA(const unsigned int i, const unsigned int j, const float val) c
         (*_A)[idx] = {i, j, val};
 }
 
-ScalField2D & Grid2D::divergence() const {
+ScalField2D & Grid2D::divergence() {
     return *_divergence;
 }
 
-ScalField2D & Grid2D::pressure() const {
+ScalField2D & Grid2D::pressure() {
     return *_pressure;
 }
 
-VecField2D & Grid2D::forces() const {
+VecField2D & Grid2D::forces() {
     return *_forces;
 }
 
-ScalField2D & Grid2D::boundary() const {
+ScalField2D & Grid2D::boundary() {
     return *_boundary;
 }
 

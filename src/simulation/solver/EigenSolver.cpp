@@ -46,7 +46,7 @@ void EigenSolver2D::determine_equations(const ScalField2D &divergence, const Sca
 
 EigenCGSolver2D::EigenCGSolver2D(const int w, const int h) : EigenSolver2D(w, h) {}
 float EigenCGSolver2D::solve(IGrid2D* _grid) {
-    const auto* grid = dynamic_cast<Grid2D*>(_grid);
+    auto* grid = dynamic_cast<Grid2D*>(_grid);
     if (!grid) return 0;
 
     determine_equations(grid->divergence(), grid->rho(), grid->boundary());
@@ -64,7 +64,7 @@ float EigenCGSolver2D::solve(IGrid2D* _grid) {
 
 EigenBiCGSTABSolver2D::EigenBiCGSTABSolver2D(const int w, const int h) : EigenSolver2D(w, h) {}
 float EigenBiCGSTABSolver2D::solve(IGrid2D* _grid) {
-    const auto* grid = dynamic_cast<Grid2D*>(_grid);
+    auto* grid = dynamic_cast<Grid2D*>(_grid);
     if (!grid) return 0;
 
     determine_equations(grid->divergence(), grid->rho(), grid->boundary());
