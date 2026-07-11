@@ -9,13 +9,13 @@
 #include "simulation/scene/Scene.h"
 
 class ScalField3D;
-class Grid3D;
+class IGrid3D;
 
 class Editor {
 public:
     Editor();
 
-    void initSimulation(Grid3D* grid);
+    void initSimulation(IGrid3D* grid);
 
     void setScene(Scene* scene);
     Scene* getScene() const;

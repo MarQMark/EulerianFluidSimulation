@@ -11,12 +11,12 @@ class Editor;
 class Scene;
 class Renderer3D;
 class Window;
-class Grid3D;
+class IGrid3D;
 
 class SimulationDisplay3D final : public ISimulationDisplay {
 public:
     struct RenderData3D {
-        Grid3D* grid;
+        IGrid3D* grid;
     };
 
     SimulationDisplay3D(Window* window);

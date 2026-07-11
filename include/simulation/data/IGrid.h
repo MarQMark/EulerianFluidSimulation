@@ -3,6 +3,8 @@
 
 class VecField2D;
 class ScalField2D;
+class VecField3D;
+class ScalField3D;
 
 class IGrid {
 public:
@@ -45,6 +47,15 @@ public:
     unsigned int width() const {return _width;}
     unsigned int height() const {return _height;}
     unsigned int depth() const {return _depth;}
+
+    virtual VecField3D& vel() = 0;
+    virtual ScalField3D& rho() = 0;
+    virtual ScalField3D& gamma() = 0;
+    virtual ScalField3D& beta() = 0;
+    virtual ScalField3D& divergence() = 0;
+    virtual ScalField3D& pressure() = 0;
+    virtual VecField3D& forces() = 0;
+    virtual ScalField3D& boundary() = 0;
 
 protected:
     IGrid3D(const unsigned int width, const unsigned int height, const unsigned int depth)

@@ -1,5 +1,5 @@
-#ifndef EULERIANFLUIDSIMULATION_FIELDVIEWERVIEW_H
-#define EULERIANFLUIDSIMULATION_FIELDVIEWERVIEW_H
+#ifndef EULERIANFLUIDSIMULATION_FIELDVIEWERVIEW2D_H
+#define EULERIANFLUIDSIMULATION_FIELDVIEWERVIEW2D_H
 
 #include <string>
 
@@ -9,10 +9,10 @@
 #include "simulation/data/ScalField2D.h"
 #include "simulation/data/VecField2D.h"
 
-class FieldViewerView : public Viewable {
+class FieldViewerView2D : public Viewable {
 public:
-    FieldViewerView(Properties::DrawMode type, std::string  name);
-    ~FieldViewerView() override;
+    FieldViewerView2D(Properties::DrawMode type, std::string  name);
+    ~FieldViewerView2D() override;
 
     void render(void* renderData) override;
 
@@ -29,4 +29,4 @@ private:
 };
 
 
-#endif //EULERIANFLUIDSIMULATION_FIELDVIEWERVIEW_H
+#endif //EULERIANFLUIDSIMULATION_FIELDVIEWERVIEW2D_H

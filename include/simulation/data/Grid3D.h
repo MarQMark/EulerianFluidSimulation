@@ -10,8 +10,6 @@
 class Grid3D final : public IGrid3D {
 private:
     struct _DisAdvCell3D {
-        //_DisAdvCell(const unsigned int _i, const unsigned int _j, const float _val)
-        //    : i(_i), j(_j), val(_val) {}
         unsigned int i = 0;
         unsigned int j = 0;
         float val = 0.f;
@@ -28,50 +26,28 @@ private:
         }
     } typedef DisAdvCell;
 
-#ifdef USE_GPU
-public:
-    StorageBuffer* gpuVel{};
-    StorageBuffer* gpuTmpVel{};
-
-    StorageBuffer* gpuRho{};
-    StorageBuffer* gpuTmpRho{};
-    StorageBuffer* gpuGamma{};
-    StorageBuffer* gpuBeta{};
-
-    StorageBuffer* gpuDivergence{};
-    StorageBuffer* gpuPressure{};
-
-    StorageBuffer* gpuForces{};
-    StorageBuffer* gpuBoundary{};
-
-    void gpuUpload() const;
-    void gpuDownload() const;
-#endif
-
 public:
     explicit Grid3D(unsigned int nWidth, unsigned int nHeight, unsigned int nDepth);
     ~Grid3D() override;
 
     glm::vec3 traceParticle(glm::vec3 pos, float dt, int substeps) const;
 
-    VecField3D& vel() const;
-    VecField3D& tmpVec() const;
-    void swapVec();
+    VecField3D& vel() override;
+    ScalField3D& rho() override;
+    ScalField3D& gamma() override;
+    ScalField3D& beta() override;
+    ScalField3D& divergence() override;
+    ScalField3D& pressure() override;
+    VecField3D& forces() override;
+    ScalField3D& boundary() override;
 
-    ScalField3D& rho() const;
-    ScalField3D& tmpScal() const;
-    void swapRho();
-
-    ScalField3D& gamma() const;
-    ScalField3D& beta() const;
     std::unordered_map<unsigned int, DisAdvCell>& A() const;
     void addA(unsigned int i, unsigned int j, float val) const;
 
-    ScalField3D& divergence() const;
-    ScalField3D& pressure() const;
-
-    VecField3D& forces() const;
-    ScalField3D& boundary() const;
+    VecField3D& tmpVec() const;
+    void swapVec();
+    ScalField3D& tmpScal() const;
+    void swapRho();
 
 private:
     VecField3D* _vel{};
@@ -82,7 +58,6 @@ private:
 
     ScalField3D* _gamma{};
     ScalField3D* _beta{};
-
 
     std::unordered_map<unsigned int, DisAdvCell>* _A{};
 

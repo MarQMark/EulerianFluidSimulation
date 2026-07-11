@@ -8,6 +8,7 @@
 #include "simulation/Properties.h"
 #include "simulation/scene/nodes/FluidNode.h"
 #include "util/Time.h"
+#include "views/FieldViewerView3D.h"
 #include "views/NodePropertiesView.h"
 #include "views/SceneView.h"
 #include "views/Simulation3DView.h"
@@ -21,6 +22,13 @@ SimulationDisplay3D::SimulationDisplay3D(Window* window) : ISimulationDisplay() 
     _viewables["Simulation3D"] = new Simulation3DView(_editor, _renderer);
     _viewables["Scene"] = new SceneView(_editor, _renderer);
     _viewables["NodeProperties"] = new NodePropertiesView(_editor);
+
+    _viewables["FieldViewerVel"] = new FieldViewerView3D(Properties::VELOCITY, "FieldViewerVel");
+    _viewables["FieldViewerRho"] = new FieldViewerView3D(Properties::DENSITY, "FieldViewerRho");
+    _viewables["FieldViewerPres"] = new FieldViewerView3D(Properties::PRESSURE, "FieldViewerPres");
+    _viewables["FieldViewerDiv"] = new FieldViewerView3D(Properties::DIVERGENCE, "FieldViewerDiv");
+    _viewables["FieldViewerBeta"] = new FieldViewerView3D(Properties::BETA, "FieldViewerBeta");
+    _viewables["FieldViewerGamma"] = new FieldViewerView3D(Properties::GAMMA, "FieldViewerGamma");
 
     SET_PROPERTY_B(PAUSED, true);
 }

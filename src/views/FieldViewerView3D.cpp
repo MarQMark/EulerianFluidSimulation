@@ -1,36 +1,33 @@
-#include "views/FieldViewerView.h"
+#include "views/FieldViewerView3D.h"
 
 #include <algorithm>
-#include <utility>
 
 #include "imgui.h"
-#include "renderer/Renderer2D.h"
-#include "simulation/display/SimulationDisplay2D.h"
+#include "renderer/Renderer3D.h"
+#include "simulation/display/SimulationDisplay3D.h"
+#include "simulation/data/Grid3D.h"
 
-FieldViewerView::FieldViewerView(const Properties::DrawMode type, std::string name)
+FieldViewerView3D::FieldViewerView3D(const Properties::DrawMode type, std::string name)
     : _type(type), _name(std::move(name)){
     _visible = false;
 }
 
-FieldViewerView::~FieldViewerView() {
+FieldViewerView3D::~FieldViewerView3D() {
     delete _txt;
 }
 
-void FieldViewerView::render(void* renderData) {
+void FieldViewerView3D::render(void *renderData) {
     if (!_visible) return;
     if (!renderData) return;
-    const auto* data = static_cast<SimulationDisplay2D::RenderData2D*>(renderData);
+    const auto* data = static_cast<SimulationDisplay3D::RenderData3D*>(renderData);
     auto* grid = data->grid;
     if (!grid)
         return;
 
-    if (!_txt)
-        _txt = new Texture2D(grid->width(), grid->height(), nullptr);
-
     _max = 0;
 
-    VecField2D* vField{};
-    ScalField2D* sField{};
+    VecField3D* vField{};
+    ScalField3D* sField{};
     switch (_type) {
         case Properties::VELOCITY:
             vField = &grid->vel();
@@ -88,6 +85,16 @@ void FieldViewerView::render(void* renderData) {
                  ImVec2(0, 1),
                  ImVec2(1, 0));
 
+    const char* names[] = { "X", "Y", "Z" };
+    int currentDim = _dim;
+    if (ImGui::Combo("Slice Axis", &currentDim, names, IM_ARRAYSIZE(names))) {
+        if (currentDim != _dim) {
+            _dim = currentDim;
+            _changed_dim = true;
+        }
+    }
+    ImGui::SliderInt("Level", &_level, 0, _sizes[_dim] - 1);
+
     // ------------------------------------------------------------------
     // Hover detection
     // ------------------------------------------------------------------
@@ -137,8 +144,8 @@ void FieldViewerView::render(void* renderData) {
         ImGui::BeginTooltip();
         ImGui::Text("x: %d", cell_x);
         ImGui::Text("y: %d", cell_y);
-        if (sField) ImGui::Text("value: %.6f", (*sField)(cell_x, cell_y));
-        if (vField) ImGui::Text("value: (%.6f, %.6f)", (*vField)(cell_x, cell_y).x, (*vField)(cell_x, cell_y).y );
+        if (sField) ImGui::Text("value: %.6f", (*sField)(cell_x, cell_y, 1));
+        if (vField) ImGui::Text("value: (%.6f, %.6f)", (*vField)(cell_x, cell_y, 1).x, (*vField)(cell_x, cell_y, 1).y );
         ImGui::EndTooltip();
     }
 
@@ -148,14 +155,44 @@ void FieldViewerView::render(void* renderData) {
     ImGui::End();
 }
 
-void FieldViewerView::render_vec_field(VecField2D& field) {
+void FieldViewerView3D::render_vec_field(VecField3D &field) {
+    _sizes[0] = field.width();
+    _sizes[1] = field.height();
+    _sizes[2] = field.depth();
+    const unsigned int usedSizes[2] = {_sizes[(_dim + 1) % 3], _sizes[(_dim + 2) % 3]};
+    if (_used_sizes[0] != usedSizes[0] || _used_sizes[1] != usedSizes[1] || _changed_dim) {
+        _used_sizes[0] = usedSizes[0];
+        _used_sizes[1] = usedSizes[1];
+        delete _txt;
+        _txt = new Texture2D(_used_sizes[0], _used_sizes[1], nullptr);
+        _changed_dim = false;
+    }
+    if (!_txt) {
+        _txt = new Texture2D(_used_sizes[0], _used_sizes[1], nullptr);
+    }
+
     std::vector<float> data(field.size() * 4);
-    Renderer2D::drawField(data, field, 2, _max);
+    Renderer3D::drawField(data, field, _dim, _level, 2, _max);
     _txt->update(reinterpret_cast<uint8_t *>(data.data()));
 }
 
-void FieldViewerView::render_scal_field(ScalField2D& field) {
+void FieldViewerView3D::render_scal_field(ScalField3D &field) {
+    _sizes[0] = field.width();
+    _sizes[1] = field.height();
+    _sizes[2] = field.depth();
+    const unsigned int usedSizes[2] = {_sizes[(_dim + 1) % 3], _sizes[(_dim + 2) % 3]};
+    if (_used_sizes[0] != usedSizes[0] || _used_sizes[1] != usedSizes[1] || _changed_dim) {
+        _used_sizes[0] = usedSizes[0];
+        _used_sizes[1] = usedSizes[1];
+        delete _txt;
+        _txt = new Texture2D(_used_sizes[0], _used_sizes[1], nullptr);
+        _changed_dim = false;
+    }
+    if (!_txt) {
+        _txt = new Texture2D(_used_sizes[0], _used_sizes[1], nullptr);
+    }
+
     std::vector<float> data(field.size() * 4);
-    Renderer2D::drawField(data, field, 2, _max);
+    Renderer3D::drawField(data, field, _dim, _level,2,_max);
     _txt->update(reinterpret_cast<uint8_t *>(data.data()));
 }

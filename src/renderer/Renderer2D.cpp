@@ -13,7 +13,7 @@ Renderer2D::~Renderer2D() {
     delete _txt;
 }
 
-void Renderer2D::drawField(std::vector<float>& data, VecField2D& field, int chanel, float& max) {
+void Renderer2D::drawField(std::vector<float>& data, VecField2D& field, const int chanel, float& max) {
     for(auto v : field)
         max = std::max(max, glm::length(v));
     for (int i = 0; i < field.width() * field.height(); i++) {
@@ -25,7 +25,7 @@ void Renderer2D::drawField(std::vector<float>& data, VecField2D& field, int chan
         data[i * 4 + chanel] = glm::length(field[i]) / max;
     }
 }
-void Renderer2D::drawField(std::vector<float>& data, ScalField2D& field, int chanel, float& max) {
+void Renderer2D::drawField(std::vector<float>& data, ScalField2D& field, const int chanel, float& max) {
     for(auto s : field)
         max = std::max(max, std::abs(s));
     for (int i = 0; i < field.width() * field.height(); i++) {

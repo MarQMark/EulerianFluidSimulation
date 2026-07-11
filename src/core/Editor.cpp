@@ -14,7 +14,7 @@ Editor::Editor() {
     _baseFluidFillShader = std::make_unique<Shader>("assets/shaders/baseFluidFill.comp", Shader::COMPUTE);
 }
 
-void Editor::initSimulation(Grid3D* grid) {
+void Editor::initSimulation(IGrid3D* grid) {
     // --- Init Fluid ---
     initFluid(grid->rho());
 

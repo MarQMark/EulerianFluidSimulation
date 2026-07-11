@@ -7,19 +7,6 @@
     for (int y = offset; y < _height - offset; y++)   \
     for (int x = offset; x < _width  - offset; x++)   \
 
-#ifdef USE_GPU
-void Grid3D::gpuUpload() const {
-    gpuVel->upload(_vel->data());
-    gpuRho->upload(_rho->data());
-    gpuBoundary->upload(_boundary->data());
-    gpuForces->upload(_forces->data());
-}
-
-void Grid3D::gpuDownload() const {
-    gpuVel->download(_vel->data());
-}
-#endif
-
 Grid3D::Grid3D(const unsigned int nWidth, const unsigned int nHeight, const unsigned int nDepth)
     : IGrid3D(nWidth, nHeight, nDepth) {
     _vel = new VecField3D(nWidth, nHeight, nDepth);
@@ -39,22 +26,6 @@ Grid3D::Grid3D(const unsigned int nWidth, const unsigned int nHeight, const unsi
     _pressure = new ScalField3D(nWidth, nHeight, nDepth);
 
     *_gamma = 1.f;
-
-#ifdef USE_GPU
-    gpuVel        = new StorageBuffer(_size * sizeof(glm::vec3));
-    gpuTmpVel     = new StorageBuffer(_size * sizeof(glm::vec3));
-
-    gpuRho        = new StorageBuffer(_size * sizeof(float));
-    gpuTmpRho     = new StorageBuffer(_size * sizeof(float));
-    gpuGamma      = new StorageBuffer(_size * sizeof(float));
-    gpuBeta       = new StorageBuffer(_size * sizeof(float));
-
-    gpuDivergence = new StorageBuffer(_size * sizeof(float));
-    gpuPressure   = new StorageBuffer(_size * sizeof(float));
-
-    gpuForces     = new StorageBuffer(_size * sizeof(glm::vec3));
-    gpuBoundary   = new StorageBuffer(_size * sizeof(float));
-#endif
 
     LOOP_3D(x, y, z, 0) {
         if (z == 0) (*_rho)(x, y, z) = 0.f;
@@ -92,19 +63,6 @@ Grid3D::~Grid3D() {
 
     delete _divergence;
     delete _pressure;
-
-#ifdef USE_GPU
-    delete gpuVel;
-    delete gpuTmpVel;
-    delete gpuRho;
-    delete gpuTmpRho;
-    delete gpuGamma;
-    delete gpuBeta;
-    delete gpuDivergence;
-    delete gpuPressure;
-    delete gpuForces;
-    delete gpuBoundary;
-#endif
 }
 
 glm::vec3 Grid3D::traceParticle(const glm::vec3 start, const float dt, const int substeps) const {
@@ -112,11 +70,11 @@ glm::vec3 Grid3D::traceParticle(const glm::vec3 start, const float dt, const int
 // start:    cell-index position (rho lives at cell centers, so pass glm::vec2(x, y))
 // dt:       signed timestep (negative = backward trace, positive = forward)
 // substeps: 1 = single Euler step (original), 4-8 = accurate with wall stopping
-    auto& vel   = this->vel();
-    const auto& walls = this->boundary();
-    const float W     = (float)this->width();
-    const float H     = (float)this->height();
-    const float D     = (float)this->depth();
+    auto& vel   = *_vel;
+    const auto& walls = *_boundary;
+    const float W     = _width;
+    const float H     = _height;
+    const float D     = _depth;
 
     // Is continuous position p inside a wall or out of domain?
     // Checks the cell that contains p (floor) plus clamps to domain.
@@ -187,7 +145,7 @@ glm::vec3 Grid3D::traceParticle(const glm::vec3 start, const float dt, const int
     return pos;
 }
 
-VecField3D & Grid3D::vel() const {
+VecField3D & Grid3D::vel() {
     return *_vel;
 }
 
@@ -203,7 +161,7 @@ void Grid3D::swapVec() {
     _v_tmp->clear();
 }
 
-ScalField3D & Grid3D::rho() const {
+ScalField3D & Grid3D::rho() {
     return *_rho;
 }
 
@@ -219,11 +177,11 @@ void Grid3D::swapRho() {
     _s_tmp->clear();
 }
 
-ScalField3D & Grid3D::gamma() const {
+ScalField3D & Grid3D::gamma() {
     return *_gamma;
 }
 
-ScalField3D & Grid3D::beta() const {
+ScalField3D & Grid3D::beta() {
     return *_beta;
 }
 
@@ -239,19 +197,19 @@ void Grid3D::addA(const unsigned int i, const unsigned int j, const float val) c
         (*_A)[idx] = {i, j, val};
 }
 
-ScalField3D & Grid3D::divergence() const {
+ScalField3D & Grid3D::divergence() {
     return *_divergence;
 }
 
-ScalField3D & Grid3D::pressure() const {
+ScalField3D & Grid3D::pressure() {
     return *_pressure;
 }
 
-VecField3D & Grid3D::forces() const {
+VecField3D & Grid3D::forces() {
     return *_forces;
 }
 
-ScalField3D & Grid3D::boundary() const {
+ScalField3D & Grid3D::boundary() {
     return *_boundary;
 }
 

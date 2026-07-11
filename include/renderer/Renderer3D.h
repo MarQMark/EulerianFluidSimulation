@@ -11,6 +11,8 @@
 class SceneNode;
 class Scene;
 class Framebuffer;
+class VecField3D;
+class ScalField3D;
 
 class Renderer3D {
 public:
@@ -22,6 +24,9 @@ public:
     // Framebuffer texture
     GLuint getTextureId() const;
     void setSize(int width, int height) const;
+
+    static void drawField(std::vector<float>& data, VecField3D& field, int dim, int level, int chanel, float& max);
+    static void drawField(std::vector<float>& data, ScalField3D& field, int dim, int level, int chanel, float& max);
 
 private:
     void renderNode(const SceneNode* node, const glm::mat4& view, const glm::mat4& projection) const;
