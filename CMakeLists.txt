@@ -3,18 +3,41 @@ project(EulerianFluidSimulation)
 
 set(CMAKE_CXX_STANDARD 20)
 
-find_package(Git QUIET)
-if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-    # Update submodules as needed
-    option(GIT_SUBMODULE "Check submodules during build" ON)
-    if(GIT_SUBMODULE)
-        message(STATUS "Submodule update")
-        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive --remote
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                RESULT_VARIABLE GIT_SUBMOD_RESULT)
-        if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-            message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+find_package(Git REQUIRED)
+
+execute_process(
+        COMMAND ${GIT_EXECUTABLE} submodule status --recursive
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        OUTPUT_VARIABLE SUBMODULE_STATUS
+        RESULT_VARIABLE RESULT
+)
+
+if(NOT RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to query submodule status")
+endif()
+
+# Git prefixes uninitialized submodules with '-'
+string(REGEX MATCH "(^|\n)-" HAS_UNINITIALIZED "${SUBMODULE_STATUS}")
+
+if(HAS_UNINITIALIZED)
+    message(STATUS "Initializing submodules...")
+    set(MAX_RETRIES 5)
+    foreach(i RANGE 1 ${MAX_RETRIES})
+        execute_process(
+                COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                RESULT_VARIABLE RESULT
+                ERROR_VARIABLE ERROR
+        )
+
+        if(RESULT EQUAL 0)
+            break()
         endif()
+        message(STATUS "Submodule update failed (attempt ${i}), retrying...")
+        execute_process(COMMAND ${CMAKE_COMMAND} -E sleep 1)
+    endforeach()
+    if(NOT RESULT EQUAL 0)
+        message(FATAL_ERROR "${ERROR}")
     endif()
 endif()
 
@@ -27,6 +50,8 @@ int main() {
     auto s = std::format(\"{}\", 42);
 }
 " HAS_STD_FORMAT)
+
+find_package(CUDAToolkit QUIET)
 
 add_executable(EulerianFluidSimulation ${SOURCES})
 
