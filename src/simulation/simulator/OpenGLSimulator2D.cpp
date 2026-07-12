@@ -7,6 +7,7 @@
 #include "simulation/solver/CGSolver.h"
 #include "simulation/solver/JacobiSolver.h"
 #include "util/Logger.h"
+#include "util/Profiler.h"
 
 OpenGLSimulator2D::OpenGLSimulator2D(const unsigned width, const unsigned height) : ISimulator2D(width, height) {
 	_rv_1_adv_gamma = new Shader({{ "assets/shaders/openGL_2D/rv_1_adv_gamma.comp", Shader::COMPUTE }});
@@ -71,10 +72,25 @@ void OpenGLSimulator2D::update() {
 	_grid->setDirty();
     _grid->upload();
 
-	rho_advect();
-	vel_advect();
-	add_force();
-	project();
+	Profiler* profiler = Profiler::Get();
+	profiler->start("1 Vel Extrapolate");
+	if (!PROPERTY_B(DISABLE_VEL_EXTRAPOLATE))	vel_extrapolate();
+	profiler->stop();
+	profiler->start("2 Rho Sharpen");
+	if (!PROPERTY_B(DISABLE_RHO_SHARPEN))		rho_sharpen();
+	profiler->stop();
+	profiler->start("3 Rho Advect");
+	if (!PROPERTY_B(DISABLE_RHO_ADVECT))		rho_advect();
+	profiler->stop();
+	profiler->start("4 Vel Advect");
+	if (!PROPERTY_B(DISABLE_VEL_ADVECT))		vel_advect();
+	profiler->stop();
+	profiler->start("5 Add Force");
+	if (!PROPERTY_B(DISABLE_ADD_FORCE))			add_force();
+	profiler->stop();
+	profiler->start("6 Project");
+	if (!PROPERTY_B(DISABLE_PROJECT))			project();
+	profiler->stop();
 
     _grid->download();
 }

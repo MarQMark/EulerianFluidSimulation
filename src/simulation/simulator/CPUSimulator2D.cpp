@@ -85,130 +85,38 @@ void* CPUSimulator2D::getRenderData() {
 }
 
 void CPUSimulator2D::vel_extrapolate() {
-    const int w = _grid->width();
-    const int h = _grid->height();
-    auto&       vel      = _grid->vel();
-    const auto& rho      = _grid->rho();
-    const auto& boundary = _grid->boundary();
-    const int N = w * h;
+	auto& vel   = _grid->vel();
+	auto& rho   = _grid->rho();
+	auto& boundary = _grid->boundary();
+	for (int i = 0; i < 10; i++) {
+		auto tmpVel = VecField2D(vel, true);
+	    LOOP_2D_GRID(x, y, 1) {
+	    	if (rho(x, y) >= 0.5) {
+	    		tmpVel(x, y) = vel(x, y);
+	    		continue;
+	    	}
+	    	if (boundary(x, y) == BOUNDARY) continue;
 
-    const int dx[] = {1,-1,0,0};
-    const int dy[] = {0,0,1,-1};
+	    	int nCount = 1;
+	    	glm::vec2 sum = vel(x, y);
+	    	auto sampleNeighbor = [&](const int nx, const int ny) {
+	    		if (boundary(nx, ny) == BOUNDARY) return;
+	    		nCount++;
+	    		sum += vel(nx, ny);
+	    	};
 
-    // ── Step 1: label connected liquid components ────────────────────
-    std::vector<int> comp(N, -1);   // -1 = not liquid
-    int nComp = 0;
+	    	sampleNeighbor(x + 1, y);
+	    	sampleNeighbor(x - 1, y);
+	    	sampleNeighbor(x, y + 1);
+	    	sampleNeighbor(x, y - 1);
 
-    for (int y = 1; y < h-1; y++) {
-        for (int x = 1; x < w-1; x++) {
-            int i = y*w+x;
-            if (rho(x,y) <= 0.5f || boundary(x,y) > 0.5f || comp[i] != -1)
-                continue;
-
-            // BFS flood-fill one liquid component
-            std::queue<int> q;
-            q.push(i);
-            comp[i] = nComp;
-            while (!q.empty()) {
-                int ci = q.front(); q.pop();
-                int cx = ci % w, cy = ci / w;
-                for (int n = 0; n < 4; n++) {
-                    int nx = cx+dx[n], ny = cy+dy[n];
-                    if (nx<1||nx>=w-1||ny<1||ny>=h-1) continue;
-                    int ni = ny*w+nx;
-                    if (comp[ni] != -1) continue;
-                    if (rho(nx,ny) <= 0.5f || boundary(nx,ny) > 0.5f) continue;
-                    comp[ni] = nComp;
-                    q.push(ni);
-                }
-            }
-            nComp++;
-        }
-    }
-
-    // ── Step 2: BFS extrapolation — one wavefront per component ─────
-    // airComp[i] = which component owns this air cell (-1 = empty, -2 = contested)
-    std::vector<int>       airComp(N, -1);
-    // queue entries: (flat index, owning component)
-    std::queue<std::pair<int,int>> frontier;
-
-    // Seed from every liquid cell that touches at least one air neighbour
-    for (int y = 1; y < h-1; y++) {
-        for (int x = 1; x < w-1; x++) {
-            int c = comp[y*w+x];
-            if (c == -1) continue;   // not liquid
-            for (int n = 0; n < 4; n++) {
-                int nx = x+dx[n], ny = y+dy[n];
-                if (nx<1||nx>=w-1||ny<1||ny>=h-1) continue;
-                int ni = ny*w+nx;
-                if (comp[ni] != -1) continue;        // liquid, not air
-                if (boundary(nx,ny) > 0.5f) continue;
-                if (airComp[ni] == -2) continue;     // already contested
-                if (airComp[ni] == c)  continue;     // already owned by us
-
-                if (airComp[ni] == -1) {
-                    // First component to reach this cell — tentatively claim it
-                    airComp[ni] = c;
-                    frontier.push({ni, c});
-                } else {
-                    // Two different components meet — zero and mark contested
-                    vel(nx, ny) = glm::vec2(0.f);
-                    airComp[ni] = -2;
-                }
-            }
-        }
-    }
-
-    // BFS expand up to PASSES layers
-    const int PASSES = 8;
-    for (int pass = 0; pass < PASSES && !frontier.empty(); pass++) {
-        int sz = frontier.size();
-        while (sz-- > 0) {
-            auto [ci, c] = frontier.front(); frontier.pop();
-            if (airComp[ci] == -2) continue;   // was overwritten — discard
-
-            int cx = ci % w, cy = ci / w;
-
-            // Compute velocity as average of same-component valid neighbours
-            glm::vec2 sum(0.f); int count = 0;
-            for (int n = 0; n < 4; n++) {
-                int nx = cx+dx[n], ny = cy+dy[n];
-                if (nx<0||nx>=w||ny<0||ny>=h) continue;
-                if (boundary(nx,ny) > 0.5f) continue;
-                int ni = ny*w+nx;
-                // Accept: liquid cells of same component, or air cells owned by same component
-                if (comp[ni] == c || airComp[ni] == c) {
-                    sum += vel(nx, ny);
-                    count++;
-                }
-            }
-            if (count > 0) vel(cx, cy) = sum / float(count);
-
-            // Expand to unvisited air neighbours
-            for (int n = 0; n < 4; n++) {
-                int nx = cx+dx[n], ny = cy+dy[n];
-                if (nx<1||nx>=w-1||ny<1||ny>=h-1) continue;
-                int ni = ny*w+nx;
-                if (comp[ni] != -1) continue;        // liquid
-                if (boundary(nx,ny) > 0.5f) continue;
-                if (airComp[ni] == -2) continue;
-
-                if (airComp[ni] == -1) {
-                    airComp[ni] = c;
-                    frontier.push({ni, c});
-                } else if (airComp[ni] != c) {
-                    vel(nx, ny) = glm::vec2(0.f);
-                    airComp[ni] = -2;
-                }
-            }
-        }
-    }
-
-    // Air cells never reached by any component keep whatever vel_advect
-    // left there — optionally zero them:
-    for (int i = 0; i < N; i++)
-        if (airComp[i] == -1 && comp[i] == -1)
-            vel[i] = glm::vec2(0.f);
+	    	tmpVel(x, y) = sum / (float)nCount;
+	    }
+		LOOP_2D_GRID(x, y, 1) {
+	    	if (rho(x, y) < 0.5)
+				vel(x, y) = tmpVel(x, y);
+	    }
+	}
 }
 
 void CPUSimulator2D::rho_advect() {
@@ -275,7 +183,7 @@ void CPUSimulator2D::rho_advect() {
 
 	//################## Step 5 ##################
 	// Forward trace the velocity field to add the weights to A for all cells j where beta j < 1
-	/*LOOP_2D_GRID(x, y, 1) {
+	LOOP_2D_GRID(x, y, 1) {
 		const int j = idx(x, y);
 		if (beta[j] >= 1) continue;
 
@@ -302,7 +210,7 @@ void CPUSimulator2D::rho_advect() {
 		_grid->addA(idx(p0x + 1, p0y),	 j, (1-beta[j]) * (m1 / sum));
 		_grid->addA(idx(p0x,	 p0y + 1),   j, (1-beta[j]) * (m2 / sum));
 		_grid->addA(idx(p0x + 1, p0y + 1), j, (1-beta[j]) * (m3 / sum));
-	}*/
+	}
 
 	//################## Step 6 ##################
 	// Recompute gamma
@@ -350,7 +258,7 @@ void CPUSimulator2D::rho_advect() {
 
 	//################## Step 12 ##################
 	// Diffusion of rho and gamma
-	/*for (int it = 0; it < 7; it++) {
+	for (int it = 0; it < 7; it++) {
 		// X-dimension
 		for (int y = 1; y < _grid->height() - 1; y++)
 		for (int x = 2; x < _grid->width()  - 1; x++) {
@@ -406,7 +314,7 @@ void CPUSimulator2D::rho_advect() {
 			gamma(x, y-1) = avg;
 			gamma(x, y  ) = avg;
 		}
-	}*/
+	}
 }
 
 void CPUSimulator2D::rho_sharpen() {
