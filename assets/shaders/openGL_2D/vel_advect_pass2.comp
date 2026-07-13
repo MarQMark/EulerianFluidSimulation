@@ -33,7 +33,7 @@ void main() {
     out_.x = xBound * cur.x + (1 - xBound) * 0.5 * (cur.x + newVel[idx(x-1, y)].x);
 
     float yBound = max(boundary[idx(x, y)], boundary[idx(x, y - 1)]);
-    out_.y = xBound * cur.y + (1 - xBound) * 0.5 * (cur.y + newVel[idx(x, y-1)].y);
+    out_.y = yBound * cur.y + (1 - yBound) * 0.5 * (cur.y + newVel[idx(x, y-1)].y);
 
     vel[idx(x, y)] = out_;
 }

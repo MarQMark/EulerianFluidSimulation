@@ -45,7 +45,7 @@ private:
 
     OpenGLGrid2D* _grid{};
     ISolverOpenGL2D* _solver{};
-    SimulationDisplay2D::RenderData2D* _data;
+    SimulationDisplay2D::RenderData2D* _data{};
 };
 
 

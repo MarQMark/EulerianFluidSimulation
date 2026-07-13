@@ -29,7 +29,6 @@
 #define ADD_PROPERTY_B(name, value) ADD_PROPERTY(name, value, bool)
 
 #define ADD_D(cat, token, dim, name, desc, val) {auto* p = new Property(name, desc, val, dim); \
-                                                 int a = token; \
                                                  cat.add(p); \
                                                  add_property(token, p); }
 #define ADD_2D(cat, token, name, desc, val) ADD_D(cat, token, 2, name, desc, val)
@@ -382,9 +381,15 @@ public:
     }
     enum SimulatorType {
         CPU_2D,
+#ifdef HAS_CUDA
+        CUDA_2D,
+#endif
         OPENGL_2D,
         END_2D_SIMULATIONS = OPENGL_2D,
         CPU_3D,
+#ifdef HAS_CUDA
+        CUDA_3D,
+#endif
     };
     enum InitShape {
         FULL,

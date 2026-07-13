@@ -21,11 +21,11 @@ protected:
 };
 
 class ISolverCPU2D : public ISolver2D {
-public:
+protected:
     ISolverCPU2D(const int width, const int height) : ISolver2D(width, height) {}
 };
 class ISolverOpenGL2D : public ISolver2D {
-public:
+protected:
     ISolverOpenGL2D(const int width, const int height) : ISolver2D(width, height) {}
 };
 

@@ -14,6 +14,12 @@
 #include "views/SolverStepsView.h"
 #include "views/StatsView.h"
 
+#ifdef HAS_CUDA
+#include <cuda_runtime.h>
+#include "simulation/simulator/CudaSimulator2D.h"
+#endif
+
+
 Application::Application() {
     _window = new Window(1280, 720, "Eulerian Fluid Simulation");
 	Input::Get()->addInputWindow(_window);
@@ -27,6 +33,16 @@ Application::Application() {
 	rebuild();
 
     Time::Get()->targetFps = 165;
+
+#ifdef HAS_CUDA
+	int count = 0;
+	const cudaError_t err = cudaGetDeviceCount(&count);
+
+	if (err != cudaSuccess)
+		std::cout << cudaGetErrorString(err) << '\n';
+	else
+		std::cout << "Cuda Available" << '\n';
+#endif
 }
 
 Application::~Application() {
@@ -95,6 +111,27 @@ void Application::rebuild() {
     		_simulator = new CPUSimulator3D(WIDTH, HEIGHT, DEPTH);
             break;
         }
+#ifdef HAS_CUDA
+    	case Properties::CUDA_2D:
+        {
+        	const int WIDTH	 = PROPERTY_I(WIDTH_2D);
+        	const int HEIGHT = PROPERTY_I(HEIGHT_2D);
+
+        	_simulator = new CudaSimulator2D(WIDTH, HEIGHT);
+        	_display = new SimulationDisplay2D(WIDTH, HEIGHT);
+        	break;
+        }
+    	case Properties::CUDA_3D:
+        {
+        	const int WIDTH	 = PROPERTY_I(WIDTH_3D);
+        	const int HEIGHT = PROPERTY_I(HEIGHT_3D);
+        	const int DEPTH	 = PROPERTY_I(DEPTH_3D);
+
+        	//_simulator = new CudaSimulator3D(WIDTH, HEIGHT, DEPTH);
+        	_display = new SimulationDisplay3D(_window);
+        	break;
+        }
+#endif
         case Properties::CPU_2D:
         default:
         {
@@ -136,6 +173,25 @@ void Application::reset() {
 			_simulator = new CPUSimulator3D(WIDTH, HEIGHT, DEPTH);
 			break;
 		}
+#ifdef HAS_CUDA
+		case Properties::CUDA_2D:
+		{
+			const int WIDTH	 = PROPERTY_I(WIDTH_2D);
+			const int HEIGHT = PROPERTY_I(HEIGHT_2D);
+
+			_simulator = new CudaSimulator2D(WIDTH, HEIGHT);
+			break;
+		}
+		case Properties::CUDA_3D:
+		{
+			const int WIDTH	 = PROPERTY_I(WIDTH_3D);
+			const int HEIGHT = PROPERTY_I(HEIGHT_3D);
+			const int DEPTH	 = PROPERTY_I(DEPTH_3D);
+
+			//_simulator = new CudaSimulator3D(WIDTH, HEIGHT, DEPTH);
+			break;
+		}
+#endif
 		case Properties::CPU_2D:
 		default:
 		{

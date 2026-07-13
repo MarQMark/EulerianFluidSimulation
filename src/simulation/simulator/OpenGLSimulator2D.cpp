@@ -33,15 +33,16 @@ OpenGLSimulator2D::OpenGLSimulator2D(const unsigned width, const unsigned height
     Properties::JACOBI,
     Properties::SELF_CG}));
 
-    if (validSolver)
-    switch (PROPERTY(SOLVER_TYPE, Properties::SolverType)) {
-        case Properties::JACOBI:
-            _solver = new JacobiSolverOpenGL2D(width, height);
-            break;
-        case Properties::SELF_CG:
-            _solver = new CGSolverOpenGL2D(width, height);
-        default:
-            break;
+    if (validSolver) {
+	    switch (PROPERTY(SOLVER_TYPE, Properties::SolverType)) {
+	        case Properties::JACOBI:
+	            _solver = new JacobiSolverOpenGL2D(width, height);
+	            break;
+	        case Properties::SELF_CG:
+	            _solver = new CGSolverOpenGL2D(width, height);
+	        default:
+	            break;
+	    }
     }
 
     _data = new SimulationDisplay2D::RenderData2D();

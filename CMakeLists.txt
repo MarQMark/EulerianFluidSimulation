@@ -3,6 +3,9 @@ project(EulerianFluidSimulation)
 
 set(CMAKE_CXX_STANDARD 20)
 
+message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
+message(STATUS "C++ compiler version: ${CMAKE_CXX_COMPILER_VERSION}")
+
 find_package(Git REQUIRED)
 
 execute_process(
@@ -41,8 +44,6 @@ if(HAS_UNINITIALIZED)
     endif()
 endif()
 
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
-
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles("
 #include <format>
@@ -51,9 +52,34 @@ int main() {
 }
 " HAS_STD_FORMAT)
 
-find_package(CUDAToolkit QUIET)
 
-add_executable(EulerianFluidSimulation ${SOURCES})
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+
+find_package(CUDAToolkit QUIET)
+if(CUDAToolkit_FOUND)
+    set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
+    set(CMAKE_CUDA_ARCHITECTURES 75 80)
+
+    file(GLOB_RECURSE CUDA_SOURCES CONFIGURE_DEPENDS "src/*.cu")
+endif()
+
+add_executable(EulerianFluidSimulation ${SOURCES} ${CUDA_SOURCES})
+
+
+if(CUDAToolkit_FOUND)
+    message(STATUS "Cuda available")
+
+    enable_language(CUDA)
+
+    target_compile_definitions(EulerianFluidSimulation PRIVATE HAS_CUDA)
+    target_link_libraries(EulerianFluidSimulation PRIVATE CUDA::cudart)
+
+    set_target_properties(EulerianFluidSimulation PROPERTIES
+            CUDA_STANDARD 17
+            CUDA_STANDARD_REQUIRED ON
+    )
+endif()
+
 
 # DearImGUI
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/external/imgui)

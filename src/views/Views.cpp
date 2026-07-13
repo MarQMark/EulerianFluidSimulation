@@ -194,6 +194,16 @@ void Views::render_menubar() {
                     SET_PROPERTY(SIMULATION_TYPE, Properties::OPENGL_2D, Properties::SimulatorType);
                     SET_PROPERTY_B(SIMULATION_REBUILD, true);
                 }
+#ifdef HAS_CUDA
+                if (ImGui::MenuItem("Cuda 2D")) {
+                    SET_PROPERTY(SIMULATION_TYPE, Properties::CUDA_2D, Properties::SimulatorType);
+                    SET_PROPERTY_B(SIMULATION_REBUILD, true);
+                }
+                if (ImGui::MenuItem("Cuda 3D")) {
+                    SET_PROPERTY(SIMULATION_TYPE, Properties::CUDA_3D, Properties::SimulatorType);
+                    SET_PROPERTY_B(SIMULATION_REBUILD, true);
+                }
+#endif
 
                 ImGui::EndMenu();
             }
