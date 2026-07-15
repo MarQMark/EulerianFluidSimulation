@@ -18,6 +18,8 @@ public:
     void upload() const;
     void download();
 
+    void partialClear() const;
+
     VecField2D& vel() override;
     ScalField2D& rho() override;
     ScalField2D& gamma() override;
@@ -27,21 +29,13 @@ public:
     VecField2D& forces() override;
     ScalField2D& boundary() override;
 
-    void* gpuVel() const;
-    void* gpuTmpVel() const;
-    void* gpuRho() const;
-    void* gpuTmpRho() const;
-    void* gpuGamma() const;
-    void* gpuNewGamma() const;
-    void* gpuBeta() const;
-    void* gpuA() const;
-    void* gpuCounts() const;
-    void* gpuDivergence() const;
-    void* gpuPressure() const;
-    void* gpuForces() const;
-    void* gpuBoundary() const;
-
-    struct AdvCell { unsigned int j; float val; };
+    struct AdvCell {
+        union {
+            unsigned int j;
+            unsigned int i;
+        };
+        float val;
+    };
     struct CudaData{
         glm::vec2* vel{};
         glm::vec2* tmp_vel{};
@@ -50,8 +44,10 @@ public:
         float* gamma{};
         float* new_gamma{};
         float* beta{};
-        AdvCell* A{};
-        unsigned int* counts{};
+        AdvCell* A_bwd{};
+        AdvCell* A_fwd{};
+        unsigned int* counts_bwd{};
+        unsigned int* counts_fwd{};
         float* divergence{};
         float* pressure{};
         glm::vec2* forces{};
@@ -60,11 +56,13 @@ public:
         unsigned int width = 0;
         unsigned int height = 0;
     };
-    struct CudaData* cudaData();
+    struct CudaData* cudaData() const;
+    struct CudaData* cudaDataCPU();
 
 private:
 
     struct CudaData _cuda_data;
+    struct CudaData* _gpu_cuda_data;
 
     VecField2D* _vel{};
     ScalField2D* _rho{};
@@ -82,6 +80,7 @@ private:
     static void gpu_alloc(unsigned int** ptr, size_t size);
     static void gpu_alloc(glm::vec2** ptr, size_t size);
     static void gpu_alloc(AdvCell** ptr, size_t size);
+    static void gpu_alloc(CudaData** ptr, size_t size);
     static void gpu_copy_H2D(void* dest, const void *src, size_t count);
     static void gpu_copy_D2H(void* dest, const void *src, size_t count);
 };

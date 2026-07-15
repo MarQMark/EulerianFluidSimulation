@@ -17,7 +17,7 @@ float JacobiSolverCuda2D::solve(IGrid2D *_grid) {
     auto* grid = dynamic_cast<CudaGrid2D*>(_grid);
     if (!grid) return 0;
 
-    const int iter = PROPERTY_I(MAX_STEPS);
+    const int iter = (PROPERTY_I(MAX_STEPS) / 2);
 
     constexpr dim3 blockSize(16, 16);
     const dim3 gridSize(
@@ -25,8 +25,8 @@ float JacobiSolverCuda2D::solve(IGrid2D *_grid) {
         (_grid->height() - 1 + blockSize.y - 1) / blockSize.y);
 
     for (int i = 0; i < iter; i++) {
-        cuda_jacobi_pass<<<gridSize, blockSize>>>(grid->cudaData(), _gpu_tmp, grid->cudaData()->pressure);
-        cuda_jacobi_pass<<<gridSize, blockSize>>>(grid->cudaData(), grid->cudaData()->pressure, _gpu_tmp);
+        cuda_jacobi_pass<<<gridSize, blockSize>>>(grid->cudaData(), _gpu_tmp, grid->cudaDataCPU()->pressure);
+        cuda_jacobi_pass<<<gridSize, blockSize>>>(grid->cudaData(), grid->cudaDataCPU()->pressure, _gpu_tmp);
     }
 
     return 0;
@@ -38,10 +38,14 @@ __device__ unsigned int cuda_idx2(const unsigned int x, const unsigned int y, co
 }
 
 __device__ void sampleNeighbor(const int nx, const int ny, float& sum, int& nCount, const float* p, const CudaGrid2D::CudaData *grid) {
-    if (nx < 0 || nx >= grid->width || ny < 0 || ny >= grid->height) return;
-    if (nx == 0 || nx == grid->width-1 || ny == 0 || ny == grid->height-1) return;
+    if (nx < 0 || nx >= grid->width || ny < 0 || ny >= grid->height)
+        return;
+    if (nx == 0 || nx == grid->width-1 || ny == 0 || ny == grid->height-1)
+        return;
+
     const unsigned int ni = cuda_idx2(nx, ny, grid->width);
-    if (grid->boundary[ni] > 0.5) return;
+    if (grid->boundary[ni] > 0.5f)
+        return;
 
     nCount++;
     if (grid->rho[ni] > 0.5){
@@ -49,8 +53,8 @@ __device__ void sampleNeighbor(const int nx, const int ny, float& sum, int& nCou
     }
 }
 __global__ void cuda_jacobi_pass(const CudaGrid2D::CudaData *grid, float* result, const float* p) {
-    const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
-    const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y + 1;
+    const int x = blockIdx.x * blockDim.x + threadIdx.x;
+    const int y = blockIdx.y * blockDim.y + threadIdx.y;
     const unsigned int w = grid->width;
 
     if (x >= grid->width || y >= grid->height)

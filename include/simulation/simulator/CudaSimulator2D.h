@@ -26,6 +26,9 @@ private:
     void add_force() override;
     void diffuse() override;
     void vel_advect() override;
+
+    void enforce_wall_boundaries() const;
+
     void project() override;
 
     CudaGrid2D* _grid{};

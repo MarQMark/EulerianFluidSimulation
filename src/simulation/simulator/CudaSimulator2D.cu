@@ -12,12 +12,47 @@ __device__ glm::vec2 cuda_staggered_offset(int comp);
 __device__ float cuda_bilinear_interpolation(const glm::vec2 &pos, int low_x, int low_y, int comp, glm::vec2* vel, unsigned int w);
 __device__ glm::vec2 cuda_sample_vel(glm::vec2 pos, glm::vec2* vel, unsigned int w);
 __device__ glm::vec2 cuda_trace_particle(glm::vec2 start, const CudaGrid2D::CudaData *grid, float dt, int subSteps);
+__device__ float cuda_sample_scal_field(glm::vec2 pos, const float* field, unsigned int w, unsigned int h);
 
+__global__ void cuda_rho_adv_1(const CudaGrid2D::CudaData *grid, float dt, int subSteps);
+__global__ void cuda_rho_adv_2_3(const CudaGrid2D::CudaData *grid, float dt, int subSteps);
+__global__ void cuda_rho_adv_4(const CudaGrid2D::CudaData *grid);
+__global__ void cuda_rho_adv_5(const CudaGrid2D::CudaData *grid, float dt, int subSteps);
+__global__ void cuda_rho_adv_6_10_bwd(const CudaGrid2D::CudaData *grid);
+__global__ void cuda_rho_adv_6_10_fwd(const CudaGrid2D::CudaData *grid);
+__global__ void cuda_rho_adv_7_bwd(const CudaGrid2D::CudaData *grid);
+__global__ void cuda_rho_adv_7_fwd(const CudaGrid2D::CudaData *grid);
+__global__ void cuda_rho_adv_8_bwd(const CudaGrid2D::CudaData *grid);
+__global__ void cuda_rho_adv_8_fwd(const CudaGrid2D::CudaData *grid);
+__global__ void cuda_rho_adv_9_bwd(const CudaGrid2D::CudaData *grid);
+__global__ void cuda_rho_adv_9_fwd(const CudaGrid2D::CudaData *grid);
+__global__ void cuda_rho_adv_11_bwd(const CudaGrid2D::CudaData *grid);
+__global__ void cuda_rho_adv_11_fwd(const CudaGrid2D::CudaData *grid);
+__global__ void cuda_rho_adv_11_cpy(const CudaGrid2D::CudaData *grid);
 __global__ void cuda_add_force(const CudaGrid2D::CudaData *grid, float dt, float gravity);
 __global__ void cuda_vel_adv_pass_1(const CudaGrid2D::CudaData *grid, float dt, int subSteps);
 __global__ void cuda_vel_adv_pass_2(const CudaGrid2D::CudaData *grid);
 __global__ void cuda_proj_calc_div(const CudaGrid2D::CudaData *grid, float lambdaP, float lambdaM, float eta);
 __global__ void cuda_proj_sub_pg(const CudaGrid2D::CudaData *grid);
+
+#define CUDA_CHECK(call)                                                   \
+	do {                                                                       \
+		cudaError_t err = (call);                                              \
+		if (err != cudaSuccess) {                                              \
+			fprintf(stderr, "%s:%d: %s failed:\n%s: %s\n",                     \
+					__FILE__, __LINE__, #call,                                 \
+					cudaGetErrorName(err),                                     \
+					cudaGetErrorString(err));                                  \
+			std::abort();                                                      \
+	}                                                                      \
+} while (0)
+
+#define CUDA_KERNEL(kernel, grid, block, ...) \
+			do { \
+				kernel<<<grid, block>>>(__VA_ARGS__); \
+				CUDA_CHECK(cudaGetLastError()); \
+				CUDA_CHECK(cudaDeviceSynchronize()); \
+			} while (0)
 
 CudaSimulator2D::CudaSimulator2D(const unsigned width, const unsigned height) : ISimulator2D(width, height) {
     _grid = new CudaGrid2D(width, height);
@@ -45,7 +80,7 @@ CudaSimulator2D::CudaSimulator2D(const unsigned width, const unsigned height) : 
 
 CudaSimulator2D::~CudaSimulator2D() {
     delete _grid;
-    //delete _solver;
+    delete _solver;
 }
 
 void* CudaSimulator2D::getRenderData() {
@@ -53,32 +88,154 @@ void* CudaSimulator2D::getRenderData() {
 }
 
 void CudaSimulator2D::update() {
+	_grid->upload();
+
     Profiler* profiler = Profiler::Get();
     profiler->start("1 Vel Extrapolate");
     if (!PROPERTY_B(DISABLE_VEL_EXTRAPOLATE))	vel_extrapolate();
     profiler->stop();
+
     profiler->start("2 Rho Sharpen");
     if (!PROPERTY_B(DISABLE_RHO_SHARPEN))		rho_sharpen();
     profiler->stop();
+
     profiler->start("3 Rho Advect");
     if (!PROPERTY_B(DISABLE_RHO_ADVECT))		rho_advect();
     profiler->stop();
+
     profiler->start("4 Vel Advect");
     if (!PROPERTY_B(DISABLE_VEL_ADVECT))		vel_advect();
     profiler->stop();
+
     profiler->start("5 Add Force");
     if (!PROPERTY_B(DISABLE_ADD_FORCE))			add_force();
     profiler->stop();
+
     profiler->start("6 Project");
     if (!PROPERTY_B(DISABLE_PROJECT))			project();
     profiler->stop();
+
+	_grid->download();
 }
 
 void CudaSimulator2D::vel_extrapolate() {
 }
 
+#define BOUNDARY 1.f
+
+#define LOOP_2D_GRID(x, y, offset)  for (int y = offset; y < _grid->height() - offset; y++) \
+									for (int x = offset; x < _grid->width()  - offset; x++)
+
+__host__
 void CudaSimulator2D::rho_advect() {
+	constexpr dim3 blockSize(16, 16);
+	const dim3 gridSizeCore(
+		(_grid->width() - 2 + blockSize.x - 1) / blockSize.x,
+		(_grid->height() - 2 + blockSize.y - 1) / blockSize.y);
+	const dim3 gridSizeFull(
+		(_grid->width() - 1 + blockSize.x - 1) / blockSize.x,
+		(_grid->height() - 1 + blockSize.y - 1) / blockSize.y);
+
+	_grid->partialClear();
+
+	// (1) Advect gamma using backward semi-lagrangian
+	cuda_rho_adv_1<<<gridSizeCore, blockSize>>>(_grid->cudaData(), PROPERTY_F(DT),PROPERTY_F(GRAVITY_FORCE));
+
+	// (2) Compute A + (3) Scale A by gamma
+	cuda_rho_adv_2_3<<<gridSizeCore, blockSize>>>(_grid->cudaData(), PROPERTY_F(DT),PROPERTY_F(GRAVITY_FORCE));
+
+	// (4) Compute beta
+	cuda_rho_adv_4<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+
+	// (5) forward trace the velocity field to add the weights to A for all cells j where beta j < 1
+	cuda_rho_adv_5<<<gridSizeCore, blockSize>>>(_grid->cudaData(), PROPERTY_F(DT),PROPERTY_F(GRAVITY_FORCE));
+
+	// (6) Compute gamma
+	cuda_rho_adv_6_10_bwd<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+	cuda_rho_adv_6_10_fwd<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+
+	// (7) Scale A by gamma
+	cuda_rho_adv_7_bwd<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+	cuda_rho_adv_7_fwd<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+
+	// (8) Recompute beta from A; !! Order is important - must call fwd before bwd
+	cuda_rho_adv_8_fwd<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+	cuda_rho_adv_8_bwd<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+
+	// (9) Clamp beta to 1
+	cuda_rho_adv_9_bwd<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+	cuda_rho_adv_9_fwd<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+
+	// (6) Compute gamma
+	cuda_rho_adv_6_10_bwd<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+	cuda_rho_adv_6_10_fwd<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+
+	// (11) Evaluate p_n+1 = A * p
+	cuda_rho_adv_11_bwd<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+	cuda_rho_adv_11_fwd<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+	cuda_rho_adv_11_cpy<<<gridSizeFull, blockSize>>>(_grid->cudaData());
+
+	//################## Step 12 ##################
+	// Diffusion of rho and gamma
+	/*for (int it = 0; it < 7; it++) {
+		// X-dimension
+		for (int y = 1; y < _grid->height() - 1; y++)
+		for (int x = 2; x < _grid->width()  - 1; x++) {
+			float g_j = gamma(x-1, y);
+			float g_i = gamma(x,   y);
+
+			if (boundary(x, y) == BOUNDARY || boundary(x-1, y) == BOUNDARY)
+				continue;
+
+			if (g_j < 1e-5f || g_i < 1e-5f) continue;
+			if (g_j == g_i) continue;
+
+			float avg = (g_j + g_i) / 2.f;
+
+			if (g_j > g_i) {
+				float dif = rho(x-1, y) * (g_j - g_i) / (2.f * g_j);
+				rho(x-1, y) -= dif;
+				rho(x,   y) += dif;
+			} else {
+				float dif = rho(x, y) * (g_i - g_j) / (2.f * g_i);
+				rho(x,   y) -= dif;
+				rho(x-1, y) += dif;
+			}
+
+			gamma(x-1, y) = avg;
+			gamma(x,   y) = avg;
+		}
+
+		// Y-dimension
+		for (int x = 1; x < _grid->width()  - 1; x++)
+		for (int y = 2; y < _grid->height() - 1; y++) {
+			float g_j = gamma(x, y-1);
+			float g_i = gamma(x, y  );
+
+			if (boundary(x, y) == BOUNDARY || boundary(x, y-1) == BOUNDARY)
+				continue;
+
+			if (g_j < 1e-5f || g_i < 1e-5f) continue;
+			if (g_j == g_i) continue;
+
+			float avg = (g_j + g_i) / 2.f;
+
+			if (g_j > g_i) {
+				float dif = rho(x, y-1) * (g_j - g_i) / (2.f * g_j);
+				rho(x, y-1) -= dif;
+				rho(x, y  ) += dif;
+			} else {
+				float dif = rho(x, y) * (g_i - g_j) / (2.f * g_i);
+				rho(x, y  ) -= dif;
+				rho(x, y-1) += dif;
+			}
+
+			gamma(x, y-1) = avg;
+			gamma(x, y  ) = avg;
+		}
+	}*/
 }
+
 
 void CudaSimulator2D::rho_sharpen() {
 }
@@ -93,12 +250,15 @@ void CudaSimulator2D::add_force() {
         _grid->cudaData(),
         PROPERTY_F(DT),
         PROPERTY_F(GRAVITY_FORCE));
+
+	CUDA_CHECK(cudaGetLastError());
+	CUDA_CHECK(cudaDeviceSynchronize());
 }
 
 void CudaSimulator2D::diffuse() {}
 
 void CudaSimulator2D::vel_advect() {
-    constexpr dim3 blockSize(16, 16);
+constexpr dim3 blockSize(16, 16);
     const dim3 gridSize(
         (_grid->width() - 2 + blockSize.x - 1) / blockSize.x,
         (_grid->height() - 2 + blockSize.y - 1) / blockSize.y);
@@ -111,17 +271,37 @@ void CudaSimulator2D::vel_advect() {
     cuda_vel_adv_pass_2<<<gridSize, blockSize>>>(_grid->cudaData());
 }
 
-void CudaSimulator2D::project() {
-    constexpr dim3 blockSize(16, 16);
-    const dim3 gridSize(
-        (_grid->width() - 1 + blockSize.x - 1) / blockSize.x,
-        (_grid->height() - 1 + blockSize.y - 1) / blockSize.y);
+void CudaSimulator2D::enforce_wall_boundaries() const {
+	_grid->download();
+	auto& vel   = _grid->vel();
+	auto& boundary = _grid->boundary();
 
-    cuda_proj_calc_div<<<gridSize, blockSize>>>(
-        _grid->cudaData(),
-        PROPERTY_F(LAMBDA_PLUS),
-        PROPERTY_F(LAMBDA_MINUS),
-        PROPERTY_F(ETA));
+	LOOP_2D_GRID(x, y, 0){
+		if (boundary(x, y) == BOUNDARY || boundary(x-1, y) == BOUNDARY)
+			vel(x, y).x = 0.f;
+
+		if (boundary(x, y) == BOUNDARY || boundary(x, y-1) == BOUNDARY)
+			vel(x, y).y = 0.f;
+	}
+	_grid->upload();
+}
+
+void CudaSimulator2D::project() {
+
+	enforce_wall_boundaries();
+
+	{
+	    constexpr dim3 blockSize(16, 16);
+	    const dim3 gridSize(
+	        (_grid->width() - 1 + blockSize.x - 1) / blockSize.x,
+	        (_grid->height() - 1 + blockSize.y - 1) / blockSize.y);
+
+	    cuda_proj_calc_div<<<gridSize, blockSize>>>(
+	        _grid->cudaData(),
+	        PROPERTY_F(LAMBDA_PLUS),
+	        PROPERTY_F(LAMBDA_MINUS),
+	        PROPERTY_F(ETA));
+	}
 
     const float err = _solver->solve(_grid);
     if (err > PROPERTY_F(SOLVER_THRESHOLD)) {
@@ -130,7 +310,15 @@ void CudaSimulator2D::project() {
         return;
     }
 
-    cuda_proj_sub_pg<<<gridSize, blockSize>>>(_grid->cudaData());
+	{
+		constexpr dim3 blockSize(16, 16);
+		const dim3 gridSize(
+			(_grid->width() - 2 + blockSize.x - 1) / blockSize.x,
+			(_grid->height() - 2 + blockSize.y - 1) / blockSize.y);
+		cuda_proj_sub_pg<<<gridSize, blockSize>>>(_grid->cudaData());
+	}
+
+	enforce_wall_boundaries();
 }
 
 __device__ unsigned int cuda_idx(const unsigned int x, const unsigned int y, const unsigned int width) {
@@ -219,6 +407,380 @@ __device__ glm::vec2 cuda_trace_particle(const glm::vec2 start, const CudaGrid2D
     }
     return pos;
 }
+__device__ float cuda_sample_scal_field(glm::vec2 pos, const float *field, const unsigned int w, const unsigned int h) {
+	pos += glm::vec2(1.f);
+	const int x = (int)pos.x;
+	const int y = (int)pos.y;
+
+	unsigned int ix1 = x;
+	unsigned int ix2 = x + 1;
+	if(pos.x - (float)x < 0.5f) {
+		ix1 = x - 1;
+		ix2 = x;
+	}
+	unsigned int iy1 = y;
+	unsigned int iy2 = y + 1;
+	if(pos.y - (float)y < 0.5f) {
+		iy1 = y - 1;
+		iy2 = y;
+	}
+
+	ix1 = cuda_clamp(ix1, 0, w - 1);
+	ix2 = cuda_clamp(ix2, 0, w - 1);
+	iy1 = cuda_clamp(iy1, 0, h - 1);
+	iy2 = cuda_clamp(iy2, 0, h - 1);
+
+	const float v[4] = {
+		field[cuda_idx(ix1, iy1, w)],
+		field[cuda_idx(ix1, iy2, w)],
+		field[cuda_idx(ix2, iy1, w)],
+		field[cuda_idx(ix2, iy2, w)],
+	};
+
+	const float x1 = (float)ix1 + 0.5f;
+	const float x2 = (float)ix2 + 0.5f;
+	const float y1 = (float)iy1 + 0.5f;
+	const float y2 = (float)iy2 + 0.5f;
+
+	const float dx2x1 = x2 - x1;
+	float fxy1 = ((x2 - pos.x)/dx2x1) * v[0] + ((pos.x - x1)/dx2x1) * v[2];
+	float fxy2 = ((x2 - pos.x)/dx2x1) * v[1] + ((pos.x - x1)/dx2x1) * v[3];
+	if(dx2x1 < 1e-9) {
+		fxy1 = v[1];
+		fxy2 = v[3];
+	}
+
+	const float dy2y1 = y2 - y1;
+	float fxy = ((y2 - pos.y)/dy2y1) * fxy1 + ((pos.y - y1)/dy2y1) * fxy2;
+	if(dy2y1 < 1e-9)
+		fxy = fxy1;
+
+	return fxy;
+}
+
+// (1) Advect gamma using backward semi-lagrangian
+__global__ void cuda_rho_adv_1(const CudaGrid2D::CudaData *grid, const float dt, const int subSteps) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y + 1;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width - 1 || y >= grid->height - 1)
+		return;
+
+	const unsigned int i = cuda_idx(x, y, w);
+	if (grid->boundary[i] > 0.5)
+		return;
+
+	const glm::vec2 prevPos = cuda_trace_particle(glm::vec2(x, y), grid, dt, subSteps);
+	grid->new_gamma[i] = cuda_sample_scal_field(prevPos, grid->gamma, grid->width, grid->height);
+
+}
+
+// (2) Compute A + (3) Scale A by gamma
+__global__ void cuda_rho_adv_2_3(const CudaGrid2D::CudaData *grid, const float dt, const int subSteps) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y + 1;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width - 1 || y >= grid->height - 1)
+		return;
+
+	const unsigned int i = cuda_idx(x, y, w);
+	grid->counts_bwd[i] = 0;
+
+	const glm::vec2 prevPos = cuda_trace_particle(glm::vec2(x, y), grid, dt, subSteps);
+	const int p0x = floor(prevPos.x);
+	const int p0y = floor(prevPos.y);
+
+	const float dx0 = 1 - (prevPos.x - p0x);
+	const float dy0 = 1 - (prevPos.y - p0y);
+	const float dx1 = 1 - (p0x + 1 - prevPos.x);
+	const float dy1 = 1 - (p0y + 1 - prevPos.y);
+
+	const unsigned int dest[4] = {
+		cuda_idx(p0x + 0, p0y + 0, w),
+		cuda_idx(p0x + 1, p0y + 0, w),
+		cuda_idx(p0x + 0, p0y + 1, w),
+		cuda_idx(p0x + 1, p0y + 1, w)
+	};
+
+	float m[4] = {0, 0, 0, 0};
+	// Boundary = 1 -> multiply by 0 if there is a boundary
+	//m[0] = dx0 * dy0 * (1 - grid->boundary[dest[0]]);
+	//m[1] = dx1 * dy0 * (1 - grid->boundary[dest[1]]);
+	//m[2] = dx0 * dy1 * (1 - grid->boundary[dest[2]]);
+	//m[3] = dx1 * dy1 * (1 - grid->boundary[dest[3]]);
+	if (grid->boundary[dest[0]] != BOUNDARY) m[0] = dx0 * dy0;
+	if (grid->boundary[dest[1]] != BOUNDARY) m[1] = dx1 * dy0;
+	if (grid->boundary[dest[2]] != BOUNDARY) m[2] = dx0 * dy1;
+	if (grid->boundary[dest[3]] != BOUNDARY) m[3] = dx1 * dy1;
+
+	const float sum = m[0] + m[1] + m[2] + m[3];
+	if (sum == 0)
+		return;
+	float g = grid->new_gamma[i];
+	if(g < 1e-5)
+		g = 1.0;
+
+	unsigned int k = 0u;
+	for (int c = 0; c < 4; c++) {
+		if (m[c] > 0.0) {
+			grid->A_bwd[i * 4 + k] = CudaGrid2D::AdvCell{
+				.j = dest[c],
+				.val = m[c]/(sum * g)
+			};
+			k++;
+		}
+	}
+
+	grid->counts_bwd[i] = k;
+}
+
+// (4) Compute beta
+__global__ void cuda_rho_adv_4(const CudaGrid2D::CudaData *grid) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width || y >= grid->height)
+		return;
+
+	const unsigned int i = cuda_idx(x, y, w);
+	for (unsigned int k = 0; k < grid->counts_bwd[i]; k++) {
+		const uint slot = (i * 4) + k;
+		atomicAdd(&grid->beta[grid->A_bwd[slot].j], grid->A_bwd[slot].val);
+	}
+}
+
+// (5) forward trace the velocity field to add the weights to A for all cells j where beta j < 1
+__global__ void cuda_rho_adv_5(const CudaGrid2D::CudaData *grid, const float dt, const int subSteps) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y + 1;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width - 1 || y >= grid->height - 1)
+		return;
+
+	const unsigned int i = cuda_idx(x, y, w);
+	if (grid->beta[i] >= 1)
+		return;
+
+	grid->counts_fwd[i] = 0;
+
+	const glm::vec2 nextPos = cuda_trace_particle(glm::vec2(x, y), grid, -dt, subSteps);
+	const int p0x = floor(nextPos.x);
+	const int p0y = floor(nextPos.y);
+
+	const float dx0 = 1 - (nextPos.x - p0x);
+	const float dy0 = 1 - (nextPos.y - p0y);
+	const float dx1 = 1 - (p0x + 1 - nextPos.x);
+	const float dy1 = 1 - (p0y + 1 - nextPos.y);
+
+	const unsigned int dest[4] = {
+		cuda_idx(p0x + 0, p0y + 0, w),
+		cuda_idx(p0x + 1, p0y + 0, w),
+		cuda_idx(p0x + 0, p0y + 1, w),
+		cuda_idx(p0x + 1, p0y + 1, w)
+	};
+
+	float m[4] = {0, 0, 0, 0};
+	// Boundary = 1 -> multiply by 0 if there is a boundary
+	m[0] = dx0 * dy0 * (1 - grid->boundary[dest[0]]);
+	m[1] = dx1 * dy0 * (1 - grid->boundary[dest[1]]);
+	m[2] = dx0 * dy1 * (1 - grid->boundary[dest[2]]);
+	m[3] = dx1 * dy1 * (1 - grid->boundary[dest[3]]);
+
+	const float sum = m[0] + m[1] + m[2] + m[3];
+	if (sum == 0)
+		return;
+
+	const float b = 1.f - grid->beta[i];
+	unsigned int k = 0;
+	for (int c = 0; c < 4; c++) {
+		if (m[c] > 0.0) {
+			grid->A_fwd[i * 4 + k] = CudaGrid2D::AdvCell{
+				.i = dest[c],
+				.val = b * (m[c] / sum)
+			};
+			k++;
+		}
+	}
+
+	grid->counts_fwd[i] = k;
+}
+
+// (6) Compute gamma
+__global__ void cuda_rho_adv_6_10_bwd(const CudaGrid2D::CudaData *grid) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width || y >= grid->height)
+		return;
+
+	const unsigned int i = cuda_idx(x, y, w);
+	float g = 0;
+	for (int k = 0; k < grid->counts_bwd[i]; k++)
+		g += grid->A_bwd[(i * 4) + k].val;
+
+	grid->gamma[i] = g;
+}
+__global__ void cuda_rho_adv_6_10_fwd(const CudaGrid2D::CudaData *grid) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width || y >= grid->height)
+		return;
+
+	const unsigned int j = cuda_idx(x, y, w);
+	for (uint k = 0u; k < grid->counts_fwd[j]; k++)
+		atomicAdd(&grid->gamma[grid->A_fwd[(j * 4) + k].i], grid->A_fwd[(j * 4) + k].val);
+}
+
+// (7) Scale A by gamma
+__global__ void cuda_rho_adv_7_bwd(const CudaGrid2D::CudaData *grid) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width || y >= grid->height)
+		return;
+
+	const unsigned int i = cuda_idx(x, y, w);
+	const float g = grid->gamma[i];
+	if (g < 1e-5)
+		return;
+
+	for (uint k = 0; k < grid->counts_bwd[i]; k++)
+		grid->A_bwd[(i * 4) + k].val /= g;
+}
+__global__ void cuda_rho_adv_7_fwd(const CudaGrid2D::CudaData *grid) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width || y >= grid->height)
+		return;
+
+	const unsigned int j = cuda_idx(x, y, w);
+
+	for (uint k = 0u; k < grid->counts_fwd[j]; k++) {
+		const float g = grid->gamma[grid->A_fwd[(j * 4) + k].j];
+		if (g > 1e-5)
+			grid->A_fwd[(j * 4) + k].val /= g;
+	}
+}
+
+// (8) Recompute beta from A; !! Order is important - must call fwd before bwd
+__global__ void cuda_rho_adv_8_bwd(const CudaGrid2D::CudaData *grid) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width || y >= grid->height)
+		return;
+
+	const unsigned int i = cuda_idx(x, y, w);
+
+	for (uint k = 0u; k < grid->counts_bwd[i]; k++)
+		atomicAdd(&grid->beta[grid->A_bwd[(i * 4) + k].j], grid->A_bwd[(i * 4) + k].val);
+}
+__global__ void cuda_rho_adv_8_fwd(const CudaGrid2D::CudaData *grid) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width || y >= grid->height)
+		return;
+
+	const unsigned int j = cuda_idx(x, y, w);
+
+	float b = 0.0;
+	for (uint k = 0u; k < grid->counts_fwd[j]; k++)
+		b += grid->A_fwd[(j * 4) + k].val;
+
+	grid->beta[j] = b;
+}
+
+// (9) Clamp beta to 1
+__global__ void cuda_rho_adv_9_bwd(const CudaGrid2D::CudaData *grid) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width || y >= grid->height)
+		return;
+
+	const unsigned int i = cuda_idx(x, y, w);
+	for (uint k = 0u; k < grid->counts_bwd[i]; k++) {
+		const float b = grid->beta[grid->A_bwd[(i * 4) + k].j];
+		if (b > 1e-5)
+			grid->A_bwd[(i * 4) + k].val /= b;
+	}
+}
+__global__ void cuda_rho_adv_9_fwd(const CudaGrid2D::CudaData *grid) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width || y >= grid->height)
+		return;
+
+	const unsigned int j = cuda_idx(x, y, w);
+	const float b = grid->beta[j];
+	if (b <= 1e-5)
+		return;
+
+	for (uint k = 0u; k < grid->counts_fwd[j]; k++)
+		grid->A_fwd[(j * 4) + k].val /= b;
+}
+
+// (11) Evaluate p_n+1 = A * p
+__global__ void cuda_rho_adv_11_bwd(const CudaGrid2D::CudaData *grid) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width || y >= grid->height)
+		return;
+
+	const unsigned int i = cuda_idx(x, y, w);
+	float acc  = 0.0;
+	for (uint k = 0u; k < grid->counts_bwd[i]; k++) {
+		const CudaGrid2D::AdvCell c = grid->A_bwd[(i * 4) + k];
+		acc += c.val * grid->rho[c.j];
+	}
+
+	grid->tmp_rho[i] = acc;
+}
+__global__ void cuda_rho_adv_11_fwd(const CudaGrid2D::CudaData *grid) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width || y >= grid->height)
+		return;
+
+	const unsigned int j = cuda_idx(x, y, w);
+	const float rho_j = grid->rho[j];
+	for (uint k = 0u; k < grid->counts_fwd[j]; k++) {
+		const CudaGrid2D::AdvCell c = grid->A_fwd[(j * 4) + k];
+		atomicAdd(&grid->tmp_rho[c.j], c.val * rho_j);
+	}
+}
+
+__global__ void cuda_rho_adv_11_cpy(const CudaGrid2D::CudaData *grid) {
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int w = grid->width;
+
+	if (x >= grid->width || y >= grid->height)
+		return;
+
+	const unsigned int i = cuda_idx(x, y, w);
+	grid->rho[i] = grid->tmp_rho[i];
+}
 
 __global__ void cuda_vel_adv_pass_1(const CudaGrid2D::CudaData *grid, const float dt, const int subSteps) {
     const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
@@ -231,6 +793,8 @@ __global__ void cuda_vel_adv_pass_1(const CudaGrid2D::CudaData *grid, const floa
     const glm::vec2 prevPos = cuda_trace_particle(glm::vec2(x, y), grid, dt, subSteps);
     grid->tmp_vel[cuda_idx(x, y, w)] = cuda_sample_vel(prevPos - 0.5f, grid->vel, grid->width);
 }
+
+
 __global__ void cuda_vel_adv_pass_2(const CudaGrid2D::CudaData *grid) {
     const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
     const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y + 1;
@@ -269,8 +833,8 @@ __global__ void cuda_add_force(const CudaGrid2D::CudaData *grid, const float dt,
 }
 
 __global__ void cuda_proj_calc_div(const CudaGrid2D::CudaData *grid, const float lambdaP, const float lambdaM, const float eta) {
-    const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
-    const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y + 1;
+    const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
     const unsigned int w = grid->width;
 
     if (x >= grid->width || y >= grid->height)
@@ -279,8 +843,9 @@ __global__ void cuda_proj_calc_div(const CudaGrid2D::CudaData *grid, const float
     const unsigned int i = cuda_idx(x, y, w);
 
     const float r = grid->rho[i];
+	grid->pressure[i] = 0;
     grid->divergence[i] = 0;
-    if(r < 0.5 || grid->boundary[i] == 1) return;
+    if(r < 0.5f || grid->boundary[i] == 1) return;
 
     const float dx = grid->vel[cuda_idx(x + 1, y, w)].x - grid->vel[cuda_idx(x, y, w)].x;
     const float dy = grid->vel[cuda_idx(x, y + 1, w)].y - grid->vel[cuda_idx(x, y, w)].y;
@@ -298,7 +863,7 @@ __global__ void cuda_proj_sub_pg(const CudaGrid2D::CudaData *grid) {
     const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y + 1;
     const unsigned int w = grid->width;
 
-    if (x >= grid->width || y >= grid->height)
+    if (x >= grid->width - 1 || y >= grid->height - 1)
         return;
 
     const unsigned int i = cuda_idx(x, y, w);

@@ -1,5 +1,7 @@
 #include "simulation/data/CudaGrid2D.h"
 
+#include <algorithm>
+
 #include "simulation/Properties.h"
 #include "simulation/data/ScalField2D.h"
 #include "simulation/data/VecField2D.h"
@@ -17,8 +19,10 @@ CudaGrid2D::CudaGrid2D(const unsigned width, const unsigned height) : IGrid2D(wi
     gpu_alloc(&_cuda_data.gamma,        _size * sizeof(float));
     gpu_alloc(&_cuda_data.new_gamma,    _size * sizeof(float));
     gpu_alloc(&_cuda_data.beta,         _size * sizeof(float));
-    gpu_alloc(&_cuda_data.A,            _size * sizeof(AdvCell) * 8); // 4 backward trace + 4 forward trace
-    gpu_alloc(&_cuda_data.counts,       _size * sizeof(unsigned int));
+    gpu_alloc(&_cuda_data.A_bwd,       _size * sizeof(AdvCell) * 4);
+    gpu_alloc(&_cuda_data.A_fwd,       _size * sizeof(AdvCell) * 4);
+    gpu_alloc(&_cuda_data.counts_bwd,   _size * sizeof(unsigned int));
+    gpu_alloc(&_cuda_data.counts_fwd,   _size * sizeof(unsigned int));
     gpu_alloc(&_cuda_data.divergence,   _size * sizeof(float));
     gpu_alloc(&_cuda_data.pressure,     _size * sizeof(float));
     gpu_alloc(&_cuda_data.forces,       _size * sizeof(glm::vec2));
@@ -26,6 +30,9 @@ CudaGrid2D::CudaGrid2D(const unsigned width, const unsigned height) : IGrid2D(wi
 
     _cuda_data.width = width;
     _cuda_data.height = height;
+
+    gpu_alloc(&_gpu_cuda_data, sizeof(CudaData));
+    gpu_copy_H2D(_gpu_cuda_data, &_cuda_data, sizeof(CudaData));
 
     _vel = new VecField2D(width, height);
     _rho = new ScalField2D(width, height);
@@ -89,8 +96,10 @@ CudaGrid2D::~CudaGrid2D() {
     cudaFree(_cuda_data.gamma);
     cudaFree(_cuda_data.new_gamma);
     cudaFree(_cuda_data.beta);
-    cudaFree(_cuda_data.A);
-    cudaFree(_cuda_data.counts);
+    cudaFree(_cuda_data.A_bwd);
+    cudaFree(_cuda_data.A_fwd);
+    cudaFree(_cuda_data.counts_bwd);
+    cudaFree(_cuda_data.counts_fwd);
     cudaFree(_cuda_data.divergence);
     cudaFree(_cuda_data.pressure);
     cudaFree(_cuda_data.forces);
@@ -143,51 +152,77 @@ ScalField2D & CudaGrid2D::boundary() {
     return *_boundary;
 }
 
-void* CudaGrid2D::gpuVel() const { return _cuda_data.vel; }
-void* CudaGrid2D::gpuTmpVel() const { return _cuda_data.tmp_vel; }
-void* CudaGrid2D::gpuRho() const { return _cuda_data.rho; }
-void* CudaGrid2D::gpuTmpRho() const { return _cuda_data.tmp_rho; }
-void* CudaGrid2D::gpuGamma() const { return _cuda_data.gamma; }
-void* CudaGrid2D::gpuNewGamma() const { return _cuda_data.new_gamma; }
-void* CudaGrid2D::gpuBeta() const { return _cuda_data.beta; }
-void* CudaGrid2D::gpuA() const { return _cuda_data.A; }
-void* CudaGrid2D::gpuCounts() const { return _cuda_data.counts; }
-void* CudaGrid2D::gpuDivergence() const { return _cuda_data.divergence; }
-void* CudaGrid2D::gpuPressure() const { return _cuda_data.pressure; }
-void* CudaGrid2D::gpuForces() const { return _cuda_data.forces; }
-void* CudaGrid2D::gpuBoundary() const { return _cuda_data.boundary; }
+struct CudaGrid2D::CudaData* CudaGrid2D::cudaData() const {
+    return _gpu_cuda_data;
+}
 
-struct CudaGrid2D::CudaData* CudaGrid2D::cudaData() {
+struct CudaGrid2D::CudaData * CudaGrid2D::cudaDataCPU(){
     return &_cuda_data;
 }
 
 void CudaGrid2D::gpu_alloc(void **ptr, const size_t size) {
     const cudaError_t cudaStatus = cudaMalloc(ptr, size);
-    if (cudaStatus != cudaSuccess) fprintf(stderr, "cudaMalloc failed!\n");
+    if (cudaStatus != cudaSuccess)
+        fprintf(stderr,
+               "cudaMalloc failed: %s (%s)\n",
+               cudaGetErrorName(cudaStatus),
+               cudaGetErrorString(cudaStatus));
 }
 void CudaGrid2D::gpu_alloc(float **ptr, const size_t size) {
     const cudaError_t cudaStatus = cudaMalloc(ptr, size);
-    if (cudaStatus != cudaSuccess) fprintf(stderr, "cudaMalloc failed!\n");
+    if (cudaStatus != cudaSuccess)
+        fprintf(stderr,
+               "cudaMalloc failed: %s (%s)\n",
+               cudaGetErrorName(cudaStatus),
+               cudaGetErrorString(cudaStatus));
 }
 void CudaGrid2D::gpu_alloc(unsigned int **ptr, const size_t size) {
     const cudaError_t cudaStatus = cudaMalloc(ptr, size);
-    if (cudaStatus != cudaSuccess) fprintf(stderr, "cudaMalloc failed!\n");
+    if (cudaStatus != cudaSuccess)
+        fprintf(stderr,
+       "cudaMalloc failed: %s (%s)\n",
+       cudaGetErrorName(cudaStatus),
+       cudaGetErrorString(cudaStatus));
 }
 void CudaGrid2D::gpu_alloc(glm::vec2 **ptr, const size_t size) {
     const cudaError_t cudaStatus = cudaMalloc(ptr, size);
-    if (cudaStatus != cudaSuccess) fprintf(stderr, "cudaMalloc failed!\n");
+    if (cudaStatus != cudaSuccess)
+        fprintf(stderr,
+               "cudaMalloc failed: %s (%s)\n",
+               cudaGetErrorName(cudaStatus),
+               cudaGetErrorString(cudaStatus));
 }
 void CudaGrid2D::gpu_alloc(AdvCell **ptr, const size_t size) {
     const cudaError_t cudaStatus = cudaMalloc(ptr, size);
-    if (cudaStatus != cudaSuccess) fprintf(stderr, "cudaMalloc failed!\n");
+    if (cudaStatus != cudaSuccess)
+        fprintf(stderr,
+               "cudaMalloc failed: %s (%s)\n",
+               cudaGetErrorName(cudaStatus),
+               cudaGetErrorString(cudaStatus));
+}
+void CudaGrid2D::gpu_alloc(CudaData **ptr, const size_t size) {
+    const cudaError_t cudaStatus = cudaMalloc(ptr, size);
+    if (cudaStatus != cudaSuccess)
+        fprintf(stderr,
+               "cudaMalloc failed: %s (%s)\n",
+               cudaGetErrorName(cudaStatus),
+               cudaGetErrorString(cudaStatus));
 }
 void CudaGrid2D::gpu_copy_H2D(void *dest, const void *src, const size_t count) {
     const cudaError_t cudaStatus = cudaMemcpy(dest, src, count, cudaMemcpyHostToDevice);
-    if (cudaStatus != cudaSuccess) fprintf(stderr, "cudaMemcpy to Device failed!\n");
+    if (cudaStatus != cudaSuccess)
+        fprintf(stderr,
+               "cudaMemcpy(HostToDevice) failed: %s (%s)\n",
+               cudaGetErrorName(cudaStatus),
+               cudaGetErrorString(cudaStatus));
 }
 void CudaGrid2D::gpu_copy_D2H(void *dest, const void *src, const size_t count) {
     const cudaError_t cudaStatus = cudaMemcpy(dest, src, count, cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) fprintf(stderr, "cudaMemcpy to Host failed!\n");
+    if (cudaStatus != cudaSuccess)
+        fprintf(stderr,
+               "cudaMemcpy(DeviceToHost) failed: %s (%s)\n",
+               cudaGetErrorName(cudaStatus),
+               cudaGetErrorString(cudaStatus));
 }
 
 void CudaGrid2D::upload() const {
@@ -212,6 +247,14 @@ void CudaGrid2D::download() {
     gpu_copy_D2H(_boundary->data(),  _cuda_data.boundary,   _size * sizeof(float));
 
     _dirty = false;
+}
+
+void CudaGrid2D::partialClear() const {
+    cudaMemset(_cuda_data.beta,	  	  0,_size * sizeof(float));
+    cudaMemset(_cuda_data.A_bwd,      0,_size * sizeof(AdvCell) * 4);
+    cudaMemset(_cuda_data.A_fwd,      0,_size * sizeof(AdvCell) * 4);
+    cudaMemset(_cuda_data.counts_bwd, 0,_size * sizeof(unsigned int));
+    cudaMemset(_cuda_data.counts_fwd, 0,_size * sizeof(unsigned int));
 }
 
 #undef LOOP_2D
