@@ -139,16 +139,16 @@ void CudaSimulator2D::rho_advect() {
 	_grid->partialClear();
 
 	// (1) Advect gamma using backward semi-lagrangian
-	cuda_rho_adv_1<<<gridSizeCore, blockSize>>>(_grid->cudaData(), PROPERTY_F(DT),PROPERTY_F(GRAVITY_FORCE));
+	cuda_rho_adv_1<<<gridSizeCore, blockSize>>>(_grid->cudaData(), PROPERTY_F(DT), 4);
 
 	// (2) Compute A + (3) Scale A by gamma
-	cuda_rho_adv_2_3<<<gridSizeCore, blockSize>>>(_grid->cudaData(), PROPERTY_F(DT),PROPERTY_F(GRAVITY_FORCE));
+	cuda_rho_adv_2_3<<<gridSizeCore, blockSize>>>(_grid->cudaData(), PROPERTY_F(DT), 4);
 
 	// (4) Compute beta
 	cuda_rho_adv_4<<<gridSizeFull, blockSize>>>(_grid->cudaData());
 
 	// (5) forward trace the velocity field to add the weights to A for all cells j where beta j < 1
-	cuda_rho_adv_5<<<gridSizeCore, blockSize>>>(_grid->cudaData(), PROPERTY_F(DT),PROPERTY_F(GRAVITY_FORCE));
+	cuda_rho_adv_5<<<gridSizeCore, blockSize>>>(_grid->cudaData(), PROPERTY_F(DT), 4);
 
 	// (6) Compute gamma
 	cuda_rho_adv_6_10_bwd<<<gridSizeFull, blockSize>>>(_grid->cudaData());
