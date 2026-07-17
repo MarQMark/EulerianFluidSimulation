@@ -17,7 +17,7 @@ public:
     SimulationDisplay2D(unsigned int width, unsigned int height);
     ~SimulationDisplay2D() override;
 
-    void update(void* renderData) override;
+    void render(void* renderData) override;
 
 private:
     unsigned int _width;

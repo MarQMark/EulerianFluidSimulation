@@ -29,6 +29,8 @@ FluidNode::FluidNode() {
     fluidMaterial.setVec3("color", glm::vec3(1.0f, 1.0f, 1.0f));
     _marchingCubesModel->addMaterial(fluidMaterial);
     _simpleCubesModel->addMaterial(fluidMaterial);
+
+    updateMaterials();
 }
 
 FluidNode::~FluidNode() {

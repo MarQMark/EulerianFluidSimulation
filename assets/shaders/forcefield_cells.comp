@@ -1,0 +1,112 @@
+#version 430
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+struct Triangle {
+    vec3 v0;
+    vec3 v1;
+    vec3 v2;
+};
+
+layout(std430, binding = 0) readonly buffer BufTriangles  { Triangle triangles[]; };
+layout(std430, binding = 1)          buffer BufAffectedCells      { int affectedCells[]; };
+layout(std430, binding = 2)          buffer BufAffectedCellCount  { int affectedCellCount; };
+
+uniform int   uWidth;
+uniform int   uHeight;
+uniform int   uDepth;
+
+uniform vec3  uDomainSize;
+uniform vec3  uDomainCenter;
+
+uniform int   uTriangleCount;
+
+int idx(int x, int y, int z) { return z * uWidth * uHeight + y * uWidth + x; }
+
+float dot2(vec3 v) { return dot(v, v); }
+
+float distanceTriangle(vec3 p, vec3 v1, vec3 v2, vec3 v3) {
+    vec3 v21 = v2 - v1;
+    vec3 v32 = v3 - v2;
+    vec3 v13 = v1 - v3;
+
+    vec3 p1 = p - v1;
+    vec3 p2 = p - v2;
+    vec3 p3 = p - v3;
+
+    vec3 normal = cross(v21, v13);
+
+    if (sign(dot(cross(v21, normal), p1)) +
+    sign(dot(cross(v32, normal), p2)) +
+    sign(dot(cross(v13, normal), p3)) < 2.0) {
+        return sqrt(min(min(
+        dot2(v21 * clamp(dot(v21, p1) / dot2(v21), 0.0, 1.0) - p1),
+        dot2(v32 * clamp(dot(v32, p2) / dot2(v32), 0.0, 1.0) - p2)),
+        dot2(v13 * clamp(dot(v13, p3) / dot2(v13), 0.0, 1.0) - p3)));
+    }
+
+    return sqrt(dot(normal, p1) * dot(normal, p1) / dot2(normal));
+}
+
+float solidAngle(vec3 position, vec3 v0, vec3 v1, vec3 v2) {
+    vec3 a = normalize(v0 - position);
+    vec3 b = normalize(v1 - position);
+    vec3 c = normalize(v2 - position);
+
+    float numerator = dot(a, cross(b, c));
+
+    float denom =
+    1.0f +
+    dot(a, b) +
+    dot(b, c) +
+    dot(c, a);
+
+    return 2.0f * atan(numerator, denom);
+}
+
+float computeWindingNumber(vec3 position, int triangleCount) {
+    float winding = 0.0f;
+
+    for (int i = 0; i < triangleCount; i++) {
+        winding += solidAngle(position, triangles[i].v0, triangles[i].v1, triangles[i].v2);
+    }
+
+    return winding;
+}
+
+float calculateSDF(vec3 position, int triangleCount) {
+    float best = 1e20;
+
+    // Calculate distance to nearest triangle
+    for (int i = 0 ; i < triangleCount ; i++) {
+        float dist = distanceTriangle(position, triangles[i].v0, triangles[i].v1, triangles[i].v2);
+
+        if (dist < best)
+        best = dist;
+    }
+
+    // Determine sign of distance = Check if position is inside or outside Mesh
+    float winding = computeWindingNumber(position, triangleCount);
+    return abs(winding) > 3.1415926f ? -best : best;
+}
+
+void main() {
+    int x = int(gl_GlobalInvocationID.x);
+    int y = int(gl_GlobalInvocationID.y);
+    int z = int(gl_GlobalInvocationID.z);
+
+    if (x >= uWidth - 1 || y >= uHeight - 1 || z >= uDepth - 1)
+        return;
+
+    const int id = idx(x, y, z);
+
+    const vec3 cellCount = vec3(uWidth, uHeight, uDepth);
+    const vec3 cellSize = uDomainSize / cellCount;
+    const vec3 domainMin = uDomainCenter - 0.5f * uDomainSize;
+
+    vec3 queryPosition = domainMin + cellSize * vec3(x, y, z) + cellSize * 0.5f;
+
+    if (calculateSDF(queryPosition, uTriangleCount) <= 0.0) {
+        int index = atomicAdd(affectedCellCount, 1);
+        affectedCells[index] = id;
+    }
+}

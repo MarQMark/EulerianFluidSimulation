@@ -57,6 +57,8 @@ void Application::update() {
     	_window->processEvents();
     	Time::Get()->update();
 
+    	_display->update(_simulator->getRenderData());
+
     	if ((!PROPERTY_B(PAUSED) || PROPERTY_I(SIMULATION_STEPS) > 0) && PROPERTY_B(SIMULATION_INITIALIZED)) {
     		_simulator->update();
 
@@ -64,7 +66,7 @@ void Application::update() {
     			ADD_PROPERTY_I(SIMULATION_STEPS, -1);
     	}
 
-        _display->update(_simulator->getRenderData());
+        _display->render(_simulator->getRenderData());
         _views->update(_simulator->getRenderData());
     	_window->swapBuffers();
 

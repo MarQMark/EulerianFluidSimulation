@@ -9,14 +9,14 @@ ForceFieldNode::ForceFieldNode(const std::string& name) {
     this->name = name;
 
     // Setup Force Field Arrow Model
-    model = std::make_unique<Model>("assets/models/forceField.obj", false);
+    _model = std::make_unique<Model>("assets/models/forceField.obj", false);
 
     // Setup Wireframe Box Model
-    wireframeModel = std::make_unique<Model>("Wireframe Model", Mesh::createWireframeCube("Wireframe Mesh"));
+    _wireframeModel = std::make_unique<Model>("Wireframe Model", Mesh::createWireframeCube("Wireframe Mesh"));
 
     Material wireframeMat("Wireframe", Shader::createBox());
     wireframeMat.setVec3("color", glm::vec3(0.2f, 0.9f, 0.2f));
-    wireframeModel->addMaterial(wireframeMat);
+    _wireframeModel->addMaterial(wireframeMat);
 
     ForceFieldNode::setScale({ 0.25, 0.25, 0.25 });
 }
@@ -38,24 +38,38 @@ ForceFieldNode::ForceFieldNode(const nlohmann::json json) : SceneNode(json) {
     forceField.active = json.value("active", forceField.active);
     forceField.strength = json.value("strength", forceField.strength);
 
-    model = std::make_unique<Model>("assets/models/forceField.obj", false);
+    _model = std::make_unique<Model>("assets/models/forceField.obj", false);
 
     // Setup Wireframe Box Model
-    wireframeModel = std::make_unique<Model>("Wireframe Model", Mesh::createWireframeCube("Wireframe Mesh"));
+    _wireframeModel = std::make_unique<Model>("Wireframe Model", Mesh::createWireframeCube("Wireframe Mesh"));
 
     Material wireframeMat("Wireframe", Shader::createBox());
     wireframeMat.setVec3("color", glm::vec3(0.2f, 0.9f, 0.2f));
-    wireframeModel->addMaterial(wireframeMat);
+    _wireframeModel->addMaterial(wireframeMat);
 }
 
 ForceField ForceFieldNode::getForceField() const {
     return forceField;
 }
 
+bool ForceFieldNode::updatePending() const {
+    return pendingUpdate;
+}
+
+void ForceFieldNode::resetCells() {
+    forceField.cells = {};
+    pendingUpdate = true;
+}
+
+void ForceFieldNode::setCells(const std::vector<int>& cells) {
+    forceField.cells = cells;
+    pendingUpdate = false;
+}
+
 void ForceFieldNode::update(float deltaTime) { }
 
 void ForceFieldNode::draw(const glm::mat4& view, const glm::mat4& projection) const {
-    wireframeModel->draw(view, projection, transform);
+    _wireframeModel->draw(view, projection, transform);
 
     // Draw arrow of force field with removed scaling transform
     glm::mat4 result = transform;
@@ -63,37 +77,24 @@ void ForceFieldNode::draw(const glm::mat4& view, const glm::mat4& projection) co
     result[1] = glm::normalize(result[1]);
     result[2] = glm::normalize(result[2]);
 
-    model->draw(view, projection, result);
+    _model->draw(view, projection, result);
 }
 
 void ForceFieldNode::setTransform(glm::mat4 transform) {
     Transform::setTransform(transform);
-
-    // Update cuda force field
-    glm::vec3 right   = rotation * glm::vec3(1, 0,  0);
-    glm::vec3 up      = rotation * glm::vec3(0, 1,  0);
-    glm::vec3 forward = rotation * glm::vec3(0, 0, -1);
-
-    forceField.position = { position.x, position.y, position.z };
-    forceField.halfExtents = { 0.5f * scale.x, 0.5f * scale.y, 0.5f * scale.z };
-    forceField.right = { right.x, right.y, right.z };
-    forceField.up = { up.x, up.y, up.z };
-    forceField.forward = { forward.x, forward.y, forward.z };
+    forceField.direction = glm::normalize(glm::vec3(transform[0]));
+    pendingUpdate = true;
 }
 
 void ForceFieldNode::updateTransform() {
     Transform::updateTransform();
+    forceField.direction = glm::normalize(glm::vec3(transform[0]));
+    pendingUpdate = true;
+}
 
-    // Update cuda force field
-    glm::vec3 right   = rotation * glm::vec3(1, 0,  0);
-    glm::vec3 up      = rotation * glm::vec3(0, 1,  0);
-    glm::vec3 forward = rotation * glm::vec3(0, 0, -1);
-
-    forceField.position = { position.x, position.y, position.z };
-    forceField.halfExtents = { 0.5f * scale.x, 0.5f * scale.y, 0.5f * scale.z };
-    forceField.right = { right.x, right.y, right.z };
-    forceField.up = { up.x, up.y, up.z };
-    forceField.forward = { forward.x, forward.y, forward.z };
+std::vector<Triangle> ForceFieldNode::getWorldSpaceTriangles() const {
+    auto mesh = Mesh::createCube("tmp");
+    return mesh->getWorldSpaceTriangles(transform);
 }
 
 NodeProperties ForceFieldNode::buildProperties() {
@@ -120,12 +121,12 @@ NodeProperties ForceFieldNode::buildProperties() {
     properties.addProperty(std::make_unique<BoolProperty>(
         "Enabled",
         [this] () { return forceField.active; },
-        [this] (bool on) { forceField.active = on; }
+        [this] (bool on) { forceField.active = on; pendingUpdate = true; }
     ));
     properties.addProperty(std::make_unique<FloatProperty>(
         "Strength",
         [this] () { return forceField.strength; },
-        [this] (float s) { forceField.strength = s; },
+        [this] (float s) { forceField.strength = s; pendingUpdate = true; },
         -INFINITY, INFINITY, 0.01f
     ));
 
@@ -150,4 +151,3 @@ nlohmann::json ForceFieldNode::toJson() const {
 std::string ForceFieldNode::getTypeName() const {
     return "ForceFieldNode";
 }
-

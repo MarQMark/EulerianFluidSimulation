@@ -22,7 +22,8 @@ public:
     SimulationDisplay3D(Window* window);
     ~SimulationDisplay3D() override;
 
-    void update(void* renderData) override;
+    void update(void* simulationData) override;
+    void render(void* renderData) override;
     void reset(void* simulationData) override;
 
 private:

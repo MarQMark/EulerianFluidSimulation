@@ -27,6 +27,9 @@ void Simulation3DView::render(void* renderData) {
         ImVec2(1, 0)
     );
 
+    if (auto camera = editor->getScene()->getCamera())
+        camera->setHover(ImGui::IsWindowHovered());
+
     // Check if resized
     if (viewportSize.x != size.x || viewportSize.y != size.y) {
         viewportSize = { size.x, size.y };
@@ -37,9 +40,6 @@ void Simulation3DView::render(void* renderData) {
         editor->updateRenderingSize(size.x, size.y);
         editor->getScene()->getCamera()->setAspectRatio(size.x / size.y);
     }
-
-    if (auto camera = editor->getScene()->getCamera())
-        camera->setHover(ImGui::IsWindowHovered());
 
     // --- Gizmo ---
     ImVec2 viewportPos = ImGui::GetItemRectMin();
