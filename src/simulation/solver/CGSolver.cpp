@@ -185,13 +185,7 @@ float CGSolverOpenGL2D::solve(IGrid2D *_grid) {
     auto* grid = dynamic_cast<OpenGLGrid2D*>(_grid);
     if (!grid) return 0;
 
-    const auto& divergence = grid->divergence();
-    const auto& rho        = grid->rho();
-    const auto& boundary   = grid->boundary();
-    auto&       pressure   = grid->pressure();
-
     Profiler* profiler = Profiler::Get();
-
     profiler->start("6.1 Solver Start");
     const int   steps          = PROPERTY_I(MAX_STEPS);
     const int   convCheck      = PROPERTY_I(SOLVER_CHECK_INTERVAL);

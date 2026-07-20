@@ -57,6 +57,10 @@ CPUSimulator2D::~CPUSimulator2D() {
 void CPUSimulator2D::update() {
 	Profiler* profiler = Profiler::Get();
 
+	profiler->start("0 Vel Decay");
+	if (!PROPERTY_B(DISABLE_VEL_DECAY))	vel_decay();
+	profiler->stop();
+
 	profiler->start("1 Vel Extrapolate");
 	if (!PROPERTY_B(DISABLE_VEL_EXTRAPOLATE)) vel_extrapolate();
 	profiler->stop();
@@ -84,6 +88,13 @@ void* CPUSimulator2D::getRenderData() {
     return _data;
 }
 
+void CPUSimulator2D::vel_decay() const {
+	LOOP_2D_GRID(x, y, 1) {
+		if (_grid->rho()(x, y) < 0.5)
+			_grid->vel()(x, y) *= PROPERTY_F(VEL_DECAY);
+	}
+}
+
 void CPUSimulator2D::vel_extrapolate() {
 	auto& vel   = _grid->vel();
 	auto& rho   = _grid->rho();
@@ -97,8 +108,8 @@ void CPUSimulator2D::vel_extrapolate() {
 	    	}
 	    	if (boundary(x, y) == BOUNDARY) continue;
 
-	    	int nCount = 1;
-	    	glm::vec2 sum = vel(x, y);
+	    	int nCount = 0;
+	    	glm::vec2 sum = glm::vec2(0);
 	    	auto sampleNeighbor = [&](const int nx, const int ny) {
 	    		if (boundary(nx, ny) == BOUNDARY) return;
 	    		nCount++;
@@ -110,7 +121,7 @@ void CPUSimulator2D::vel_extrapolate() {
 	    	sampleNeighbor(x, y + 1);
 	    	sampleNeighbor(x, y - 1);
 
-	    	tmpVel(x, y) = sum / (float)nCount;
+	    	tmpVel(x, y) = (nCount > 0) ? sum / (float)nCount : vel(x, y);
 	    }
 		LOOP_2D_GRID(x, y, 1) {
 	    	if (rho(x, y) < 0.5)
@@ -321,7 +332,7 @@ void CPUSimulator2D::rho_sharpen() {
 	auto& rho   = _grid->rho();
 	auto& boundary = _grid->boundary();
 
-	float delT = PROPERTY_F(DT) * 3;
+	const float delT = PROPERTY_F(DT) * 3;
 
 	auto del_rho = ScalField2D(_grid->width(), _grid->height());
 
@@ -557,21 +568,21 @@ glm::vec2 CPUSimulator2D::trace_along_field(const glm::vec2 start, const float D
 	for (int s = 0; s < substeps; s++) {
 		// Sample rho at current position.
 		// If we are already at or past the interface, stop immediately.
-		float rhoHere = rho.interpolate(pos);
-		if (rhoHere >= 0.5f) break;
+		if (rho.interpolate(pos) >= 0.5f)
+			break;
 
 		// Compute gradient of rho at current position using central differences
 		// at the surrounding integer cell. The gradient points toward
 		// higher density — i.e., toward the liquid interior.
-		int ix = std::clamp((int)pos.x, 1, (int)rho.width()  - 2);
-		int iy = std::clamp((int)pos.y, 1, (int)rho.height() - 2);
+		const int ix = std::clamp((int)pos.x, 1, (int)rho.width()  - 2);
+		const int iy = std::clamp((int)pos.y, 1, (int)rho.height() - 2);
 
 		glm::vec2 grad(
 			rho(ix+1, iy  ) - rho(ix-1, iy  ),   // ∂ρ/∂x (central diff)
 			rho(ix,   iy+1) - rho(ix,   iy-1)    // ∂ρ/∂y (central diff)
 		);
 
-		float len = glm::length(grad);
+		const float len = glm::length(grad);
 		if (len < 1e-6f) break;  // no gradient — rho is flat, nowhere to go
 
 		// Normalise so each step is exactly stepSize cells long
@@ -582,10 +593,8 @@ glm::vec2 CPUSimulator2D::trace_along_field(const glm::vec2 start, const float D
 		next.x = std::clamp(next.x, 1.f, (float)rho.width()  - 2.f);
 		next.y = std::clamp(next.y, 1.f, (float)rho.height() - 2.f);
 
-		// Stop if next position is inside a solid
-		int nx = std::clamp((int)next.x, 0, (int)boundary.width()  - 1);
-		int ny = std::clamp((int)next.y, 0, (int)boundary.height() - 1);
-		if (boundary(nx, ny) > 0.5f) break;
+		if (boundary(next.x, next.y) > 0.5f)
+			break;
 
 		pos = next;
 	}
@@ -618,18 +627,15 @@ void CPUSimulator2D::scatter_values(const glm::vec2 pos, const float value) cons
 	if (boundary(x1, y1) > 0.5f) w11 = 0.f;
 
 	// Renormalise so total weight stays 1 — deposited mass is conserved
-	float total = w00 + w10 + w01 + w11;
-	if (total < 1e-6f) return;  // surrounded by walls — mass is lost (unavoidable)
+	const float total = w00 + w10 + w01 + w11;
+	if (total < 1e-6f)
+		return;  // surrounded by walls — mass is lost (unavoidable)
 
-	float inv = 1.f / total;
-	w00 *= inv;  w10 *= inv;
-	w01 *= inv;  w11 *= inv;
-
-	// Deposit
-	rho(x0, y0) += value * w00;
-	rho(x1, y0) += value * w10;
-	rho(x0, y1) += value * w01;
-	rho(x1, y1) += value * w11;
+	const float inv = 1.f / total;
+	rho(x0, y0) += value * w00 * inv;
+	rho(x1, y0) += value * w10 * inv;
+	rho(x0, y1) += value * w01 * inv;
+	rho(x1, y1) += value * w11 * inv;
 }
 
 void CPUSimulator2D::enforce_wall_boundaries() const {

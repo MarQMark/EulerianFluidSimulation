@@ -18,16 +18,16 @@ public:
 
 
 private:
+
     void update() override;
 
+    void vel_decay();
     void vel_extrapolate() override;
     void rho_advect() override;
     void rho_sharpen() override;
     void add_force() override;
     void diffuse() override;
     void vel_advect() override;
-
-    void enforce_wall_boundaries() const;
 
     void project() override;
 

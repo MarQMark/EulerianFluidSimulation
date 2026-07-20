@@ -45,6 +45,10 @@ static constexpr unsigned int COUNTER_START = __COUNTER__ + 1;
 
 class Properties {
 public:
+#ifdef HAS_CUDA
+    PROP_TOKEN(CUDA_ENABLED)
+#endif
+
     PROP_TOKEN(SIMULATION_TYPE)
     PROP_TOKEN(SIMULATION_REBUILD)
     PROP_TOKEN(SIMULATION_RESET)
@@ -72,6 +76,7 @@ public:
     PROP_TOKEN(SOLVER_THRESHOLD)
 
     PROP_TOKEN(DT)
+    PROP_TOKEN(VEL_DECAY)
     PROP_TOKEN(VISCOSITY)
 
     PROP_TOKEN(WIDTH_2D)
@@ -93,6 +98,7 @@ public:
     PROP_TOKEN(TOTAL_RHO)
     PROP_TOKEN(SOLVE_STEPS)
 
+    PROP_TOKEN(DISABLE_VEL_DECAY);
     PROP_TOKEN(DISABLE_VEL_EXTRAPOLATE);
     PROP_TOKEN(DISABLE_RHO_SHARPEN);
     PROP_TOKEN(DISABLE_RHO_ADVECT);
@@ -129,6 +135,7 @@ private:
         ADD(simulation_solver, SOLVER_THRESHOLD, "Threshold", "Threshold at which solver considers system solved", 1e-5f)
 
         ADD(simulation, DT, "DT", "Delta time", 1.67f)
+        ADD(simulation, VEL_DECAY, "Vel Decay", "Velocity Decay", 0.8f)
         ADD(simulation, VISCOSITY, "Viscosity", "", 0.f)
 
         auto& grid = add_category("Grid");
@@ -144,12 +151,17 @@ private:
         auto& controls = add_category("Controls");
         ADD(controls, PAUSED, "Paused", "If simulation is paused", false)
         auto& controls_steps = add_sub_category(controls, "Steps");
+        ADD(controls_steps, DISABLE_VEL_DECAY, "Disable Velocity Decay", "", false);
         ADD(controls_steps, DISABLE_VEL_EXTRAPOLATE, "Disable Velocity Extrapolation", "", false);
         ADD(controls_steps, DISABLE_RHO_SHARPEN, "Disable Density Sharpen", "", false);
         ADD(controls_steps, DISABLE_RHO_ADVECT, "Disable Density Advection", "", false);
         ADD(controls_steps, DISABLE_VEL_ADVECT, "Disable Velocity Advection", "", false);
         ADD(controls_steps, DISABLE_ADD_FORCE, "Disable Add Force", "", false);
         ADD(controls_steps, DISABLE_PROJECT, "Disable Projection", "", false);
+
+#ifdef HAS_CUDA
+        ADD_HIDDEN(CUDA_ENABLED, false);
+#endif
 
         ADD_HIDDEN_3D(WIDTH_3D, 10)
         ADD_HIDDEN_3D(HEIGHT_3D, 10)
@@ -170,7 +182,13 @@ private:
     ~Properties();
 
 #undef ADD
+#undef ADD_D
+#undef ADD_2D
+#undef ADD_3D
 #undef ADD_HIDDEN
+#undef ADD_HIDDEN_D
+#undef ADD_HIDDEN_2D
+#undef ADD_HIDDEN_3D
 #undef PROP_TOKEN
 
 public:

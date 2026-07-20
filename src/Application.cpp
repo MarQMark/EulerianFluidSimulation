@@ -12,11 +12,11 @@
 #include "views/ProfilerView.h"
 #include "views/PropertiesView.h"
 #include "views/SolverStepsView.h"
-#include "views/StatsView.h"
 
 #ifdef HAS_CUDA
 #include <cuda_runtime.h>
 #include "simulation/simulator/CudaSimulator2D.h"
+#include "simulation/simulator/CudaSimulator3D.h"
 #endif
 
 
@@ -38,10 +38,18 @@ Application::Application() {
 	int count = 0;
 	const cudaError_t err = cudaGetDeviceCount(&count);
 
-	if (err != cudaSuccess)
-		std::cout << cudaGetErrorString(err) << '\n';
-	else
-		std::cout << "Cuda Available" << '\n';
+	if (err != cudaSuccess) {
+		LOG_ERROR(cudaGetErrorString(err));
+		SET_PROPERTY_B(CUDA_ENABLED, false);
+	}
+	else if (count < 1) {
+		LOG_WARN("No Cuda capable devices found");
+		SET_PROPERTY_B(CUDA_ENABLED, false);
+	}
+	else {
+		LOG_INFO("Cuda Available");
+		SET_PROPERTY_B(CUDA_ENABLED, true);
+	}
 #endif
 }
 
@@ -127,7 +135,7 @@ void Application::rebuild() {
         	const int HEIGHT = PROPERTY_I(HEIGHT_3D);
         	const int DEPTH	 = PROPERTY_I(DEPTH_3D);
 
-        	//_simulator = new CudaSimulator3D(WIDTH, HEIGHT, DEPTH);
+        	_simulator = new CudaSimulator3D(WIDTH, HEIGHT, DEPTH);
         	_display = new SimulationDisplay3D(_window);
         	break;
         }
@@ -188,7 +196,7 @@ void Application::reset() {
 			const int HEIGHT = PROPERTY_I(HEIGHT_3D);
 			const int DEPTH	 = PROPERTY_I(DEPTH_3D);
 
-			//_simulator = new CudaSimulator3D(WIDTH, HEIGHT, DEPTH);
+			_simulator = new CudaSimulator3D(WIDTH, HEIGHT, DEPTH);
 			break;
 		}
 #endif

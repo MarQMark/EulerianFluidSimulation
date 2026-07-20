@@ -11,11 +11,13 @@ public:
     CPUSimulator2D(unsigned width, unsigned height);
     ~CPUSimulator2D() override;
 
+
     void update() override;
 
     void* getRenderData() override;
 
 private:
+    void vel_decay() const;
     void vel_extrapolate() override;
     void rho_advect() override;
     void rho_sharpen() override;

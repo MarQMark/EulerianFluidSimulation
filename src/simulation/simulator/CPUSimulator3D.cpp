@@ -44,6 +44,11 @@ CPUSimulator3D::~CPUSimulator3D() {
 void CPUSimulator3D::update() {
     // Setup grid if not initialized
 	Profiler* profiler = Profiler::Get();
+
+	profiler->start("0 Vel Decay");
+	if (!PROPERTY_B(DISABLE_VEL_DECAY))	vel_decay();
+	profiler->stop();
+
 	profiler->start("1 Vel Extrapolate");
 	if (!PROPERTY_B(DISABLE_VEL_EXTRAPOLATE)) vel_extrapolate();
 	profiler->stop();
@@ -69,6 +74,13 @@ void CPUSimulator3D::update() {
 
 void* CPUSimulator3D::getRenderData() {
     return _data;
+}
+
+void CPUSimulator3D::vel_decay() const {
+	LOOP_3D_GRID(x, y, z, 1) {
+		if (_grid->rho()(x, y, z) < 0.5)
+			_grid->vel()(x, y, z) *= PROPERTY_F(VEL_DECAY);
+	}
 }
 
 void CPUSimulator3D::vel_extrapolate() {

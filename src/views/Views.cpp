@@ -27,41 +27,6 @@ Views::~Views() {
         delete view;
 }
 
-void DrawTaskbar()
-{
-    ImGuiViewport* viewport = ImGui::GetMainViewport();
-
-    const float height = 32.0f;
-
-    ImGui::SetNextWindowPos(viewport->Pos);
-    ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, height));
-
-    ImGuiWindowFlags flags =
-        ImGuiWindowFlags_NoDecoration |
-        ImGuiWindowFlags_NoMove |
-        ImGuiWindowFlags_NoResize |
-        ImGuiWindowFlags_NoSavedSettings |
-        ImGuiWindowFlags_NoBringToFrontOnFocus;
-
-    ImGui::Begin("Taskbar", nullptr, flags);
-
-    if (ImGui::Button("Open")) {
-        // ...
-    }
-
-    ImGui::SameLine();
-
-    if (ImGui::Button("Save")) {
-        // ...
-    }
-
-    ImGui::SameLine();
-
-    ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
-
-    ImGui::End();
-}
-
 void Views::update(void* renderData) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -195,6 +160,8 @@ void Views::render_menubar() {
                     SET_PROPERTY_B(SIMULATION_REBUILD, true);
                 }
 #ifdef HAS_CUDA
+                const bool cudaEnabled = PROPERTY_B(CUDA_ENABLED);
+                if (!cudaEnabled) ImGui::BeginDisabled();
                 if (ImGui::MenuItem("Cuda 2D")) {
                     SET_PROPERTY(SIMULATION_TYPE, Properties::CUDA_2D, Properties::SimulatorType);
                     SET_PROPERTY_B(SIMULATION_REBUILD, true);
@@ -203,6 +170,7 @@ void Views::render_menubar() {
                     SET_PROPERTY(SIMULATION_TYPE, Properties::CUDA_3D, Properties::SimulatorType);
                     SET_PROPERTY_B(SIMULATION_REBUILD, true);
                 }
+                if (!cudaEnabled) ImGui::EndDisabled();
 #endif
 
                 ImGui::EndMenu();
@@ -219,6 +187,33 @@ void Views::render_menubar() {
             }
             ImGui::EndMenu();
         }
+
+        std::string simTitle;
+        switch (PROPERTY(SIMULATION_TYPE, Properties::SimulatorType)) {
+            case Properties::CPU_2D:
+                simTitle = "CPU 2D";
+                break;
+            case Properties::OPENGL_2D:
+                simTitle = "OpenGL 2D";
+                break;
+            case Properties::CPU_3D:
+                simTitle = "CPU 3D";
+                break;
+#ifdef HAS_CUDA
+            case Properties::CUDA_2D:
+                simTitle = "Cuda 2D";
+                break;
+            case Properties::CUDA_3D:
+                simTitle = "Cuda 3D";
+                break;
+#endif
+            default:
+                simTitle = "invalid";
+        }
+        const float textWidth = ImGui::CalcTextSize(simTitle.c_str()).x;
+        const float availWidth = ImGui::GetWindowWidth();
+        ImGui::SetCursorPosX(availWidth - (textWidth + 10));
+        ImGui::TextUnformatted(simTitle.c_str());
 
         ImGui::EndMenuBar();
     }

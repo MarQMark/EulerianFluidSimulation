@@ -18,7 +18,8 @@ public:
     void upload() const;
     void download();
 
-    void partialClear() const;
+    void clearA() const;
+    void clearProj() const;
 
     VecField2D& vel() override;
     ScalField2D& rho() override;
@@ -42,7 +43,10 @@ public:
         float* rho{};
         float* tmp_rho{};
         float* gamma{};
-        float* new_gamma{};
+        union { // same buffer can be used for:
+            float* new_gamma{}; // rho_advect
+            float* del_rho;   // rho_sharpen
+        };
         float* beta{};
         AdvCell* A_bwd{};
         AdvCell* A_fwd{};
@@ -62,7 +66,7 @@ public:
 private:
 
     struct CudaData _cuda_data;
-    struct CudaData* _gpu_cuda_data;
+    struct CudaData* _gpu_cuda_data{};
 
     VecField2D* _vel{};
     ScalField2D* _rho{};

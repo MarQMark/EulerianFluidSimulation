@@ -105,6 +105,8 @@ CudaGrid2D::~CudaGrid2D() {
     cudaFree(_cuda_data.forces);
     cudaFree(_cuda_data.boundary);
 
+    cudaFree(_gpu_cuda_data);
+
     delete _vel;
     delete _rho;
     delete _forces;
@@ -249,12 +251,17 @@ void CudaGrid2D::download() {
     _dirty = false;
 }
 
-void CudaGrid2D::partialClear() const {
+void CudaGrid2D::clearA() const {
     cudaMemset(_cuda_data.beta,	  	  0,_size * sizeof(float));
     cudaMemset(_cuda_data.A_bwd,      0,_size * sizeof(AdvCell) * 4);
     cudaMemset(_cuda_data.A_fwd,      0,_size * sizeof(AdvCell) * 4);
     cudaMemset(_cuda_data.counts_bwd, 0,_size * sizeof(unsigned int));
     cudaMemset(_cuda_data.counts_fwd, 0,_size * sizeof(unsigned int));
+}
+
+void CudaGrid2D::clearProj() const {
+    cudaMemset(_cuda_data.pressure,	  0,_size * sizeof(float));
+    cudaMemset(_cuda_data.divergence, 0,_size * sizeof(float));
 }
 
 #undef LOOP_2D
