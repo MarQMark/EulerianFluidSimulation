@@ -12,6 +12,7 @@
 Editor::Editor() {
     _sdfShader = std::make_unique<Shader>("assets/shaders/sdf.comp", Shader::COMPUTE);
     _baseFluidFillShader = std::make_unique<Shader>("assets/shaders/baseFluidFill.comp", Shader::COMPUTE);
+    _forceFieldCellsShader = std::make_unique<Shader>("assets/shaders/forcefield_cells.comp", Shader::COMPUTE);
 }
 
 void Editor::initSimulation(IGrid3D* grid) {
@@ -20,6 +21,10 @@ void Editor::initSimulation(IGrid3D* grid) {
 
     // --- Init Boundaries ---
     initBoundaries(grid->boundary());
+
+    // --- Clear Force Field Data ---
+    for (auto ff : _scene->getForceFields())
+        ff->resetCells();
 }
 
 void Editor::setScene(Scene* scene) {
@@ -32,15 +37,12 @@ Scene* Editor::getScene() const {
 
 void Editor::addForceField() {
     auto forceFieldNode = std::make_unique<ForceFieldNode>(std::string("Force Field"));
-
     _selectedNode = forceFieldNode.get();
     _scene->addSceneNode(std::move(forceFieldNode));
-    // simulation->rebuildForceFieldBuffer();
 }
 
 void Editor::removeForceField(const ForceFieldNode* forceFieldNode) const {
     _scene->removeSceneNode(forceFieldNode);
-    // simulation->rebuildForceFieldBuffer();
 }
 
 void Editor::addParticleSpawn(const std::string& path) {
@@ -193,6 +195,80 @@ void Editor::initBoundaries(ScalField3D& boundary) const {
     }
 }
 
+void Editor::updateForceFields(VecField3D& forces) const {
+    bool clearForces = false;
+
+    // Check if any forcefield is dirty e.g. was moved or transformed
+    for (auto& forceFieldNode : _scene->getForceFields()) {
+        if (forceFieldNode->updatePending()) {
+            // Note: As only a single force field might change it is fine to define the variables inside the loop.
+            const int width = forces.width();
+            const int height = forces.height();
+            const int depth = forces.depth();
+
+            const int gx = (width + 7) / 8;
+            const int gy = (height + 7) / 8;
+            const int gz = (depth + 7) / 8;
+
+            std::vector<Triangle> triangles = forceFieldNode->getWorldSpaceTriangles();
+
+            StorageBuffer triangleBuffer(triangles.size() * sizeof(Triangle));
+            triangleBuffer.upload(triangles.data());
+
+            StorageBuffer affectedCellsBuffer(PROPERTY_I(MAX_FORCEFIELD_CELLS) * sizeof(int));
+            StorageBuffer affectedCellCount(sizeof(int));
+
+            _forceFieldCellsShader->bind();
+            _forceFieldCellsShader->setInt("uWidth",  width);
+            _forceFieldCellsShader->setInt("uHeight", height);
+            _forceFieldCellsShader->setInt("uDepth",  depth);
+
+            _forceFieldCellsShader->setInt("uTriangleCount", triangles.size());
+
+            auto domain =  _scene->getSimulationDomain()->getWorldBoundingBox();
+            _forceFieldCellsShader->setVec3("uDomainSize", domain.size);
+            _forceFieldCellsShader->setVec3("uDomainCenter", domain.center);
+
+            triangleBuffer.bind(0);
+            affectedCellsBuffer.bind(1);
+            affectedCellCount.bind(2);
+
+            _forceFieldCellsShader->dispatch(gx, gy, gz);
+            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+
+            int cellCount;
+            affectedCellCount.download(&cellCount);
+
+            if (cellCount > PROPERTY_I(MAX_FORCEFIELD_CELLS)) {
+                LOG_WARN("ForceField exceeded maximum allowed cells!")
+                continue;
+            }
+
+            if (cellCount > 0) {
+                std::vector<int> cells(cellCount);
+                affectedCellsBuffer.download(cells.data(), cellCount * sizeof(int));
+                forceFieldNode->setCells(cells);
+            }
+
+            clearForces = true;
+            break;
+        }
+    }
+
+    if (clearForces)
+        forces.clear();
+
+    for (const auto& forceFieldNode : _scene->getForceFields()) {
+        const auto& forceField = forceFieldNode->getForceField();
+
+        if (!forceField.active)
+            continue;
+
+        for (const auto c : forceField.cells)
+            forces[c] = forceField.direction * forceField.strength;
+    }
+}
+
 void Editor::addBoundary(const std::string& path) {
     auto model = std::make_shared<Model>(path);
     auto modelNode = std::make_unique<ModelNode>(model->getName(), model);
@@ -216,7 +292,3 @@ SceneNode* Editor::getSelected() const {
 void Editor::removeSceneNode(SceneNode* node) const {
     _scene->removeSceneNode(node);
 }
-
-// BoundaryBuilder* Editor::getBoundaryBuilder() {
-//     return &boundryBuilder;
-// }

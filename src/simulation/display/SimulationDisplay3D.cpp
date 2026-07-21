@@ -6,6 +6,7 @@
 #include "core/Editor.h"
 #include "renderer/Renderer3D.h"
 #include "simulation/Properties.h"
+#include "simulation/data/IGrid.h"
 #include "simulation/scene/nodes/FluidNode.h"
 #include "util/Time.h"
 #include "views/FieldViewerView3D.h"
@@ -39,15 +40,20 @@ SimulationDisplay3D::~SimulationDisplay3D() {
     delete _renderer;
 }
 
-void SimulationDisplay3D::update(void* renderData) {
+void SimulationDisplay3D::update(void* simulationData) {
+    const auto* data = static_cast<RenderData3D *>(simulationData);
+    _editor->updateForceFields(data->grid->forces());
+    _scene->update(Time::Get()->dt / 1000.f);
+}
+
+void SimulationDisplay3D::render(void* renderData) {
     const auto* data = static_cast<RenderData3D *>(renderData);
     _scene->getFluid()->setRenderData(data);
-
-    _scene->update(Time::Get()->dt / 1000.f);
     _renderer->render(_scene);
 }
 
 void SimulationDisplay3D::reset(void* simulationData) {
     const auto* data = static_cast<RenderData3D *>(simulationData);
     _editor->initSimulation(data->grid);
+    _scene->getFluid()->setRenderData(nullptr);
 }

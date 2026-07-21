@@ -17,7 +17,8 @@ protected:
 public:
     virtual ~ISimulationDisplay() = default;
 
-    virtual void update(void* renderData) = 0;
+    virtual void update(void* simulationData) {};
+    virtual void render(void* renderData) = 0;
     virtual void reset(void* simulationData) {};
 
     virtual const std::map<std::string, Viewable*>& viewables() {

@@ -5,6 +5,7 @@
 #ifndef SPHLASH_EDITOR_H
 #define SPHLASH_EDITOR_H
 
+#include "simulation/data/VecField3D.h"
 #include "simulation/scene/nodes/ForceFieldNode.h"
 #include "simulation/scene/Scene.h"
 
@@ -29,11 +30,10 @@ public:
     void addBoundary(const std::string& path);
     void removeBoundary(const ModelNode* boundaryNode) const;
 
-    // BoundaryBuilder* getBoundaryBuilder();
-
     // --- Force Fields ---
     void addForceField();
     void removeForceField(const ForceFieldNode* forceFieldNode) const;
+    void updateForceFields(VecField3D& forces) const;
 
     // --- Particle Spawns ---
     void addParticleSpawn(const std::string& path);
@@ -49,6 +49,7 @@ private:
 
     std::unique_ptr<Shader> _sdfShader;
     std::unique_ptr<Shader> _baseFluidFillShader;
+    std::unique_ptr<Shader> _forceFieldCellsShader;
 };
 
 #endif //SPHLASH_EDITOR_H

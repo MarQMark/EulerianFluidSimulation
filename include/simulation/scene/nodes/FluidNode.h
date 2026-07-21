@@ -38,7 +38,7 @@ public:
 private:
     void updateMaterials() const;
 
-    const SimulationDisplay3D::RenderData3D* _renderData;
+    const SimulationDisplay3D::RenderData3D* _renderData = {};
 
     std::shared_ptr<Model> _marchingCubesModel;
     std::shared_ptr<Model> _simpleCubesModel;

@@ -24,7 +24,7 @@ SimulationDisplay2D::~SimulationDisplay2D() {
     delete _renderer;
 }
 
-void SimulationDisplay2D::update(void* renderData) {
+void SimulationDisplay2D::render(void* renderData) {
     const auto* data = static_cast<RenderData2D*>(renderData);
     if (renderData) {
         _renderer->render(data->grid);

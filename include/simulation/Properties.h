@@ -68,6 +68,7 @@ public:
     PROP_TOKEN(GRAVITY_ENABLED)
     PROP_TOKEN(PUSH_FORCE)
     PROP_TOKEN(PUSH_ENABLED)
+    PROP_TOKEN(MAX_FORCEFIELD_CELLS)
 
     PROP_TOKEN(AVLB_SOLVERS)
     PROP_TOKEN(SOLVER_TYPE)
@@ -127,6 +128,7 @@ private:
         ADD(simulation_forces, GRAVITY_ENABLED, "Gravity Enabled", "", true)
         ADD(simulation_forces, PUSH_FORCE, "Push Force", "", 0.1f)
         ADD(simulation_forces, PUSH_ENABLED, "Push Enabled", "", false)
+        ADD_3D(simulation_forces, MAX_FORCEFIELD_CELLS, "Max ForceField cells", "Maximum cells a ForceField might occupy", 1000)
 
         auto& simulation_solver = add_sub_category(simulation, "Solver");
         ADD(simulation_solver, SOLVER_TYPE, "Solver", "Which algorithm is used to solve system of equations", SolverType::JACOBI)
