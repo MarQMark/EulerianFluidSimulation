@@ -10,7 +10,7 @@
 
 class CGSolverCPU2D final : public ISolverCPU2D {
 public:
-    CGSolverCPU2D(int width, int height);
+    CGSolverCPU2D(unsigned int width, unsigned int height);
     ~CGSolverCPU2D() override;
     float solve(IGrid2D* grid) override;
 
@@ -58,9 +58,9 @@ private:
 
 class CGSolverCPU3D final : public ISolverCPU3D {
 public:
-    CGSolverCPU3D(int width, int height, int depth);
+    CGSolverCPU3D(unsigned int width, unsigned int height, unsigned int depth);
     ~CGSolverCPU3D() override;
-    float solve(Grid3D* grid) override;
+    float solve(IGrid3D* grid) override;
 
 private:
     void impl_mat_mul(ScalField3D& result, const ScalField3D& xField, const ScalField3D& rho, const ScalField3D& boundary) const;

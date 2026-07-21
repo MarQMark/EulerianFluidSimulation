@@ -14,7 +14,8 @@ static constexpr int SCALAR_BETA      = 3;
 static constexpr int SCALAR_GAMMA_OLD = 4;
 static constexpr int SCALAR_COUNT     = 5;
 
-CGSolverCPU2D::CGSolverCPU2D(const int width, const int height) : ISolverCPU2D(width, height) {
+CGSolverCPU2D::CGSolverCPU2D(const unsigned int width, const unsigned int height)
+    : ISolverCPU2D(width, height) {
     _t   = new ScalField2D(width, height);
     _tmp = new ScalField2D(width, height);
     _r   = new ScalField2D(width, height);
@@ -417,7 +418,7 @@ float CGSolverOpenGL2D::solve(IGrid2D *_grid) {
     return gamma_last;
 }
 
-CGSolverCPU3D::CGSolverCPU3D(const int width, const int height, const int depth)
+CGSolverCPU3D::CGSolverCPU3D(const unsigned int width, const unsigned int height, const unsigned int depth)
         : ISolverCPU3D(width, height, depth){
     _t   = new ScalField3D(width, height, depth);
     _tmp = new ScalField3D(width, height, depth);
@@ -432,7 +433,7 @@ CGSolverCPU3D::~CGSolverCPU3D() {
     delete _d;
 }
 
-float CGSolverCPU3D::solve(Grid3D *grid) {
+float CGSolverCPU3D::solve(IGrid3D *grid) {
     const auto& divergence = grid->divergence();
     const auto& rho        = grid->rho();
     const auto& boundary   = grid->boundary();

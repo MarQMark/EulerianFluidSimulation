@@ -16,7 +16,7 @@ ScalField3D::ScalField3D(const ScalField3D &field, const bool copy ) : _width(fi
 }
 
 float ScalField3D::interpolate(glm::vec3 pos) const {
-    pos += glm::vec3(1.f);
+    //pos += glm::vec3(1.f);
     const int x = (int)pos.x;
     const int y = (int)pos.y;
     const int z = (int)pos.z;

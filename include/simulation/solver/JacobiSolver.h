@@ -7,7 +7,7 @@
 
 class JacobiSolverCPU2D final : public ISolverCPU2D {
 public:
-    JacobiSolverCPU2D(int width, int height);
+    JacobiSolverCPU2D(unsigned int width, unsigned int height);
     ~JacobiSolverCPU2D() override;
 
     float solve(IGrid2D *grid) override;
@@ -20,7 +20,7 @@ private:
 
 class JacobiSolverOpenGL2D final : public ISolverOpenGL2D {
 public:
-    JacobiSolverOpenGL2D(int width, int height);
+    JacobiSolverOpenGL2D(unsigned int width, unsigned int height);
     ~JacobiSolverOpenGL2D() override;
 
     float solve(IGrid2D *grid) override;

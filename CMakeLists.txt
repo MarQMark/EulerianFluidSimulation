@@ -77,6 +77,7 @@ if(CUDAToolkit_FOUND)
     set_target_properties(EulerianFluidSimulation PROPERTIES
             CUDA_STANDARD 17
             CUDA_STANDARD_REQUIRED ON
+            CUDA_SEPARABLE_COMPILATION ON
     )
 endif()
 

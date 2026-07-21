@@ -2,6 +2,7 @@
 #define EULERIANFLUIDSIMULATION_CPUSIMULATOR3D_H
 
 #include "ISimulator3D.h"
+#include "simulation/data/Grid3D.h"
 #include "simulation/display/SimulationDisplay3D.h"
 #include "simulation/solver/ISolver.h"
 

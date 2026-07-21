@@ -1,10 +1,9 @@
 #ifndef EULERIANFLUIDSIMULATION_CUDASIMULATOR3D_H
 #define EULERIANFLUIDSIMULATION_CUDASIMULATOR3D_H
-
 #ifdef HAS_CUDA
 
 #include "ISimulator3D.h"
-//#include "simulation/data/CudaGrid3D.h"
+#include "simulation/data/CudaGrid3D.h"
 #include "simulation/display/SimulationDisplay3D.h"
 #include "simulation/solver/CudaSolver.h"
 
@@ -21,7 +20,7 @@ private:
 
     void update() override;
 
-    void vel_decay();
+    void vel_decay() const;
     void vel_extrapolate() override;
     void rho_advect() override;
     void rho_sharpen() override;
@@ -31,8 +30,8 @@ private:
 
     void project() override;
 
-    //CudaGrid3D* _grid{};
-    ISolverCuda2D* _solver{};
+    CudaGrid3D* _grid{};
+    ISolverCuda3D* _solver{};
     SimulationDisplay3D::RenderData3D* _data{};
 };
 

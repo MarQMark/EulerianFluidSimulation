@@ -4,7 +4,8 @@
 #include "simulation/Properties.h"
 #include "simulation/data/OpenGLGrid2D.h"
 
-JacobiSolverCPU2D::JacobiSolverCPU2D(const int width, const int height) : ISolverCPU2D(width, height) {
+JacobiSolverCPU2D::JacobiSolverCPU2D(const unsigned int width, const unsigned int height)
+    : ISolverCPU2D(width, height) {
     _tmp = new ScalField2D(width, height);
 }
 
@@ -98,7 +99,8 @@ void JacobiSolverCPU2D::impl_mat_mul(ScalField2D &result, const ScalField2D &x, 
     }
 }
 
-JacobiSolverOpenGL2D::JacobiSolverOpenGL2D(const int width, const int height) : ISolverOpenGL2D(width, height){
+JacobiSolverOpenGL2D::JacobiSolverOpenGL2D(const unsigned int width, const unsigned int height)
+    : ISolverOpenGL2D(width, height){
     _shader_jp  = new Shader({{"assets/shaders/jacobi_pass.comp", Shader::COMPUTE }});
     _gpu_tmp = new StorageBuffer(width * height * sizeof(float));
 }
