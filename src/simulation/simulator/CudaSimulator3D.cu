@@ -218,11 +218,11 @@ void CudaSimulator3D::rho_advect() {
 		dim3 blocksY(
 			( (_grid->width() - 2)   + blockSize.x - 1) / blockSize.x,
 			( (y_working_height / 2) + blockSize.y - 1) / blockSize.y,
-			( (_grid->depth()  - 2) + blockSize.z - 1) / blockSize.z
+			( (_grid->depth()  - 2)  + blockSize.z - 1) / blockSize.z
 		);
 		const unsigned int y_working_depth = _grid->depth() - 2;
 		dim3 blocksZ(
-			( (_grid->width() - 2)   + blockSize.x - 1) / blockSize.x,
+			( (_grid->width() - 2)  + blockSize.x - 1) / blockSize.x,
 			( (_grid->height() - 2) + blockSize.y - 1) / blockSize.y,
 			( (y_working_depth / 2) + blockSize.z - 1) / blockSize.z
 		);

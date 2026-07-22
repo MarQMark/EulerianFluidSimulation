@@ -72,6 +72,9 @@ if(CUDAToolkit_FOUND)
     enable_language(CUDA)
 
     target_compile_definitions(EulerianFluidSimulation PRIVATE HAS_CUDA)
+    target_compile_options(EulerianFluidSimulation PRIVATE
+            $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
+    )
     target_link_libraries(EulerianFluidSimulation PRIVATE CUDA::cudart)
 
     set_target_properties(EulerianFluidSimulation PROPERTIES
