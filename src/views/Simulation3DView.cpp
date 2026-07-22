@@ -39,6 +39,9 @@ void Simulation3DView::render(void* renderData) {
         renderer->setSize(size.x, size.y);
         editor->updateRenderingSize(size.x, size.y);
         editor->getScene()->getCamera()->setAspectRatio(size.x / size.y);
+
+        ImGui::End();
+        return;
     }
 
     // --- Gizmo ---
