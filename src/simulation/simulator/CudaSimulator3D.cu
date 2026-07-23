@@ -241,259 +241,6 @@ void CudaSimulator3D::rho_advect() {
 			//cudaDeviceSynchronize();
 		}
 	}
-
-	// _grid->download();
-	// auto& rho   = _grid->rho();
- //    auto& gamma = _grid->gamma();
-	// auto& beta = _grid->beta();
-	// auto& boundary = _grid->boundary();
- //
-	// auto idx = [&](const int x, const int y, const int z) { return z * _width * _height + y * _width + x; };
- //
- //    //################## Step 1 ##################
-	// // Advect gamma using backward semi-lagrangian
-	// auto advectedGamma = ScalField3D(gamma, false);
-	// LOOP_3D_GRID(x, y, z, 1){
-	// 	if (boundary(x, y, z) == BOUNDARY)
-	// 		continue;
- //
-	// 	auto prevPos = _grid->traceParticle(glm::vec3(x, y, z), -PROPERTY_F(DT), 4);
-	// 	advectedGamma(x, y, z) = gamma.interpolate(prevPos);
-	// }
-	// gamma = advectedGamma;
- //
-	// //################## Step 2 ##################
-	// // Compute A
-	// auto& A = _grid->A();
-	// A.clear();
-	// LOOP_3D_GRID(x, y, z, 1) {
-	// 	auto prevPos = _grid->traceParticle(glm::vec3(x, y, z), -PROPERTY_F(DT), 4);
- //
-	// 	int p0x = floor(prevPos.x);
-	// 	int p0y = floor(prevPos.y);
-	// 	int p0z = floor(prevPos.z);
- //
-	// 	auto dx0 = 1 - (prevPos.x - p0x);
-	// 	auto dy0 = 1 - (prevPos.y - p0y);
-	// 	auto dz0 = 1 - (prevPos.z - p0z);
-	// 	auto dx1 = 1 - (p0x + 1 - prevPos.x);
-	// 	auto dy1 = 1 - (p0y + 1 - prevPos.y);
-	// 	auto dz1 = 1 - (p0z + 1 - prevPos.z);
- //
-	// 	float m[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-	// 	if (boundary(p0x + 0, p0y + 0, p0z + 0) != BOUNDARY) m[0] = dx0 * dy0 * dz0;
-	// 	if (boundary(p0x + 1, p0y + 0, p0z + 0) != BOUNDARY) m[1] = dx1 * dy0 * dz0;
-	// 	if (boundary(p0x + 0, p0y + 1, p0z + 0) != BOUNDARY) m[2] = dx0 * dy1 * dz0;
-	// 	if (boundary(p0x + 1, p0y + 1, p0z + 0) != BOUNDARY) m[3] = dx1 * dy1 * dz0;
-	// 	if (boundary(p0x + 0, p0y + 0, p0z + 1) != BOUNDARY) m[4] = dx0 * dy0 * dz1;
-	// 	if (boundary(p0x + 1, p0y + 0, p0z + 1) != BOUNDARY) m[5] = dx1 * dy0 * dz1;
-	// 	if (boundary(p0x + 0, p0y + 1, p0z + 1) != BOUNDARY) m[6] = dx0 * dy1 * dz1;
-	// 	if (boundary(p0x + 1, p0y + 1, p0z + 1) != BOUNDARY) m[7] = dx1 * dy1 * dz1;
-	// 	float sum = 0;
-	// 	for (int i = 0; i < 8; i++) sum += m[i];
-	// 	if (sum == 0)
-	// 		continue;
- //
-	// 	_grid->addA(idx(x, y, z), idx(p0x + 0, p0y + 0, p0z + 0), m[0] / sum);
-	// 	_grid->addA(idx(x, y, z), idx(p0x + 1, p0y + 0, p0z + 0), m[1] / sum);
-	// 	_grid->addA(idx(x, y, z), idx(p0x + 0, p0y + 1, p0z + 0), m[2] / sum);
-	// 	_grid->addA(idx(x, y, z), idx(p0x + 1, p0y + 1, p0z + 0), m[3] / sum);
-	// 	_grid->addA(idx(x, y, z), idx(p0x + 0, p0y + 0, p0z + 1), m[4] / sum);
-	// 	_grid->addA(idx(x, y, z), idx(p0x + 1, p0y + 0, p0z + 1), m[5] / sum);
-	// 	_grid->addA(idx(x, y, z), idx(p0x + 0, p0y + 1, p0z + 1), m[6] / sum);
-	// 	_grid->addA(idx(x, y, z), idx(p0x + 1, p0y + 1, p0z + 1), m[7] / sum);
-	// }
- //
-	// //################## Step 3 ##################
-	// // Scale A by gamma
-	// for (auto &[key, cell] : A)
-	// if (gamma[cell.i] > 1.e-5f)
-	// 	cell.val /= gamma[cell.i];
- //
-	// //################## Step 4 ##################
-	// // Compute beta
-	// beta.clear();
-	// for (auto &[key, cell] : A)
-	// 	beta[cell.j] += cell.val;
- //
-	// //################## Step 5 ##################
-	// // Forward trace the velocity field to add the weights to A for all cells j where beta j < 1
-	// LOOP_3D_GRID(x, y, z, 1) {
-	// 	const int j = idx(x, y, z);
-	// 	if (beta[j] >= 1) continue;
- //
-	// 	auto nextPos = _grid->traceParticle(glm::vec3(x, y, z), +PROPERTY_F(DT), 4);
- //
-	// 	int p0x = floor(nextPos.x);
-	// 	int p0y = floor(nextPos.y);
-	// 	int p0z = floor(nextPos.z);
- //
-	// 	auto dx0 = 1 - (nextPos.x - p0x);
-	// 	auto dy0 = 1 - (nextPos.y - p0y);
-	// 	auto dz0 = 1 - (nextPos.z - p0z);
-	// 	auto dx1 = 1 - (p0x + 1 - nextPos.x);
-	// 	auto dy1 = 1 - (p0y + 1 - nextPos.y);
-	// 	auto dz1 = 1 - (p0z + 1 - nextPos.z);
- //
-	// 	float m[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-	// 	if (boundary(p0x + 0, p0y + 0, p0z + 0) != BOUNDARY) m[0] = dx0 * dy0 * dz0;
-	// 	if (boundary(p0x + 1, p0y + 0, p0z + 0) != BOUNDARY) m[1] = dx1 * dy0 * dz0;
-	// 	if (boundary(p0x + 0, p0y + 1, p0z + 0) != BOUNDARY) m[2] = dx0 * dy1 * dz0;
-	// 	if (boundary(p0x + 1, p0y + 1, p0z + 0) != BOUNDARY) m[3] = dx1 * dy1 * dz0;
-	// 	if (boundary(p0x + 0, p0y + 0, p0z + 1) != BOUNDARY) m[4] = dx0 * dy0 * dz1;
-	// 	if (boundary(p0x + 1, p0y + 0, p0z + 1) != BOUNDARY) m[5] = dx1 * dy0 * dz1;
-	// 	if (boundary(p0x + 0, p0y + 1, p0z + 1) != BOUNDARY) m[6] = dx0 * dy1 * dz1;
-	// 	if (boundary(p0x + 1, p0y + 1, p0z + 1) != BOUNDARY) m[7] = dx1 * dy1 * dz1;
-	// 	float sum = 0;
-	// 	for (int i = 0; i < 8; i++) sum += m[i];
-	// 	if (sum == 0)
-	// 		continue;
- //
-	// 	_grid->addA(idx(p0x + 0, p0y + 0, p0z + 0), j, (1-beta[j]) * (m[0] / sum));
-	// 	_grid->addA(idx(p0x + 1, p0y + 0, p0z + 0), j, (1-beta[j]) * (m[1] / sum));
-	// 	_grid->addA(idx(p0x + 0, p0y + 1, p0z + 0), j, (1-beta[j]) * (m[2] / sum));
-	// 	_grid->addA(idx(p0x + 1, p0y + 1, p0z + 0), j, (1-beta[j]) * (m[3] / sum));
-	// 	_grid->addA(idx(p0x + 0, p0y + 0, p0z + 1), j, (1-beta[j]) * (m[4] / sum));
-	// 	_grid->addA(idx(p0x + 1, p0y + 0, p0z + 1), j, (1-beta[j]) * (m[5] / sum));
-	// 	_grid->addA(idx(p0x + 0, p0y + 1, p0z + 1), j, (1-beta[j]) * (m[6] / sum));
-	// 	_grid->addA(idx(p0x + 1, p0y + 1, p0z + 1), j, (1-beta[j]) * (m[7] / sum));
-	// }
- //
-	// //################## Step 6 ##################
-	// // Recompute gamma
-	// gamma.clear();
-	// for (auto &[key, cell] : A)
-	// 	gamma[cell.i] += cell.val;
- //
-	// //################## Step 7 ##################
-	// // Scale A by gamma
-	// for (auto &[key, cell] : A)
-	// if (gamma[cell.i] > 1.e-5f)
-	// 	cell.val /= gamma[cell.i];
- //
-	// //################## Step 8 ##################
-	// // Recompute beta from A
-	// beta.clear();
-	// for (auto &[key, cell] : A)
-	// 	beta[cell.j] += cell.val;
- //
-	// //################## Step 9 ##################
-	// // Clamp beta to 1
-	// for (auto &[key, cell] : A)
-	// if (beta[cell.j] > 1.e-5f)
-	// 	cell.val /= beta[cell.j];
- //
-	// /*beta.clear();
-	// for (unsigned int j = 0; j < _grid->size(); j++)
-	// for (unsigned int i = 0; i < _grid->size(); i++)
-	// 	beta[j] += A(i, j);*/
- //
-	// //################## Step 10 ##################
-	// // Recompute gamma
-	// gamma.clear();
-	// for (auto &[key, cell] : A)
-	// 	gamma[cell.i] += cell.val;
- //
-	// //################## Step 11 ##################
-	// // Evaluate p_n+1 = A * p
-	// auto advectRho = ScalField3D(rho, false);
-	// advectRho.clear();
-	// for (auto &[key, cell] : A)
-	// 	advectRho[cell.i] += cell.val * rho[cell.j];
-	// LOOP_3D_GRID(x, y, z, 1)
-	// 	rho(x, y, z) = advectRho(x, y, z);
- //
-	// //################## Step 12 ##################
-	// // Diffusion of rho and gamma
-	// for (int it = 0; it < 3; it++) {
-	// 	// X-dimension
-	// 	for (int z = 1; z < _grid->depth()  - 1; z++)
-	// 	for (int y = 1; y < _grid->height() - 1; y++)
-	// 	for (int x = 2; x < _grid->width()  - 1; x++) {
-	// 		float g_j = gamma(x-1, y, z);
-	// 		float g_i = gamma(x,   y, z);
- //
-	// 		if (boundary(x, y, z) == BOUNDARY || boundary(x-1, y, z) == BOUNDARY)
-	// 			continue;
- //
-	// 		if (g_j < 1e-5f || g_i < 1e-5f) continue;
-	// 		if (g_j == g_i) continue;
- //
-	// 		float avg = (g_j + g_i) / 2.f;
- //
-	// 		if (g_j > g_i) {
-	// 			float dif = rho(x-1, y, z) * (g_j - g_i) / (2.f * g_j);
-	// 			rho(x-1, y, z) -= dif;
-	// 			rho(x,   y, z) += dif;
-	// 		} else {
-	// 			float dif = rho(x, y, z) * (g_i - g_j) / (2.f * g_i);
-	// 			rho(x,   y, z) -= dif;
-	// 			rho(x-1, y, z) += dif;
-	// 		}
- //
-	// 		gamma(x-1, y, z) = avg;
-	// 		gamma(x  , y, z) = avg;
-	// 	}
- //
-	// 	// Y-dimension
-	// 	for (int z = 1; z < _grid->depth()  - 1; z++)
-	// 	for (int x = 1; x < _grid->width()  - 1; x++)
-	// 	for (int y = 2; y < _grid->height() - 1; y++) {
-	// 		float g_j = gamma(x, y-1, z);
-	// 		float g_i = gamma(x, y  , z);
- //
-	// 		if (boundary(x, y, z) == BOUNDARY || boundary(x, y-1, z) == BOUNDARY)
-	// 			continue;
- //
-	// 		if (g_j < 1e-5f || g_i < 1e-5f) continue;
-	// 		if (g_j == g_i) continue;
- //
-	// 		float avg = (g_j + g_i) / 2.f;
- //
-	// 		if (g_j > g_i) {
-	// 			float dif = rho(x, y-1, z) * (g_j - g_i) / (2.f * g_j);
-	// 			rho(x, y-1, z) -= dif;
-	// 			rho(x, y  , z) += dif;
-	// 		} else {
-	// 			float dif = rho(x, y, z) * (g_i - g_j) / (2.f * g_i);
-	// 			rho(x, y  , z) -= dif;
-	// 			rho(x, y-1, z) += dif;
-	// 		}
- //
-	// 		gamma(x, y-1, z) = avg;
-	// 		gamma(x, y  , z) = avg;
-	// 	}
- //
-	// 	// Z-dimension
-	// 	for (int y = 1; y < _grid->height() - 1; y++)
-	// 	for (int x = 1; x < _grid->width()  - 1; x++)
-	// 	for (int z = 2; z < _grid->depth()  - 1; z++) {
-	// 		float g_j = gamma(x, y, z-1);
-	// 		float g_i = gamma(x, y, z);
- //
-	// 		if (boundary(x, y, z) == BOUNDARY || boundary(x, y, z-1) == BOUNDARY)
-	// 			continue;
- //
-	// 		if (g_j < 1e-5f || g_i < 1e-5f) continue;
-	// 		if (g_j == g_i) continue;
- //
-	// 		float avg = (g_j + g_i) / 2.f;
- //
-	// 		if (g_j > g_i) {
-	// 			float dif = rho(x, y, z-1) * (g_j - g_i) / (2.f * g_j);
-	// 			rho(x, y, z-1) -= dif;
-	// 			rho(x, y, z  ) += dif;
-	// 		} else {
-	// 			float dif = rho(x, y, z) * (g_i - g_j) / (2.f * g_i);
-	// 			rho(x, y, z  ) -= dif;
-	// 			rho(x, y, z-1) += dif;
-	// 		}
- //
-	// 		gamma(x, y, z-1) = avg;
-	// 		gamma(x, y, z  ) = avg;
-	// 	}
-	// }
-	// _grid->upload();
 }
 
 void CudaSimulator3D::rho_sharpen() {
@@ -518,7 +265,7 @@ void CudaSimulator3D::add_force() {
 	cuda_add_force<<<gridSize, blockSize>>>(
 		_grid->cudaData(),
 		PROPERTY_F(DT),
-		PROPERTY_F(GRAVITY_FORCE));
+		PROPERTY_B(GRAVITY_ENABLED) ? PROPERTY_F(GRAVITY_FORCE) : 0.f);
 }
 
 void CudaSimulator3D::diffuse() {}
@@ -536,34 +283,6 @@ void CudaSimulator3D::vel_advect() {
 		4);
 
 	cuda_vel_adv_pass_2<<<gridSize, blockSize>>>(_grid->cudaData());
-
-	/*_grid->download();
-	auto& velField = _grid->vel();
-	auto newVel = VecField3D(velField, false);
-	auto& boundary = _grid->boundary();
-
-	LOOP_3D_GRID(x, y, z, 1){
-		glm::vec3 prevPos = _grid->traceParticle(glm::vec3(x, y, z), -PROPERTY_F(DT), 4);
-		newVel(x, y, z) = velField.interpolate(prevPos - glm::vec3(0.5f));
-	}
-
-	LOOP_3D_GRID(x, y, z, 1){
-		if (x == 1 || boundary(x, y, z) == BOUNDARY || boundary(x-1, y, z) == BOUNDARY)
-			velField(x, y, z).x = newVel(x, y, z).x;
-		else
-			velField(x, y, z).x = 0.5f * (newVel(x, y, z).x + newVel(x - 1, y, z).x);
-
-		if (y == 1 || boundary(x, y, z) == BOUNDARY || boundary(x, y-1, z) == BOUNDARY)
-			velField(x, y, z).y = newVel(x, y, z).y;
-		else
-			velField(x, y, z).y = 0.5f * (newVel(x, y, z).y + newVel(x, y - 1, z).y);
-
-		if (z == 1 || boundary(x, y, z) == BOUNDARY || boundary(x, y, z-1) == BOUNDARY)
-			velField(x, y, z).z = newVel(x, y, z).z;
-		else
-			velField(x, y, z).z = 0.5f * (newVel(x, y, z).z + newVel(x, y, z - 1).z);
-	}
-	_grid->upload();*/
 }
 
 void CudaSimulator3D::project() {
@@ -591,10 +310,6 @@ void CudaSimulator3D::project() {
 
 	profiler->start("Solve");
 	const float err = _solver->solve(_grid);
-	//auto solver = CGSolverCPU3D(_width, _height, _depth);
-	//_grid->download();
-	//const float err = solver.solve(_grid);
-	//_grid->upload();
 	profiler->stop();
 	if (err > PROPERTY_F(SOLVER_THRESHOLD)) {
 		fprintf(stderr, "solution for projection did not converge! error: %f\n", err);
@@ -1507,17 +1222,6 @@ __global__ void cuda_vel_adv_pass_1(const CudaGrid3D::CudaData *grid, const floa
 	const unsigned int i = cuda_idx_3D(x, y, z, grid->width, grid->height);
 	const glm::vec3 prevPos = cuda_trace_particle(glm::vec3(x, y, z), grid, dt, subSteps);
 	grid->tmp_vel[i] = cuda_sample_vel(prevPos - 0.5f, grid->vel, grid->width, grid->height);
-
-	// glm::vec3 curPos = glm::vec3(x, y, z) - glm::vec3(.5f);
-	// glm::vec3 velVec = cuda_sample_vel(curPos, grid->vel, grid->width, grid->height);
-
-	// glm::vec3 prevPos = curPos - (velVec * dt);
-
-	// prevPos.x = cuda_clamp(prevPos.x, 1.f, grid->width - 2.f);
-	// prevPos.y = cuda_clamp(prevPos.y, 1.f, grid->height - 2.f);
-	// prevPos.z = cuda_clamp(prevPos.z, 1.f, grid->depth - 2.f);
-
-	// grid->tmp_vel[i] = cuda_sample_vel(prevPos, grid->vel, grid->width, grid->height);
 }
 __global__ void cuda_vel_adv_pass_2(const CudaGrid3D::CudaData *grid) {
 	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
@@ -1608,12 +1312,21 @@ __global__ void cuda_proj_enf_bound(const CudaGrid3D::CudaData *grid) {
 		return;
 
 	const unsigned int i = cuda_idx_3D(x, y, z, grid->width, grid->height);
-	if (grid->boundary[i] == 1.f || grid->boundary[cuda_idx_3D(x - 1, y, z, w, h)] == 1.f)
+	const unsigned int ix = cuda_idx_3D(x - 1, y, z, w, h);
+	if (grid->boundary[i] == 1.f && grid->vel[i].x > 0)
+		grid->vel[i].x = 0.f;
+	if (grid->boundary[ix] == 1.f && grid->vel[i].x < 0)
 		grid->vel[i].x = 0.f;
 
-	if (grid->boundary[i] == 1.f || grid->boundary[cuda_idx_3D(x, y - 1, z, w, h)] == 1.f)
+	const unsigned int iy = cuda_idx_3D(x, y - 1, z, w, h);
+	if (grid->boundary[i] == 1.f && grid->vel[i].y > 0)
+		grid->vel[i].y = 0.f;
+	if (grid->boundary[iy] == 1.f && grid->vel[i].y < 0)
 		grid->vel[i].y = 0.f;
 
-	if (grid->boundary[i] == 1.f || grid->boundary[cuda_idx_3D(x, y, z - 1, w, h)] == 1.f)
+	const unsigned int iz = cuda_idx_3D(x, y, z - 1, w, h);
+	if (grid->boundary[i] == 1.f && grid->vel[i].z > 0)
+		grid->vel[i].z = 0.f;
+	if (grid->boundary[iz] == 1.f && grid->vel[i].z < 0)
 		grid->vel[i].z = 0.f;
 }

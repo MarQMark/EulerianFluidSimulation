@@ -96,37 +96,52 @@ void CPUSimulator2D::vel_decay() const {
 }
 
 void CPUSimulator2D::vel_extrapolate() {
-	auto& vel   = _grid->vel();
-	auto& rho   = _grid->rho();
+	auto& velField = _grid->vel();
+	auto& newVel   = _grid->tmpVec();
 	auto& boundary = _grid->boundary();
-	for (int i = 0; i < 10; i++) {
-		auto tmpVel = VecField2D(vel, true);
-	    LOOP_2D_GRID(x, y, 1) {
-	    	if (rho(x, y) >= 0.5) {
-	    		tmpVel(x, y) = vel(x, y);
-	    		continue;
-	    	}
-	    	if (boundary(x, y) == BOUNDARY) continue;
+	auto& rho      = _grid->rho();
 
-	    	int nCount = 0;
-	    	glm::vec2 sum = glm::vec2(0);
-	    	auto sampleNeighbor = [&](const int nx, const int ny) {
-	    		if (boundary(nx, ny) == BOUNDARY) return;
-	    		nCount++;
-	    		sum += vel(nx, ny);
-	    	};
+	auto validA = ScalField2D(_grid->width(), _grid->height());
+	auto validB = ScalField2D(_grid->width(), _grid->height());
 
-	    	sampleNeighbor(x + 1, y);
-	    	sampleNeighbor(x - 1, y);
-	    	sampleNeighbor(x, y + 1);
-	    	sampleNeighbor(x, y - 1);
+	LOOP_2D_GRID(x, y, 1) {
+		validA(x, y) = (rho(x, y) >= 0.5f && boundary(x, y) != BOUNDARY) ? 1.f : 0.f;
+	}
 
-	    	tmpVel(x, y) = (nCount > 0) ? sum / (float)nCount : vel(x, y);
-	    }
+	auto extrapolate_pass = [&](auto& srcVel, auto& srcValid, auto& dstVel, auto& dstValid) {
 		LOOP_2D_GRID(x, y, 1) {
-	    	if (rho(x, y) < 0.5)
-				vel(x, y) = tmpVel(x, y);
-	    }
+			if (boundary(x, y) == BOUNDARY) {
+				dstVel(x, y) = srcVel(x, y);
+				dstValid(x, y) = 0.f;
+				continue;
+			}
+			if (srcValid(x, y) > 0.5f) {
+				dstVel(x, y) = srcVel(x, y);
+				dstValid(x, y) = 1.f;
+				continue;
+			}
+
+			glm::vec2 sum(0.f);
+			float n = 0;
+			auto sample = [&](const int nx, const int ny) {
+				if (srcValid(nx, ny) > 0.5f) {
+					sum += srcVel(nx, ny);
+					n++;
+				}
+			};
+			sample(x - 1, y);
+			sample(x + 1, y);
+			sample(x,     y - 1);
+			sample(x,     y + 1);
+
+			dstVel(x, y)   = (n > 0) ? sum / n : srcVel(x, y);
+			dstValid(x, y) = (n > 0) ? 1.f : 0.f;
+		}
+	};
+
+	for (int i = 0; i < 3; i++) {
+		extrapolate_pass(velField, validA, newVel,   validB);
+		extrapolate_pass(newVel,   validB, velField, validA);
 	}
 }
 
@@ -330,7 +345,6 @@ void CPUSimulator2D::rho_advect() {
 
 void CPUSimulator2D::rho_sharpen() {
 	auto& rho   = _grid->rho();
-	auto& boundary = _grid->boundary();
 
 	const float delT = PROPERTY_F(DT) * 3;
 
@@ -420,8 +434,8 @@ void CPUSimulator2D::add_force() {
 	auto& boundary = _grid->boundary();
 
 	LOOP_2D_GRID(x, y, 1) {
-		if (rho(x, y) < PROPERTY_F(LIQUID_THRESHOLD))
-			continue;
+		//if (rho(x, y) < PROPERTY_F(LIQUID_THRESHOLD))
+		//	continue;
 
 		if (boundary(x, y) == BOUNDARY)
 			continue;
@@ -430,10 +444,6 @@ void CPUSimulator2D::add_force() {
 
 		if (PROPERTY_B(GRAVITY_ENABLED))
 			vel(x, y).y -= PROPERTY_F(GRAVITY_FORCE) * PROPERTY_F(DT);
-
-		if (PROPERTY_B(PUSH_ENABLED))
-			if (x >= 30 && x < 42 && y > 50 && y < 60)
-				vel(x, y) += glm::vec2(0, -PROPERTY_F(PUSH_FORCE));
 	}
 }
 
@@ -473,19 +483,6 @@ void CPUSimulator2D::project() {
 	pressure.clear();
 	divergence.clear();
 
-	/*LOOP_2D_GRID(x, y, 1) {
-		if (y == 1) vel(x, y).y = 0.f;
-		if (x == 1) vel(x, y).x = 0.f;
-
-		if (boundary(x, y) == 1)
-			vel(x, y) = glm::vec2(0.f);
-		if (boundary(x-1, y) == 1)
-			vel(x, y).x = 0.f;
-		if (boundary(x, y-1) == 1)
-			vel(x, y).y = 0.f;
-	}*/
-
-
 	enforce_wall_boundaries();
 
 	const float liquidThreshold = PROPERTY_F(LIQUID_THRESHOLD);
@@ -522,35 +519,32 @@ void CPUSimulator2D::project() {
     	if (boundary(x, y) == 1)
     		continue;
 
-    	if (x == 1) {
-    		if (y == 1) {
-                 //field(x, y) = glm::vec2(0, 0);
-    		}
-    		else {
-    			const float dyPressure = pressure(x, y) - pressure(x, y - 1);
-    			vel(x, y) = vel(x, y) - glm::vec2(0, dyPressure);
-    		}
-    	}
-    	else {
-    		if (y == 1) {
-    			const float dxPressure = pressure(x, y) - pressure(x - 1, y);
-    			vel(x, y) = vel(x, y) - glm::vec2(dxPressure, 0);
-    		}
-    		else {
-    			const float dxPressure = pressure(x, y) - pressure(x - 1, y);
-    			const float dyPressure = pressure(x, y) - pressure(x, y - 1);
-    			vel(x, y) = vel(x, y) - glm::vec2(dxPressure, dyPressure);
-    		}
-    	}
+    	auto dPressure = glm::vec2(0);
+    	if (x > 1)
+    		dPressure.x = pressure(x, y) - pressure(x - 1, y);
+    	if (y > 1)
+    		dPressure.y = pressure(x, y) - pressure(x, y - 1);
+
+    	vel(x, y) -= dPressure;
     }
 
 	if (PROPERTY_B(RE_CALC_DIV)) {
 		LOOP_2D_GRID(x, y, 1){
 			if (rho(x, y) < liquidThreshold)
 				continue;
+			if (boundary(x, y) == 1)
+				continue;
 
-			divergence(x, y) = vel(x + 1, y).x - vel(x, y).x
-							 + vel(x, y + 1).y - vel(x, y).y;
+			const float dx = vel(x + 1, y).x - vel(x, y).x;
+			const float dy = vel(x, y + 1).y - vel(x, y).y;
+			divergence(x, y) = dx + dy;
+
+			if (rho(x, y) > 1.f) {
+				divergence(x, y) -= std::min(lambdaM * (rho(x, y) - 1.f), eta);
+			}
+			if (rho(x, y) < 1.f) {
+				divergence(x, y) += std::min(lambdaP * (1.f - rho(x, y)), eta);
+			}
 		}
 	}
 
@@ -606,14 +600,14 @@ void CPUSimulator2D::scatter_values(const glm::vec2 pos, const float value) cons
 	auto& rho   = _grid->rho();
 	auto& boundary = _grid->boundary();
 
-	int x0 = std::clamp((int)pos.x,     0, (int)rho.width()  - 1);
-	int y0 = std::clamp((int)pos.y,     0, (int)rho.height() - 1);
-	int x1 = std::clamp((int)pos.x + 1, 0, (int)rho.width()  - 1);
-	int y1 = std::clamp((int)pos.y + 1, 0, (int)rho.height() - 1);
+	const int x0 = std::clamp((int)pos.x,     0, (int)rho.width()  - 1);
+	const int y0 = std::clamp((int)pos.y,     0, (int)rho.height() - 1);
+	const int x1 = std::clamp((int)pos.x + 1, 0, (int)rho.width()  - 1);
+	const int y1 = std::clamp((int)pos.y + 1, 0, (int)rho.height() - 1);
 
 	// Bilinear weights
-	float fx = pos.x - (float)(int)pos.x;
-	float fy = pos.y - (float)(int)pos.y;
+	const float fx = pos.x - (float)(int)pos.x;
+	const float fy = pos.y - (float)(int)pos.y;
 
 	float w00 = (1.f-fx) * (1.f-fy);
 	float w10 =      fx  * (1.f-fy);
@@ -643,10 +637,14 @@ void CPUSimulator2D::enforce_wall_boundaries() const {
 	auto& boundary = _grid->boundary();
 
 	LOOP_2D_GRID(x, y, 0){
-		if (x == 0 || x == 1 || boundary(x, y) == BOUNDARY || boundary(x-1, y) == BOUNDARY)
+		if (boundary(x, y) == 1.f && vel(x, y).x > 0)
+			vel(x, y).x = 0.f;
+		if (boundary(x - 1, y) == 1.f && vel(x, y).x < 0)
 			vel(x, y).x = 0.f;
 
-		if (y == 0 || y == 1 || boundary(x, y) == BOUNDARY || boundary(x, y-1) == BOUNDARY)
+		if (boundary(x, y) == 1.f && vel(x, y).y > 0)
+			vel(x, y).y = 0.f;
+		if (boundary(x, y - 1) == 1.f && vel(x, y).y < 0)
 			vel(x, y).y = 0.f;
 	}
 }

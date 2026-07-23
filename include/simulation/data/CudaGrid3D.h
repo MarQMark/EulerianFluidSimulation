@@ -30,27 +30,6 @@ public:
     VecField3D& forces() override;
     ScalField3D& boundary() override;
 
-    struct _DisAdvCell3D {
-        unsigned int i = 0;
-        unsigned int j = 0;
-        float val = 0.f;
-
-        _DisAdvCell3D& operator+=(const struct _DisAdvCell3D& cell) {
-            val += cell.val;
-            return *this;
-        }
-        _DisAdvCell3D& operator=(const struct _DisAdvCell3D& cell) {
-            i = cell.i;
-            j = cell.j;
-            val = cell.val;
-            return *this;
-        }
-    } typedef DisAdvCell;
-    std::unordered_map<unsigned int, DisAdvCell>& A() const;
-    void addA(unsigned int i, unsigned int j, float val) const;
-    std::unordered_map<unsigned int, DisAdvCell>* _A{};
-    glm::vec3 traceParticle(glm::vec3 start, float dt, int substeps) const;
-
     struct AdvCell {
         union {
             unsigned int j;

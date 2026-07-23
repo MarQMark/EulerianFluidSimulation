@@ -30,4 +30,17 @@ private:
     StorageBuffer* _gpu_tmp{};
 };
 
+class JacobiSolverCPU3D final : public ISolverCPU3D {
+public:
+    JacobiSolverCPU3D(unsigned int width, unsigned int height, unsigned int depth);
+    ~JacobiSolverCPU3D() override;
+
+    float solve(IGrid3D *grid) override;
+
+private:
+    ScalField3D* _tmp{};
+
+    void impl_mat_mul(ScalField3D& result, const ScalField3D& x, const ScalField3D& rho, const ScalField3D& boundary) const;
+};
+
 #endif //EULERIANFLUIDSIMULATION_JACOBISOLVER_H

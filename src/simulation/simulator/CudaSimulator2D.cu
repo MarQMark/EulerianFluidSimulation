@@ -116,7 +116,7 @@ void CudaSimulator2D::update() {
 	_grid->download();
 }
 
-void CudaSimulator2D::vel_decay() {
+void CudaSimulator2D::vel_decay() const {
 	constexpr dim3 blockSize(16, 16);
 	const dim3 gridSize(
 		(_grid->width()  - 2 + blockSize.x - 1) / blockSize.x,
@@ -242,7 +242,7 @@ void CudaSimulator2D::add_force() {
     cuda_add_force<<<gridSize, blockSize>>>(
         _grid->cudaData(),
         PROPERTY_F(DT),
-        PROPERTY_F(GRAVITY_FORCE));
+        PROPERTY_B(GRAVITY_ENABLED) ? PROPERTY_F(GRAVITY_FORCE) : 0.f);
 }
 
 void CudaSimulator2D::diffuse() {}
@@ -1087,11 +1087,6 @@ __global__ void cuda_add_force(const CudaGrid2D::CudaData *grid, const float dt,
 
 	grid->vel[i] += grid->forces[i] * dt;
 	grid->vel[i].y -= gravity * dt;
-
-    //const float valid = (1.0f - grid->boundary[i]) * (grid->rho[i] >= 0.5f ? 1.0f : 0.0f);
-
-    //grid->vel[i].x += valid * grid->forces[i].x * dt;
-    //grid->vel[i].y += valid * (grid->forces[i].y - gravity) * dt;
 }
 
 __global__ void cuda_proj_calc_div(const CudaGrid2D::CudaData *grid, const float lambdaP, const float lambdaM, const float eta) {
@@ -1149,9 +1144,15 @@ __global__ void cuda_proj_enf_bound(const CudaGrid2D::CudaData *grid) {
 		return;
 
 	const unsigned int i = cuda_idx_2D(x, y, w);
-	if (grid->boundary[i] == 1.f || grid->boundary[cuda_idx_2D(x - 1, y, w)] == 1.f)
+	const unsigned int ix = cuda_idx_2D(x - 1, y, w);
+	if (grid->boundary[i] == 1.f && grid->vel[i].x > 0)
+		grid->vel[i].x = 0.f;
+	if (grid->boundary[ix] == 1.f && grid->vel[i].x < 0)
 		grid->vel[i].x = 0.f;
 
-	if (grid->boundary[i] == 1.f || grid->boundary[cuda_idx_2D(x, y - 1, w)] == 1.f)
+	const unsigned int iy = cuda_idx_2D(x, y - 1, w);
+	if (grid->boundary[i] == 1.f && grid->vel[i].y > 0)
+		grid->vel[i].y = 0.f;
+	if (grid->boundary[iy] == 1.f && grid->vel[i].y < 0)
 		grid->vel[i].y = 0.f;
 }

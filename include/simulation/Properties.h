@@ -66,8 +66,6 @@ public:
 
     PROP_TOKEN(GRAVITY_FORCE)
     PROP_TOKEN(GRAVITY_ENABLED)
-    PROP_TOKEN(PUSH_FORCE)
-    PROP_TOKEN(PUSH_ENABLED)
     PROP_TOKEN(MAX_FORCEFIELD_CELLS)
 
     PROP_TOKEN(AVLB_SOLVERS)
@@ -126,8 +124,6 @@ private:
         auto& simulation_forces = add_sub_category(simulation, "Forces");
         ADD(simulation_forces, GRAVITY_FORCE, "Gravity Force", "", 0.02f)
         ADD(simulation_forces, GRAVITY_ENABLED, "Gravity Enabled", "", true)
-        ADD(simulation_forces, PUSH_FORCE, "Push Force", "", 0.1f)
-        ADD(simulation_forces, PUSH_ENABLED, "Push Enabled", "", false)
         ADD_3D(simulation_forces, MAX_FORCEFIELD_CELLS, "Max ForceField cells", "Maximum cells a ForceField might occupy", 1000)
 
         auto& simulation_solver = add_sub_category(simulation, "Solver");

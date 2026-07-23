@@ -352,7 +352,7 @@ __global__ void cuda_jacobi_pass_3D(const CudaGrid3D::CudaData *grid, float* res
         result[i] = (sum - grid->divergence[i]) / (float)nCount;
 }
 
-// #################################### Conjugate Gradient 2D ################################################
+// #################################### Conjugate Gradient 3D ################################################
 
 __global__ static void cuda_cg_mat_mul_3D(
     const CudaGrid3D::CudaData* __restrict__ grid,

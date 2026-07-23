@@ -21,7 +21,7 @@ private:
 
     void update() override;
 
-    void vel_decay();
+    void vel_decay() const;
     void vel_extrapolate() override;
     void rho_advect() override;
     void rho_sharpen() override;

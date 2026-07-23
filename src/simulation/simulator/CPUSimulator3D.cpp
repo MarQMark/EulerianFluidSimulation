@@ -5,28 +5,30 @@
 #include "simulation/data/Grid3D.h"
 #include "simulation/Properties.h"
 #include "simulation/solver/CGSolver.h"
+#include "simulation/solver/JacobiSolver.h"
 #include "util/Profiler.h"
 
 #define BOUNDARY 1.f
-#define LOOP_3D_GRID(x, y, z, offset)   for (int z = offset; z < _grid->depth()  - offset; z++) \
-                                        for (int y = offset; y < _grid->height() - offset; y++) \
-                                        for (int x = offset; x < _grid->width()  - offset; x++)
+#define LOOP_3D_GRID(x, y, z, offset)   for (int z = offset; z < _grid->depth()  - (offset); z++) \
+                                        for (int y = offset; y < _grid->height() - (offset); y++) \
+                                        for (int x = offset; x < _grid->width()  - (offset); x++)
 
 CPUSimulator3D::CPUSimulator3D(const unsigned int width, const unsigned int height, const  unsigned int depth)
 	: ISimulator3D(width, height, depth) {
 	const bool validSolver = availableSolvers(std::vector({
-			//Properties::JACOBI,
+			Properties::JACOBI,
 			Properties::SELF_CG}));
 
 	delete _solver;
 
 	if (validSolver)
 		switch (PROPERTY(SOLVER_TYPE, Properties::SolverType)) {
-			//case Properties::JACOBI:
-			//		_solver = new JacobiSolverCPU3D(width, height, depth);
-			//		break;
-		case Properties::SELF_CG:
-			_solver = new CGSolverCPU3D(_width, _height, _depth);
+			case Properties::JACOBI:
+				_solver = new JacobiSolverCPU3D(width, height, depth);
+				break;
+			case Properties::SELF_CG:
+				_solver = new CGSolverCPU3D(_width, _height, _depth);
+				break;
 		default:
 			break;
 	}
@@ -53,20 +55,22 @@ void CPUSimulator3D::update() {
 	if (!PROPERTY_B(DISABLE_VEL_EXTRAPOLATE)) vel_extrapolate();
 	profiler->stop();
 
-	//diffuse();
-
 	profiler->start("2 Rho Sharpen");
 	if (!PROPERTY_B(DISABLE_RHO_SHARPEN)) rho_sharpen();
 	profiler->stop();
+
 	profiler->start("3 Rho Advect");
 	if (!PROPERTY_B(DISABLE_RHO_ADVECT))  rho_advect();
 	profiler->stop();
+
 	profiler->start("4 Vel Advect");
 	if (!PROPERTY_B(DISABLE_VEL_ADVECT))  vel_advect();
 	profiler->stop();
+
 	profiler->start("5 Add Force");
 	if (!PROPERTY_B(DISABLE_ADD_FORCE))   add_force();
 	profiler->stop();
+
 	profiler->start("6 Project");
 	if (!PROPERTY_B(DISABLE_PROJECT))     project();
 	profiler->stop();
@@ -84,74 +88,54 @@ void CPUSimulator3D::vel_decay() const {
 }
 
 void CPUSimulator3D::vel_extrapolate() {
-	auto& vel = _grid->vel();
-	auto& rho = _grid->rho();
+	auto& velField = _grid->vel();
+	auto& newVel   = _grid->tmpVec();
+	auto& boundary = _grid->boundary();
+	auto& rho      = _grid->rho();
 
-	const int w = _grid->width();
-	const int h = _grid->height();
-	const int d = _grid->depth();
+	auto validA = ScalField3D(_grid->width(), _grid->height(), _grid->depth());
+	auto validB = ScalField3D(_grid->width(), _grid->height(), _grid->depth());
 
-	// Cells that already have valid velocities
-	ScalField3D known(w, h, d);
-
-	for (int z = 0; z < d; ++z)
-	for (int y = 0; y < h; ++y)
-	for (int x = 0; x < w; ++x)
-	{
-		if (rho(x, y, z) > 0.5f)
-			known(x, y, z) = 1;
+	LOOP_3D_GRID(x, y, z, 1) {
+		validA(x, y, z) = (rho(x, y, z) >= 0.5f && boundary(x, y, z) != BOUNDARY) ? 1.f : 0.f;
 	}
 
-	constexpr int extrapolationIterations = 15;
-
-	for (int iter = 0; iter < extrapolationIterations; ++iter)
-	{
-		auto velTmp = vel;
-		auto knownTmp = known;
-
-		bool addedCells = false;
-
-		for (int z = 1; z < d - 1; ++z)
-		for (int y = 1; y < h - 1; ++y)
-		{
-			for (int x = 1; x < w - 1; ++x)
-			{
-				if (known(x, y ,z))
-					continue;
-
-				glm::vec3 sum(0.0f);
-				int count = 0;
-
-				auto sampleNeighbor = [&](const int nx, const int ny , const int nz)
-				{
-					if (known(nx, ny, nz))
-					{
-						sum += vel(nx, ny, nz);
-						++count;
-					}
-				};
-
-				sampleNeighbor(x - 1, y, z);
-				sampleNeighbor(x + 1, y, z);
-				sampleNeighbor(x, y - 1, z);
-				sampleNeighbor(x, y + 1, z);
-				sampleNeighbor(x, y, z - 1);
-				sampleNeighbor(x, y, z + 1);
-
-				if (count > 0)
-				{
-					velTmp(x, y, z) = sum / static_cast<float>(count);
-					knownTmp(x, y, z) = 1;
-					addedCells = true;
-				}
+	auto extrapolate_pass = [&](auto& srcVel, auto& srcValid, auto& dstVel, auto& dstValid) {
+		LOOP_3D_GRID(x, y, z, 1) {
+			if (boundary(x, y, z) == BOUNDARY) {
+				dstVel(x, y, z) = srcVel(x, y, z);
+				dstValid(x, y, z) = 0.f;
+				continue;
 			}
+			if (srcValid(x, y, z) > 0.5f) {
+				dstVel(x, y, z) = srcVel(x, y, z);
+				dstValid(x, y, z) = 1.f;
+				continue;
+			}
+
+			glm::vec3 sum(0.f);
+			float n = 0;
+			auto sample = [&](const int nx, const int ny, const int nz) {
+				if (srcValid(nx, ny, nz) > 0.5f) {
+					sum += srcVel(nx, ny, nz);
+					n++;
+				}
+			};
+			sample(x - 1, y,     z);
+			sample(x + 1, y,     z);
+			sample(x,     y - 1, z);
+			sample(x,     y + 1, z);
+			sample(x,     y,     z - 1);
+			sample(x,     y,     z + 1);
+
+			dstVel(x, y, z)   = (n > 0) ? sum / n : srcVel(x, y, z);
+			dstValid(x, y, z) = (n > 0) ? 1.f : 0.f;
 		}
+	};
 
-		vel = std::move(velTmp);
-		known = std::move(knownTmp);
-
-		if (!addedCells)
-			break;
+	for (int i = 0; i < 3; i++) {
+		extrapolate_pass(velField, validA, newVel,   validB);
+		extrapolate_pass(newVel,   validB, velField, validA);
 	}
 }
 
@@ -409,6 +393,95 @@ void CPUSimulator3D::rho_advect() {
 }
 
 void CPUSimulator3D::rho_sharpen() {
+	auto& rho   = _grid->rho();
+	const float delT = PROPERTY_F(DT) * 3;
+
+	auto del_rho = ScalField3D(_grid->width(), _grid->height(), _grid->depth());
+
+	// Calculate the mass change due to unit velocity
+	auto del_plus = VecField3D(_grid->width(), _grid->height(), _grid->depth());
+	auto del_minus = VecField3D(_grid->width(), _grid->height(), _grid->depth());
+	LOOP_3D_GRID(x, y, z, 1) {
+		del_plus(x, y, z).x = -(rho(x, y, z) - rho(x - 1, y, z)) * delT;
+		del_minus(x, y, z).x = -(rho(x + 1, y, z) - rho(x, y, z)) * delT;
+
+		del_plus(x, y, z).y = -(rho(x, y, z) - rho(x, y - 1, z)) * delT;
+		del_minus(x, y, z).y = -(rho(x, y + 1, z) - rho(x, y, z)) * delT;
+
+		del_plus(x, y, z).z = -(rho(x, y, z) - rho(x, y, z - 1)) * delT;
+		del_minus(x, y, z).z = -(rho(x, y, z + 1) - rho(x, y, z)) * delT;
+	}
+
+	// Calculate the maximum mass increase and mass decrease due to any unit velocity
+	auto max_inc = ScalField3D(_grid->width(), _grid->height(), _grid->depth());
+	auto max_dec = ScalField3D(_grid->width(), _grid->height(), _grid->depth());
+	LOOP_3D_GRID(x, y, z, 1) {
+		max_inc(x, y, z) = std::sqrt(
+			std::max(
+				std::pow(std::max(del_plus(x, y, z).x, 0.f), 2),
+				std::pow(std::min(del_minus(x, y, z).x, 0.f), 2)
+			) +
+			std::max(
+				std::pow(std::max(del_plus(x, y, z).y, 0.f), 2),
+				std::pow(std::min(del_minus(x, y, z).y, 0.f), 2)
+			) +
+			std::max(
+				std::pow(std::max(del_plus(x, y, z).z, 0.f), 2),
+				std::pow(std::min(del_minus(x, y, z).z, 0.f), 2)
+			)
+		);
+
+		max_dec(x, y, z) = std::sqrt(
+			std::max(
+				std::pow(std::min(del_plus(x, y, z).x, 0.f), 2),
+				std::pow(std::max(del_minus(x, y, z).x, 0.f), 2)
+			) +
+			std::max(
+				std::pow(std::min(del_plus(x, y, z).y, 0.f), 2),
+				std::pow(std::max(del_minus(x, y, z).y, 0.f), 2)
+			) +
+			std::max(
+				std::pow(std::min(del_plus(x, y, z).z, 0.f), 2),
+				std::pow(std::max(del_minus(x, y, z).z, 0.f), 2)
+			)
+		);
+	}
+
+	auto w = ScalField3D(_grid->width(), _grid->height(), _grid->depth());
+	LOOP_3D_GRID(x, y, z, 1) {
+		float max = -INFINITY;
+		max = std::max(max, std::abs(rho(x, y, z) - rho(x - 1, y, z)));
+		max = std::max(max, std::abs(rho(x, y, z) - rho(x + 1, y, z)));
+		max = std::max(max, std::abs(rho(x, y, z) - rho(x, y - 1, z)));
+		max = std::max(max, std::abs(rho(x, y, z) - rho(x, y + 1, z)));
+		max = std::max(max, std::abs(rho(x, y, z) - rho(x, y, z - 1)));
+		max = std::max(max, std::abs(rho(x, y, z) - rho(x, y, z + 1)));
+
+		w(x, y, z) = std::pow(rho(x, y, z) - 0.5f, 3.f) * (1 - std::min(1.f, max / 0.2f));
+	}
+
+	LOOP_3D_GRID(x, y, z, 1) {
+		if (w(x, y, z) >= 0)
+			del_rho(x, y, z) = w(x, y, z) * max_inc(x, y, z);
+		else
+			del_rho(x, y, z) = w(x, y, z) * max_dec(x, y, z);
+
+		if (rho(x, y, z) + del_rho(x, y, z) < 0 || rho(x, y, z) < 1e-5)
+			del_rho(x, y, z) = -rho(x, y, z);
+		else if (rho(x, y, z) > 0.5f)
+			del_rho(x, y, z) = 0;
+	}
+
+	LOOP_3D_GRID(x, y, z, 1) {
+		float dr = del_rho(x, y, z);
+		if (std::abs(dr) < 1e-6f) continue;
+
+		rho(x, y, z) += dr;
+		rho(x, y, z) = std::max(rho(x, y, z), 0.f);
+
+		const glm::vec3 p = trace_along_field(glm::vec3(x, y, z), PROPERTY_F(RHO_D), 10);
+		scatter_values(p, -dr);
+	}
 }
 
 void CPUSimulator3D::add_force() {
@@ -418,8 +491,8 @@ void CPUSimulator3D::add_force() {
     auto& boundary = _grid->boundary();
 
     LOOP_3D_GRID(x, y, z, 1) {
-        if (rho(x, y, z) < PROPERTY_F(LIQUID_THRESHOLD))
-            continue;
+        //if (rho(x, y, z) < PROPERTY_F(LIQUID_THRESHOLD))
+        //    continue;
 
         if (boundary(x, y, z) == BOUNDARY)
             continue;
@@ -428,10 +501,6 @@ void CPUSimulator3D::add_force() {
 
         if (PROPERTY_B(GRAVITY_ENABLED))
             vel(x, y, z).y -= PROPERTY_F(GRAVITY_FORCE) * PROPERTY_F(DT);
-
-        if (PROPERTY_B(PUSH_ENABLED))
-            if (x >= 30 && x < 42 && y > 50 && y < 60)
-                vel(x, y, z) += glm::vec3(0, -PROPERTY_F(PUSH_FORCE), 0);
     }
 }
 
@@ -515,11 +584,11 @@ void CPUSimulator3D::project() {
     		continue;
 
 		auto dPressure = glm::vec3(0);
-    	if (x != 1)
+    	if (x > 1)
     		dPressure.x = pressure(x, y, z) - pressure(x - 1, y, z);
-    	if (y != 1)
+    	if (y > 1)
     		dPressure.y = pressure(x, y, z) - pressure(x, y - 1, z);
-    	if (z != 1)
+    	if (z > 1)
     		dPressure.z = pressure(x, y, z) - pressure(x, y, z - 1);
 
     	vel(x, y, z) -= dPressure;
@@ -528,18 +597,120 @@ void CPUSimulator3D::project() {
 	enforce_wall_boundaries();
 }
 
+glm::vec3 CPUSimulator3D::trace_along_field(const glm::vec3 start, const float D, const int substeps) const {
+	const float maxDist  = D;                  // D * dx, dx = 1 in our grid
+	const float stepSize = maxDist / substeps; // size of each Euler step
+	auto& rho   = _grid->rho();
+	auto& boundary = _grid->boundary();
+
+	glm::vec3 pos = start;
+
+	for (int s = 0; s < substeps; s++) {
+		// Sample rho at current position.
+		// If we are already at or past the interface, stop immediately.
+		if (rho.interpolate(pos) >= 0.5f)
+			break;
+
+		// Compute gradient of rho at current position using central differences
+		// at the surrounding integer cell. The gradient points toward
+		// higher density — i.e., toward the liquid interior.
+		const int ix = std::clamp((int)pos.x, 1, (int)rho.width()  - 2);
+		const int iy = std::clamp((int)pos.y, 1, (int)rho.height() - 2);
+		const int iz = std::clamp((int)pos.z, 1, (int)rho.depth()  - 2);
+
+		glm::vec3 grad(
+			rho(ix+1, iy,   iz)   - rho(ix-1, iy,   iz),   // ∂ρ/∂x (central diff)
+			rho(ix,   iy+1, iz)   - rho(ix,   iy-1, iz),   // ∂ρ/∂y (central diff)
+			rho(ix,   iy,   iz+1) - rho(ix,   iy  , iz-1)  // ∂ρ/∂z (central diff)
+		);
+
+		const float len = glm::length(grad);
+		if (len < 1e-6f) break;  // no gradient — rho is flat, nowhere to go
+
+		// Normalise so each step is exactly stepSize cells long
+		glm::vec3 dir  = grad / len;
+		glm::vec3 next = pos + dir * stepSize;
+
+		// Clamp to valid domain
+		next.x = std::clamp(next.x, 1.f, (float)rho.width()  - 2.f);
+		next.y = std::clamp(next.y, 1.f, (float)rho.height() - 2.f);
+		next.z = std::clamp(next.z, 1.f, (float)rho.depth()  - 2.f);
+
+		if (boundary(next.x, next.y, next.z) > 0.5f)
+			break;
+
+		pos = next;
+	}
+
+	return pos;
+}
+
+void CPUSimulator3D::scatter_values(const glm::vec3 pos, const float value) const {
+	auto& rho   = _grid->rho();
+	auto& boundary = _grid->boundary();
+
+	const int x0 = std::clamp((int)pos.x,     0, (int)rho.width()  - 1);
+	const int y0 = std::clamp((int)pos.y,     0, (int)rho.height() - 1);
+	const int z0 = std::clamp((int)pos.z,     0, (int)rho.depth()  - 1);
+	const int x1 = std::clamp((int)pos.x + 1, 0, (int)rho.width()  - 1);
+	const int y1 = std::clamp((int)pos.y + 1, 0, (int)rho.height() - 1);
+	const int z1 = std::clamp((int)pos.z + 1, 0, (int)rho.depth()  - 1);
+
+	const float fx = pos.x - (float)(int)pos.x;
+	const float fy = pos.y - (float)(int)pos.y;
+	const float fz = pos.z - (float)(int)pos.z;
+
+	float w000 = (1.f-fx) * (1.f-fy) * (1.f-fz);
+	float w100 =      fx  * (1.f-fy) * (1.f-fz);
+	float w010 = (1.f-fx) *      fy  * (1.f-fz);
+	float w110 =      fx  *      fy  * (1.f-fz);
+	float w001 = (1.f-fx) * (1.f-fy) *      fz;
+	float w101 =      fx  * (1.f-fy) *      fz;
+	float w011 = (1.f-fx) *      fy  *      fz;
+	float w111 =      fx  *      fy  *      fz;
+
+	if (boundary(x0, y0, z0) > 0.5f) w000 = 0.f;
+	if (boundary(x1, y0, z0) > 0.5f) w100 = 0.f;
+	if (boundary(x0, y1, z0) > 0.5f) w010 = 0.f;
+	if (boundary(x1, y1, z0) > 0.5f) w110 = 0.f;
+	if (boundary(x0, y0, z1) > 0.5f) w001 = 0.f;
+	if (boundary(x1, y0, z1) > 0.5f) w101 = 0.f;
+	if (boundary(x0, y1, z1) > 0.5f) w011 = 0.f;
+	if (boundary(x1, y1, z1) > 0.5f) w111 = 0.f;
+
+	const float total = w000 + w100 + w010 + w110 + w001 + w101 + w011 + w111;
+	if (total < 1e-6f)
+		return;
+	const float inv = 1.f / total;
+
+	rho(x0, y0, z0) += value * w000 * inv;
+	rho(x1, y0, z0) += value * w100 * inv;
+	rho(x0, y1, z0) += value * w010 * inv;
+	rho(x1, y1, z0) += value * w110 * inv;
+	rho(x0, y0, z1) += value * w001 * inv;
+	rho(x1, y0, z1) += value * w101 * inv;
+	rho(x0, y1, z1) += value * w011 * inv;
+	rho(x1, y1, z1) += value * w111 * inv;
+}
+
 void CPUSimulator3D::enforce_wall_boundaries() const {
 	auto& vel   = _grid->vel();
 	auto& boundary = _grid->boundary();
 
 	LOOP_3D_GRID(x, y, z, 0){
-		if (x == 0 || x == 1 || boundary(x, y, z) == BOUNDARY || boundary(x-1, y, z) == BOUNDARY)
+		if (boundary(x, y, z) == 1.f && vel(x, y, z).x > 0)
+			vel(x, y, z).x = 0.f;
+		if (boundary(x - 1, y, z) == 1.f && vel(x, y, z).x < 0)
 			vel(x, y, z).x = 0.f;
 
-		if (y == 0 || y == 1 || boundary(x, y, z) == BOUNDARY || boundary(x, y-1, z) == BOUNDARY)
+		if (boundary(x, y, z) == 1.f && vel(x, y, z).y > 0)
+			vel(x, y, z).y = 0.f;
+		if (boundary(x, y - 1, z) == 1.f && vel(x, y, z).y < 0)
 			vel(x, y, z).y = 0.f;
 
-		if (z == 0 || z == 1 || boundary(x, y, z) == BOUNDARY || boundary(x, y, z-1) == BOUNDARY)
+		if (boundary(x, y, z) == 1.f && vel(x, y, z).z > 0)
+			vel(x, y, z).z = 0.f;
+		if (boundary(x, y, z - 1) == 1.f && vel(x, y, z).z < 0)
 			vel(x, y, z).z = 0.f;
 	}
 }

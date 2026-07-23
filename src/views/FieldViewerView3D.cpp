@@ -142,10 +142,27 @@ void FieldViewerView3D::render(void *renderData) {
         );
 
         ImGui::BeginTooltip();
-        ImGui::Text("x: %d", cell_x);
-        ImGui::Text("y: %d", cell_y);
+        if (_dim == 0) {
+            ImGui::Text("y: %d", cell_x);
+            ImGui::Text("z: %d", cell_y);
+        }
+        else if (_dim == 1) {
+            ImGui::Text("x: %d", cell_x);
+            ImGui::Text("z: %d", cell_y);
+        }
+        else if (_dim == 2) {
+            ImGui::Text("x: %d", cell_x);
+            ImGui::Text("y: %d", cell_y);
+        }
+
         if (sField) ImGui::Text("value: %.6f", (*sField)(cell_x, cell_y, 1));
-        if (vField) ImGui::Text("value: (%.6f, %.6f)", (*vField)(cell_x, cell_y, 1).x, (*vField)(cell_x, cell_y, 1).y );
+        if (vField) {
+            auto v = glm::vec3(0.f);
+            if (_dim == 0) v = (*vField)(_level, cell_x, cell_y);
+            else if (_dim == 1) v = (*vField)(cell_y, _level, cell_x);
+            else if (_dim == 2) v = (*vField)(cell_x, cell_y, _level);
+            ImGui::Text("value: (%.6f, %.6f, %.6f)", v.x, v.y, v.z);
+        }
         ImGui::EndTooltip();
     }
 

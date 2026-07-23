@@ -29,8 +29,7 @@ CGSolverCPU2D::~CGSolverCPU2D() {
     delete _d;
 }
 
-float CGSolverCPU2D::solve(IGrid2D* _grid) {
-    auto* grid = dynamic_cast<Grid2D*>(_grid);
+float CGSolverCPU2D::solve(IGrid2D* grid) {
     if (!grid) return 0;
 
     const auto& divergence = grid->divergence();
@@ -54,7 +53,8 @@ float CGSolverCPU2D::solve(IGrid2D* _grid) {
     if (sqrtLen < errorThreshold)
         return sqrtLen;
 
-    for (int i = 0; i < steps; i++) {
+    int i = 0;
+    for (i = 0; i < steps; i++) {
         impl_mat_mul(t, d, rho, boundary);
         const float alpha = sqrtLen / d.dot(t);
         pressure.addScaled(d, alpha);
@@ -71,13 +71,14 @@ float CGSolverCPU2D::solve(IGrid2D* _grid) {
         const float oldSqrtLen = sqrtLen;
         sqrtLen = r.sqLen();
         if (sqrtLen < errorThreshold)
-            return sqrtLen;
+            break;
 
         const float beta = sqrtLen / oldSqrtLen;
         d *= beta;
         d += r;
     }
 
+    SET_PROPERTY_I(SOLVE_STEPS, i + 1);
     return sqrtLen;
 }
 
@@ -455,7 +456,8 @@ float CGSolverCPU3D::solve(IGrid3D *grid) {
     if (sqrtLen < errorThreshold)
         return sqrtLen;
 
-    for (int i = 0; i < steps; i++) {
+    int i = 0;
+    for (i = 0; i < steps; i++) {
         impl_mat_mul(t, d, rho, boundary);
         const float alpha = sqrtLen / d.dot(t);
         pressure.addScaled(d, alpha);
@@ -472,13 +474,14 @@ float CGSolverCPU3D::solve(IGrid3D *grid) {
         const float oldSqrtLen = sqrtLen;
         sqrtLen = r.sqLen();
         if (sqrtLen < errorThreshold)
-            return sqrtLen;
+            break;
 
         const float beta = sqrtLen / oldSqrtLen;
         d *= beta;
         d += r;
     }
 
+    SET_PROPERTY_I(SOLVE_STEPS, i + 1);
     return sqrtLen;
 }
 
