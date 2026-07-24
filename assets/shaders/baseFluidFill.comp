@@ -25,7 +25,7 @@ void main() {
     int y = int(gl_GlobalInvocationID.y);
     int z = int(gl_GlobalInvocationID.z);
 
-    if (x >= uWidth - 1 || y >= uHeight - 1 || z >= uDepth - 1 || y >= uFillHeight)
+    if (x == 0 || x >= uWidth - 1 || y == 0 || y >= uHeight - 1 || z == 0 ||  z >= uDepth - 1 || y >= uFillHeight)
         return;
 
     const int id = idx(x, y, z);

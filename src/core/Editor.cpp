@@ -129,11 +129,11 @@ void Editor::initFluid(ScalField3D& rho) const {
         _baseFluidFillShader->setInt("uDepth",  rho.depth());
 
         auto domain = simulationDomainNode->getWorldBoundingBox();
-        _sdfShader->setVec3("uDomainSize", domain.size);
-        _sdfShader->setVec3("uDomainCenter", domain.center);
+        _baseFluidFillShader->setVec3("uDomainSize", domain.size);
+        _baseFluidFillShader->setVec3("uDomainCenter", domain.center);
         rhoBuffer.bind(0);
 
-        _sdfShader->dispatch(gx, gy, gz);
+        _baseFluidFillShader->dispatch(gx, gy, gz);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
         rhoBuffer.download(rho.data());
     }
