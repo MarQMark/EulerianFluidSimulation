@@ -11,6 +11,7 @@
 #include "util/Time.h"
 #include "views/FieldViewerView3D.h"
 #include "views/NodePropertiesView.h"
+#include "views/QueryDataView.h"
 #include "views/SceneView.h"
 #include "views/Simulation3DView.h"
 
@@ -23,6 +24,7 @@ SimulationDisplay3D::SimulationDisplay3D(Window* window) : ISimulationDisplay() 
     _viewables["Simulation3D"] = new Simulation3DView(_editor, _renderer);
     _viewables["Scene"] = new SceneView(_editor, _renderer);
     _viewables["NodeProperties"] = new NodePropertiesView(_editor);
+    _viewables["QueryData"] = new QueryDataView(_editor);
 
     _viewables["FieldViewerVel"] = new FieldViewerView3D(Properties::VELOCITY, "FieldViewerVel");
     _viewables["FieldViewerRho"] = new FieldViewerView3D(Properties::DENSITY, "FieldViewerRho");
@@ -54,6 +56,6 @@ void SimulationDisplay3D::render(void* renderData) {
 
 void SimulationDisplay3D::reset(void* simulationData) {
     const auto* data = static_cast<RenderData3D *>(simulationData);
-    _editor->initSimulation(data->grid);
+    _editor->init(data->grid);
     _scene->getFluid()->setRenderData(nullptr);
 }

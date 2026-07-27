@@ -8,6 +8,7 @@
 #include <memory>
 #include "simulation/data/Grid3D.h"
 #include "simulation/Properties.h"
+#include "simulation/scene/nodes/QueryNode.h"
 
 Editor::Editor() {
     _sdfShader = std::make_unique<Shader>("assets/shaders/sdf.comp", Shader::COMPUTE);
@@ -15,7 +16,7 @@ Editor::Editor() {
     _forceFieldCellsShader = std::make_unique<Shader>("assets/shaders/forcefield_cells.comp", Shader::COMPUTE);
 }
 
-void Editor::initSimulation(IGrid3D* grid) {
+void Editor::init(IGrid3D* grid) {
     // --- Init Fluid ---
     initFluid(grid->rho());
 
@@ -25,6 +26,10 @@ void Editor::initSimulation(IGrid3D* grid) {
     // --- Clear Force Field Data ---
     for (auto ff : _scene->getForceFields())
         ff->resetCells();
+
+    // Call init function of each node
+    for (const auto& node : _scene->getSceneNodes())
+        node->init();
 }
 
 void Editor::setScene(Scene* scene) {
@@ -58,6 +63,12 @@ void Editor::addParticleSpawn(const std::string& path) {
     auto modelParticleSpawnNode = std::make_unique<ModelFluidSpawnNode>(std::string("Fluid Spawn"), model);
     _selectedNode = modelParticleSpawnNode.get();
     _scene->addSceneNode(std::move(modelParticleSpawnNode));
+}
+
+void Editor::addQuery() {
+    auto queryNode = std::make_unique<QueryNode>();
+    _selectedNode = queryNode.get();
+    _scene->addSceneNode(std::move(queryNode));
 }
 
 void Editor::updateRenderingSize(int width, int height) const {

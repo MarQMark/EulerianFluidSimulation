@@ -131,6 +131,11 @@ void SceneView::render(void* renderData) {
         _editor->addForceField();
     }
 
+    // --- Queries ---
+    if (ImGui::Button("Add Query", ImVec2(totalWidth, 0))) {
+        _editor->addQuery();
+    }
+
     ImGui::SeparatorText("");
 
     if (ImGui::Button("Save Scene", ImVec2(totalWidth, 0))) {

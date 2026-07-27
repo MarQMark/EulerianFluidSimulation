@@ -113,6 +113,27 @@ struct StringProperty : NodeProperty {
     void draw() override;
 };
 
+struct ButtonProperty : NodeProperty {
+    ButtonProperty(const std::string& name, const std::function<void()>& callback)
+        : name(name), callback(callback) {};
+
+    std::string name;
+    std::function<void()> callback;
+
+    void draw() override;
+};
+
+struct DialogProperty : NodeProperty {
+    DialogProperty(const std::string& name, const std::function<void(std::string)>& callback, const std::string& filters)
+    : name(name), callback(callback), filters(filters) {};
+
+    std::string name;
+    std::function<void(std::string)> callback;
+    std::string filters;
+
+    void draw() override;
+};
+
 template <typename T>
 struct EnumProperty : NodeProperty {
     EnumProperty(

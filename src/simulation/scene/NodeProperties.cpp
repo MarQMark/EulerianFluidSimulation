@@ -94,6 +94,31 @@ void StringProperty::draw() {
         set(v);
 }
 
+void ButtonProperty::draw() {
+    float totalWidth = ImGui::GetContentRegionAvail().x;
+
+    if (ImGui::Button(name.c_str(), ImVec2(totalWidth, 0)))
+        callback();
+}
+
+void DialogProperty::draw() {
+    float totalWidth = ImGui::GetContentRegionAvail().x;
+
+    if (ImGuiFileDialog::Instance()->Display(name.c_str())) {
+        if (ImGuiFileDialog::Instance()->IsOk()) {
+            callback(ImGuiFileDialog::Instance()->GetFilePathName());
+        }
+
+        ImGuiFileDialog::Instance()->Close();
+    }
+
+    if (ImGui::Button(name.c_str(), ImVec2(totalWidth, 0))) {
+        IGFD::FileDialogConfig config;
+        config.path = ".";
+        ImGuiFileDialog::Instance()->OpenDialog(name.c_str(), "Choose location", filters.c_str(), config);
+    }
+}
+
 void NodeProperties::addSection(const std::string& section) {
     sections.push_back({ section, static_cast<int>(properties.size()) });
 }

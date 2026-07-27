@@ -18,6 +18,7 @@ public:
     SceneNode(const nlohmann::json j);
     ~SceneNode() override = default;
 
+    virtual void init() {};
     virtual void update(float deltaTime) = 0;
 
     // --- Name ---

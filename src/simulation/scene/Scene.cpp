@@ -11,6 +11,7 @@
 #include <algorithm>
 
 #include "simulation/scene/nodes/FluidNode.h"
+#include "simulation/scene/nodes/QueryNode.h"
 #include "simulation/scene/nodes/SimulationDomainNode.h"
 #include "simulation/scene/nodes/SkyboxNode.h"
 
@@ -72,6 +73,9 @@ void Scene::addSceneNode(std::unique_ptr<SceneNode> node) {
     if (auto* particleSpawn = dynamic_cast<IFluidSpawn*>(node.get()))
         particleSpawns.push_back(particleSpawn);
 
+    if (auto* queryNode = dynamic_cast<QueryNode*>(node.get()))
+        queryNodes.push_back(queryNode);
+
     node->scene = this;
     sceneNodes.push_back(std::move(node));
 }
@@ -80,6 +84,7 @@ void Scene::removeSceneNode(const SceneNode* node) {
     std::erase_if(models,         [&](const ModelNode* n)       { return n == node; });
     std::erase_if(boundingBoxes,  [&](const BoundingBoxNode* n) { return n == node; });
     std::erase_if(forceFields,    [&](const ForceFieldNode* n)  { return n == node; });
+    std::erase_if(queryNodes,     [&](const QueryNode* n)       { return n == node; });
 
     if (const auto* ps = dynamic_cast<const IFluidSpawn*>(node))
         std::erase_if(particleSpawns, [&](const IFluidSpawn* n) { return n == ps; });
@@ -114,6 +119,10 @@ std::vector<SceneNode*> Scene::getSceneNodes() const {
         result.push_back(node.get());
 
     return result;
+}
+
+std::vector<QueryNode*> Scene::getQueryNodes() const {
+    return queryNodes;
 }
 
 void Scene::saveScene(const std::string& path) const {
@@ -190,6 +199,9 @@ std::unique_ptr<SceneNode> Scene::nodeFromJson(const nlohmann::json& j) {
 
     if (type == "SimulationDomainNode")
         return std::make_unique<SimulationDomainNode>(j);
+
+    if (type == "QueryNode")
+        return std::make_unique<QueryNode>(j);
 
     throw std::runtime_error("Unknown node type: " + type);
 }

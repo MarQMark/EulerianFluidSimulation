@@ -57,8 +57,8 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
 find_package(CUDAToolkit QUIET)
 if(CUDAToolkit_FOUND)
-    set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
-    set(CMAKE_CUDA_ARCHITECTURES 75 80)
+#    set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
+    set(CMAKE_CUDA_ARCHITECTURES 61 75 80)
 
     file(GLOB_RECURSE CUDA_SOURCES CONFIGURE_DEPENDS "src/*.cu")
 endif()
@@ -110,6 +110,14 @@ target_include_directories(imgui PUBLIC
 
 target_include_directories(imgui PUBLIC ${IMGUI_DIR})
 
+add_library(implot STATIC
+    external/implot/implot.cpp
+    external/implot/implot_items.cpp
+)
+
+target_include_directories(implot PUBLIC external/implot)
+target_link_libraries(implot PUBLIC imgui)
+
 target_include_directories(EulerianFluidSimulation
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/glm
@@ -117,6 +125,7 @@ target_include_directories(EulerianFluidSimulation
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/tinyobjloader
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/ImGuizmo/src
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/implot
 )
 
 add_compile_definitions(USE_GPU)
@@ -140,6 +149,7 @@ if (UNIX)
         PRIVATE tinyobjloader
         PRIVATE nlohmann_json::nlohmann_json
         PRIVATE imguizmo
+        PRIVATE implot
     )
 endif(UNIX)
 

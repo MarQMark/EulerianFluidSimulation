@@ -16,7 +16,7 @@ class Editor {
 public:
     Editor();
 
-    void initSimulation(IGrid3D* grid);
+    void init(IGrid3D* grid);
 
     void setScene(Scene* scene);
     Scene* getScene() const;
@@ -37,6 +37,9 @@ public:
 
     // --- Particle Spawns ---
     void addParticleSpawn(const std::string& path);
+
+    // --- Query Node ---
+    void addQuery();
 
     // --- Window Resizes ---
     void updateRenderingSize(int width, int height) const;

@@ -11,6 +11,7 @@
 #include "nodes/SimulationDomainNode.h"
 #include "simulation/scene/nodes/CameraNode.h"
 
+class QueryNode;
 class FluidNode;
 class IFluidSpawn;
 class ForceFieldNode;
@@ -38,6 +39,7 @@ public:
     std::vector<ForceFieldNode*> getForceFields() const;
     std::vector<IFluidSpawn*> getFluidSpawns() const;
     std::vector<SceneNode*> getSceneNodes() const;
+    std::vector<QueryNode*> getQueryNodes() const;
 
     void saveScene(const std::string& path) const;
     void loadScene(const std::string& path);
@@ -55,7 +57,8 @@ private:
     std::vector<ModelNode*>         models              = {};
     std::vector<BoundingBoxNode*>   boundingBoxes       = {};
     std::vector<ForceFieldNode*>    forceFields         = {};
-    std::vector<IFluidSpawn*>    particleSpawns      = {};
+    std::vector<IFluidSpawn*>    particleSpawns         = {};
+    std::vector<QueryNode*>         queryNodes          = {};
 
     std::unique_ptr<SceneNode> nodeFromJson(const nlohmann::json& j);
 };
