@@ -14,8 +14,8 @@
 
 #define TOP_SPACING 10;
 
-Simulation2DView::Simulation2DView(const ImTextureID textureID, const int width, const int height)
-        : _texture_id(textureID), _width(width), _height(height) {
+Simulation2DView::Simulation2DView(const unsigned int width, const unsigned int height)
+        : _width(width), _height(height) {
 }
 
 void Simulation2DView::render(void* renderData) {
@@ -63,7 +63,7 @@ void Simulation2DView::render(void* renderData) {
     ImVec2 topCorner = ImGui::GetCursorPos();
     //ImVec2 topCorner = ImGui::GetWindowPos();
     ImGui::SetCursorScreenPos(ImVec2(x_min, y_min));
-    ImGui::Image(_texture_id,
+    ImGui::Image(data->textureId,
                  ImVec2(x_max - x_min, y_max - y_min),
                  ImVec2(0, 1),
                  ImVec2(1, 0));

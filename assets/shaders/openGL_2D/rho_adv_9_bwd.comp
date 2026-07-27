@@ -1,0 +1,39 @@
+#version 430
+layout(local_size_x = 16, local_size_y = 16) in;
+
+struct AdvCell { uint j; float val; };
+
+layout(std430, binding = 0)            buffer BufVel        { vec2    vel[];        };
+layout(std430, binding = 1)            buffer BufVelTmp     { vec2    tmpVel[];     };
+layout(std430, binding = 2)            buffer BufRho        { float   rho[];        };
+layout(std430, binding = 3)            buffer BufRhoTmp     { float   tmpRho[];     };
+layout(std430, binding = 4)            buffer BufGamma      { float   gamma[];      };
+layout(std430, binding = 5)            buffer BufNewGamma   { float   newGamma[];   };
+layout(std430, binding = 6)            buffer BufBeta       { float   beta[];       };
+layout(std430, binding = 7)            buffer BufABwd       { AdvCell ABwd[];       };
+layout(std430, binding = 8)            buffer BufAFwd       { AdvCell AFwd[];       };
+layout(std430, binding = 9)            buffer BufCountsBwd  { uint    countsBwd[];  };
+layout(std430, binding = 10)           buffer BufCountsFwd  { uint    countsFwd[];  };
+layout(std430, binding = 11) writeonly buffer BufDivergence { float   divergence[]; };
+layout(std430, binding = 12) readonly  buffer BufPressure   { float   pressure[];   };
+layout(std430, binding = 13) readonly  buffer BufForces     { vec2    forces[];     };
+layout(std430, binding = 14) readonly  buffer BufBoundary   { float   boundary[];   };
+
+uniform uint uWidth;
+uniform uint uHeight;
+uint idx(uint x, uint y) { return y * uWidth + x; }
+
+void main() {
+    uint x = int(gl_GlobalInvocationID.x);
+    uint y = int(gl_GlobalInvocationID.y);
+    if (x >= uWidth || y >= uHeight) return;
+
+    const uint i = idx(x, y);
+    for (uint k = 0u; k < countsBwd[i]; k++) {
+        const float b = beta[ABwd[(i * 4) + k].j];
+        if (b > 1e-5)
+            ABwd[(i * 4) + k].val /= b;
+    }
+}
+
+// rho_adv_9_bwd.comp

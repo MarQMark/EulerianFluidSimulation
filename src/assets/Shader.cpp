@@ -164,7 +164,7 @@ void Shader::unbind() const {
     glUseProgram(0);
 }
 
-void Shader::dispatch(int gx, int gy, int gz) const {
+void Shader::dispatch(const unsigned int gx, const unsigned int gy, const unsigned int gz) const {
     if (!isCompute) {
         LOG_WARN("Called dispatch on non-compute shader")
         return;
@@ -173,15 +173,19 @@ void Shader::dispatch(int gx, int gy, int gz) const {
     glDispatchCompute(gx, gy, gz);
 }
 
-void Shader::setFloat(const std::string& name, float value) const {
+void Shader::setFloat(const std::string& name, const float value) const {
     glUniform1f(glGetUniformLocation(shader, name.c_str()), value);
 }
 
-void Shader::setInt(const std::string& name, int value) const {
+void Shader::setInt(const std::string& name, const int value) const {
     glUniform1i(glGetUniformLocation(shader, name.c_str()), value);
 }
 
-void Shader::setBool(const std::string& name, bool value) const {
+void Shader::setUInt(const std::string& name, const unsigned int value) const {
+    glUniform1ui(glGetUniformLocation(shader, name.c_str()), value);
+}
+
+void Shader::setBool(const std::string& name, const bool value) const {
     glUniform1i(glGetUniformLocation(shader, name.c_str()), value);
 }
 

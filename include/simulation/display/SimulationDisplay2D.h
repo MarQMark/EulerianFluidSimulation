@@ -12,6 +12,7 @@ class SimulationDisplay2D final : public ISimulationDisplay {
 public:
     struct RenderData2D {
         IGrid2D* grid;
+        unsigned int textureId;
     };
 
     SimulationDisplay2D(unsigned int width, unsigned int height);

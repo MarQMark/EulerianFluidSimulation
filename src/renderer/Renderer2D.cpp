@@ -4,6 +4,7 @@
 #include "simulation/Properties.h"
 #include "simulation/data/OpenGLGrid2D.h"
 #include "simulation/data/ScalField2D.h"
+#include "simulation/display/SimulationDisplay2D.h"
 
 Renderer2D::Renderer2D(const int width, const int height) : _width(width), _height(height){
     _txt = new Texture2D(_width, _height, nullptr);
@@ -47,8 +48,20 @@ void Renderer2D::drawField(std::vector<float>& data, ScalField2D& field, const i
     }
 }
 
-void Renderer2D::render(IGrid2D *grid) {
+void Renderer2D::render(void* renderData) {
+    if (!renderData) return;
+    auto* rData = static_cast<SimulationDisplay2D::RenderData2D*>(renderData);
+    auto* grid = rData->grid;
     if (!grid) return;
+
+    if (grid->width() != _width || grid->height() != _height) {
+        delete _txt;
+        _width = grid->width();
+        _height = grid->height();
+        _txt = new Texture2D(_width, _height, nullptr);
+    }
+
+    rData->textureId = _txt->get();
 
     std::vector<float> data(_width * _height * 4);
     /*glm::vec2 max(0);

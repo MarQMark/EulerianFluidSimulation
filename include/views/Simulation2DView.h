@@ -13,16 +13,15 @@ private:
         END
     };
 public:
-    explicit Simulation2DView(ImTextureID textureID, int width, int height);
+    explicit Simulation2DView(unsigned int width, unsigned int height);
 
     void render(void* renderData) override;
 
 private:
     bool _initialized = false;
 
-    ImTextureID _texture_id;
-    int _width;
-    int _height;
+    unsigned int _width;
+    unsigned int _height;
 
     Mode _mode = FORCE;
 

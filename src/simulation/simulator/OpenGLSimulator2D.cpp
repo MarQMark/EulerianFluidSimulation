@@ -10,22 +10,35 @@
 #include "util/Profiler.h"
 
 OpenGLSimulator2D::OpenGLSimulator2D(const unsigned width, const unsigned height) : ISimulator2D(width, height) {
-	_rv_1_adv_gamma = new Shader({{ "assets/shaders/openGL_2D/rv_1_adv_gamma.comp", Shader::COMPUTE }});
-	_rv_2_comp_a = new Shader({{ "assets/shaders/openGL_2D/rv_2_comp_a.comp", Shader::COMPUTE }});
-	_rv_4_comp_beta = new Shader({{ "assets/shaders/openGL_2D/rv_4_comp_beta.comp", Shader::COMPUTE }});
-	_rv_5_fwd_trace = new Shader({{ "assets/shaders/openGL_2D/rv_5_fwd_trace.comp", Shader::COMPUTE }});
-	_rv_6_comp_gamma = new Shader({{ "assets/shaders/openGL_2D/rv_6_comp_gamma.comp", Shader::COMPUTE }});
-	_rv_7_scale_a = new Shader({{ "assets/shaders/openGL_2D/rv_7_scale_a.comp", Shader::COMPUTE }});
-	_rv_9_clamp_beta = new Shader({{ "assets/shaders/openGL_2D/rv_9_clamp_beta.comp", Shader::COMPUTE }});
-	_rv_11_Ap = new Shader({{ "assets/shaders/openGL_2D/rv_11_Ap.comp", Shader::COMPUTE }});
-
-	_add_force = new Shader({{ "assets/shaders/openGL_2D/add_force.comp", Shader::COMPUTE }});
-
-	_vel_pass_1 = new Shader({{ "assets/shaders/openGL_2D/vel_advect_pass1.comp", Shader::COMPUTE }});
-    _vel_pass_2 = new Shader({{ "assets/shaders/openGL_2D/vel_advect_pass2.comp", Shader::COMPUTE }});
-
-	_proj_calc_div = new Shader({{ "assets/shaders/openGL_2D/proj_calc_div.comp", Shader::COMPUTE }});
-    _proj_sub_pg = new Shader({{ "assets/shaders/openGL_2D/proj_sub_pg.comp", Shader::COMPUTE }});
+	_vel_decay			= new Shader({{"assets/shaders/openGL_2D/vel_decay.comp"			, Shader::COMPUTE}});
+	_vel_extrap_init	= new Shader({{"assets/shaders/openGL_2D/vel_extrap_init.comp"		, Shader::COMPUTE}});
+	_vel_extrapolate	= new Shader({{"assets/shaders/openGL_2D/vel_extrapolate.comp"		, Shader::COMPUTE}});
+	_rho_sharpen_calc	= new Shader({{"assets/shaders/openGL_2D/rho_sharpen_calc.comp"		, Shader::COMPUTE}});
+	_rho_sharpen_apply	= new Shader({{"assets/shaders/openGL_2D/rho_sharpen_apply.comp"	, Shader::COMPUTE}});
+	_rho_sharpen_scatter= new Shader({{"assets/shaders/openGL_2D/rho_sharpen_scatter.comp"	, Shader::COMPUTE}});
+	_rho_adv_1			= new Shader({{"assets/shaders/openGL_2D/rho_adv_1.comp"			, Shader::COMPUTE}});
+	_rho_adv_2_3		= new Shader({{"assets/shaders/openGL_2D/rho_adv_2_3.comp"			, Shader::COMPUTE}});
+	_rho_adv_4			= new Shader({{"assets/shaders/openGL_2D/rho_adv_4.comp"			, Shader::COMPUTE}});
+	_rho_adv_5			= new Shader({{"assets/shaders/openGL_2D/rho_adv_5.comp"			, Shader::COMPUTE}});
+	_rho_adv_6_10_bwd	= new Shader({{"assets/shaders/openGL_2D/rho_adv_6_10_bwd.comp"		, Shader::COMPUTE}});
+	_rho_adv_6_10_fwd	= new Shader({{"assets/shaders/openGL_2D/rho_adv_6_10_fwd.comp"		, Shader::COMPUTE}});
+	_rho_adv_7_bwd		= new Shader({{"assets/shaders/openGL_2D/rho_adv_7_bwd.comp"		, Shader::COMPUTE}});
+	_rho_adv_7_fwd		= new Shader({{"assets/shaders/openGL_2D/rho_adv_7_fwd.comp"		, Shader::COMPUTE}});
+	_rho_adv_8_bwd		= new Shader({{"assets/shaders/openGL_2D/rho_adv_8_bwd.comp"		, Shader::COMPUTE}});
+	_rho_adv_8_fwd		= new Shader({{"assets/shaders/openGL_2D/rho_adv_8_fwd.comp"		, Shader::COMPUTE}});
+	_rho_adv_9_bwd		= new Shader({{"assets/shaders/openGL_2D/rho_adv_9_bwd.comp"		, Shader::COMPUTE}});
+	_rho_adv_9_fwd		= new Shader({{"assets/shaders/openGL_2D/rho_adv_9_fwd.comp"		, Shader::COMPUTE}});
+	_rho_adv_11_bwd		= new Shader({{"assets/shaders/openGL_2D/rho_adv_11_bwd.comp"		, Shader::COMPUTE}});
+	_rho_adv_11_fwd		= new Shader({{"assets/shaders/openGL_2D/rho_adv_11_fwd.comp"		, Shader::COMPUTE}});
+	_rho_adv_11_cpy		= new Shader({{"assets/shaders/openGL_2D/rho_adv_11_cpy.comp"		, Shader::COMPUTE}});
+	_rho_adv_12_x		= new Shader({{"assets/shaders/openGL_2D/rho_adv_12_x.comp"			, Shader::COMPUTE}});
+	_rho_adv_12_y		= new Shader({{"assets/shaders/openGL_2D/rho_adv_12_y.comp"			, Shader::COMPUTE}});
+	_add_force			= new Shader({{"assets/shaders/openGL_2D/add_force.comp"			, Shader::COMPUTE}});
+	_vel_adv_pass_1		= new Shader({{"assets/shaders/openGL_2D/vel_adv_pass_1.comp"		, Shader::COMPUTE}});
+	_vel_adv_pass_2		= new Shader({{"assets/shaders/openGL_2D/vel_adv_pass_2.comp"		, Shader::COMPUTE}});
+	_proj_calc_div		= new Shader({{"assets/shaders/openGL_2D/proj_calc_div.comp"		, Shader::COMPUTE}});
+	_proj_sub_pg		= new Shader({{"assets/shaders/openGL_2D/proj_sub_pg.comp"			, Shader::COMPUTE}});
+	_proj_enf_bound		= new Shader({{"assets/shaders/openGL_2D/proj_enf_bound.comp"		, Shader::COMPUTE}});
 
     _grid = new OpenGLGrid2D(width, height);
 
@@ -50,19 +63,35 @@ OpenGLSimulator2D::OpenGLSimulator2D(const unsigned width, const unsigned height
 }
 
 OpenGLSimulator2D::~OpenGLSimulator2D() {
-	delete _rv_1_adv_gamma;
-	delete _rv_2_comp_a;
-	delete _rv_4_comp_beta;
-	delete _rv_5_fwd_trace;
-	delete _rv_6_comp_gamma;
-	delete _rv_7_scale_a;
-	delete _rv_9_clamp_beta;
-	delete _rv_11_Ap;
-    delete _add_force;
-    delete _vel_pass_1;
-    delete _vel_pass_2;
-    delete _proj_calc_div;
-    delete _proj_sub_pg;
+	delete _vel_decay;
+	delete _vel_extrap_init;
+	delete _vel_extrapolate;
+	delete _rho_sharpen_calc;
+	delete _rho_sharpen_apply;
+	delete _rho_sharpen_scatter;
+	delete _rho_adv_1;
+	delete _rho_adv_2_3;
+	delete _rho_adv_4;
+	delete _rho_adv_5;
+	delete _rho_adv_6_10_bwd;
+	delete _rho_adv_6_10_fwd;
+	delete _rho_adv_7_bwd;
+	delete _rho_adv_7_fwd;
+	delete _rho_adv_8_bwd;
+	delete _rho_adv_8_fwd;
+	delete _rho_adv_9_bwd;
+	delete _rho_adv_9_fwd;
+	delete _rho_adv_11_bwd;
+	delete _rho_adv_11_fwd;
+	delete _rho_adv_11_cpy;
+	delete _rho_adv_12_x;
+	delete _rho_adv_12_y;
+	delete _add_force;
+	delete _vel_adv_pass_1;
+	delete _vel_adv_pass_2;
+	delete _proj_calc_div;
+	delete _proj_sub_pg;
+	delete _proj_enf_bound;
 }
 
 void* OpenGLSimulator2D::getRenderData() {
@@ -70,25 +99,34 @@ void* OpenGLSimulator2D::getRenderData() {
 }
 
 void OpenGLSimulator2D::update() {
-	_grid->setDirty();
+	//_grid->setDirty();
     _grid->upload();
 
 	Profiler* profiler = Profiler::Get();
+	profiler->start("0 Vel Decay");
+	if (!PROPERTY_B(DISABLE_VEL_DECAY))			vel_decay();
+	profiler->stop();
+
 	profiler->start("1 Vel Extrapolate");
 	if (!PROPERTY_B(DISABLE_VEL_EXTRAPOLATE))	vel_extrapolate();
 	profiler->stop();
+
 	profiler->start("2 Rho Sharpen");
 	if (!PROPERTY_B(DISABLE_RHO_SHARPEN))		rho_sharpen();
 	profiler->stop();
+
 	profiler->start("3 Rho Advect");
 	if (!PROPERTY_B(DISABLE_RHO_ADVECT))		rho_advect();
 	profiler->stop();
+
 	profiler->start("4 Vel Advect");
 	if (!PROPERTY_B(DISABLE_VEL_ADVECT))		vel_advect();
 	profiler->stop();
+
 	profiler->start("5 Add Force");
 	if (!PROPERTY_B(DISABLE_ADD_FORCE))			add_force();
 	profiler->stop();
+
 	profiler->start("6 Project");
 	if (!PROPERTY_B(DISABLE_PROJECT))			project();
 	profiler->stop();
@@ -96,228 +134,156 @@ void OpenGLSimulator2D::update() {
     _grid->download();
 }
 
-void OpenGLSimulator2D::vel_extrapolate() {
+void OpenGLSimulator2D::vel_decay() const {
+	const unsigned int w = _grid->width();
+	const unsigned int h = _grid->height();
+	const unsigned int gx = (w - 2 + 15) / 16;
+	const unsigned int gy = (h - 2 + 15) / 16;
+
+	_vel_decay->bind();
+	_grid->bindAll();
+	_vel_decay->setUInt("uWidth", w);
+	_vel_decay->setUInt("uHeight", h);
+	_vel_decay->setFloat("uDecay", PROPERTY_F(VEL_DECAY));
+	_vel_decay->dispatch(gx, gy);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
-#define BOUNDARY 1.f
+void OpenGLSimulator2D::vel_extrapolate() {
+	const unsigned int w = _grid->width();
+	const unsigned int h = _grid->height();
+	const unsigned int gx = (w - 2 + 15) / 16;
+	const unsigned int gy = (h - 2 + 15) / 16;
 
-#define LOOP_2D_GRID(x, y, offset)  for (int (y) = offset; (y) < _grid->height() - (offset); (y)++) \
-									for (int (x) = offset; (x) < _grid->width()  - (offset); (x)++)
+	exec_shader(_vel_extrap_init, gx, gy);
+
+	_vel_extrapolate->bind();
+	_vel_extrapolate->setUInt("uWidth", w);
+	_vel_extrapolate->setUInt("uHeight", h);
+	_grid->gpuBoundary().bind(4);
+	for (int i = 0; i < 3; i++) {
+		// Pass 1
+		_grid->gpuVel().bind(0);
+		_grid->gpuNewGamma().bind(1);
+		_grid->gpuTmpVel().bind(2);
+		_grid->gpuBeta().bind(3);
+		_vel_extrapolate->dispatch(gx, gy);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+		// Pass 2
+		_grid->gpuTmpVel().bind(0);
+		_grid->gpuBeta().bind(1);
+		_grid->gpuVel().bind(2);
+		_grid->gpuNewGamma().bind(3);
+		_vel_extrapolate->dispatch(gx, gy);
+		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	}
+}
+
 
 void OpenGLSimulator2D::rho_advect() {
-	const int w = _grid->width();
-	const int h = _grid->height();
-	const int gx = (w - 1 + 15) / 16;
-	const int gy = (h - 1 + 15) / 16;
+	const unsigned int w = _grid->width();
+	const unsigned int h = _grid->height();
+	const unsigned int gxCore = (w - 2 + 15) / 16;
+	const unsigned int gyCore = (h - 2 + 15) / 16;
+	const unsigned int gxFull = (w - 1 + 15) / 16;
+	const unsigned int gyFull = (h - 1 + 15) / 16;
 
-	//################## Step 1 ##################
-	// Advect gamma using backward semi-lagrangian
-	_rv_1_adv_gamma->bind();
-	_grid->gpuNewGamma().bind(0);
-	_grid->gpuGamma().bind(1);
-	_grid->gpuVel().bind(2);
-	_grid->gpuBoundary().bind(3);
-	_rv_1_adv_gamma->setInt("uWidth", w);
-	_rv_1_adv_gamma->setInt("uHeight", h);
-	_rv_1_adv_gamma->setFloat("uDt", PROPERTY_F(DT));
-	_rv_1_adv_gamma->setInt("uSubsteps", 4);
-	_rv_1_adv_gamma->dispatch(gx, gy);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	_grid->clearA();
 
-	//################## Step 2 ##################
-	// Compute A
-	//################## Step 3 ##################
-	// Scale A by gamma
-	_grid->gpuA().clear();
-	_grid->gpuCounts().clear();
-	_rv_2_comp_a->bind();
-	_grid->gpuA().bind(0);
-	_grid->gpuCounts().bind(1);
-	_grid->gpuNewGamma().bind(2);
-	_grid->gpuVel().bind(3);
-	_grid->gpuBoundary().bind(4);
-	_rv_2_comp_a->setInt("uWidth", w);
-	_rv_2_comp_a->setInt("uHeight", h);
-	_rv_2_comp_a->setFloat("uDt", PROPERTY_F(DT));
-	_rv_2_comp_a->setInt("uSubsteps", 4);
-	_rv_2_comp_a->dispatch(gx, gy);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	// (1) Advect gamma using backward semi-lagrangian
+	exec_shader_adv(_rho_adv_1, gxCore, gyCore);
 
-	//################## Step 4 ##################
-	// Compute beta
-	_grid->gpuBeta().clear();
-	_rv_4_comp_beta->bind();
-	_grid->gpuBeta().bind(0);
-	_grid->gpuA().bind(1);
-	_grid->gpuCounts().bind(2);
-	_rv_4_comp_beta->setInt("uWidth", w);
-	_rv_4_comp_beta->setInt("uHeight", h);
-	_rv_4_comp_beta->dispatch(gx, gy);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	// (2) Compute A + (3) Scale A by gamma
+	exec_shader_adv(_rho_adv_2_3, gxCore, gyCore);
 
-	//################## Step 5 ##################
-	// Forward trace the velocity field to add the weights to A for all cells j where beta j < 1
-	// TODO
+	// (4) Compute beta
+	exec_shader(_rho_adv_4, gxFull, gyFull);
 
-	//################## Step 6 ##################
-	// Recompute gamma
-	_grid->gpuGamma().clear();
-	_rv_6_comp_gamma->bind();
-	_grid->gpuGamma().bind(0);
-	_grid->gpuA().bind(1);
-	_grid->gpuCounts().bind(2);
-	_rv_6_comp_gamma->setInt("uWidth", w);
-	_rv_6_comp_gamma->setInt("uHeight", h);
-	_rv_6_comp_gamma->dispatch(gx, gy);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	// (5) forward trace the velocity field to add the weights to A for all cells j where beta j < 1
+	exec_shader_adv(_rho_adv_5, gxCore, gyCore);
 
-	//################## Step 7 ##################
-	// Scale A by gamma
-	_rv_7_scale_a->bind();
-	_grid->gpuGamma().bind(0);
-	_grid->gpuA().bind(1);
-	_grid->gpuCounts().bind(2);
-	_rv_7_scale_a->setInt("uWidth", w);
-	_rv_7_scale_a->setInt("uHeight", h);
-	_rv_7_scale_a->dispatch(gx, gy);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	// (6) Compute gamma
+	exec_shader(_rho_adv_6_10_bwd, gxFull, gyFull);
+	exec_shader(_rho_adv_6_10_fwd, gxFull, gyFull);
 
-	//################## Step 8 ##################
-	// Recompute beta from A
-	_grid->gpuBeta().clear();
-	_rv_4_comp_beta->bind();
-	_grid->gpuBeta().bind(0);
-	_grid->gpuA().bind(1);
-	_grid->gpuCounts().bind(2);
-	_rv_4_comp_beta->setInt("uWidth", w);
-	_rv_4_comp_beta->setInt("uHeight", h);
-	_rv_4_comp_beta->dispatch(gx, gy);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	// (7) Scale A by gamma
+	exec_shader(_rho_adv_7_bwd, gxFull, gyFull);
+	exec_shader(_rho_adv_7_fwd, gxFull, gyFull);
 
-	//################## Step 9 ##################
-	// Clamp beta to 1
-	_rv_9_clamp_beta->bind();
-	_grid->gpuBeta().bind(0);
-	_grid->gpuA().bind(1);
-	_grid->gpuCounts().bind(2);
-	_rv_9_clamp_beta->setInt("uWidth", w);
-	_rv_9_clamp_beta->setInt("uHeight", h);
-	_rv_9_clamp_beta->dispatch(gx, gy);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	// (8) Recompute beta from A; !! Order is important - must call fwd before bwd
+	exec_shader(_rho_adv_8_fwd, gxFull, gyFull);
+	exec_shader(_rho_adv_8_bwd, gxFull, gyFull);
 
-	/*_grid->gpuBeta().clear();
-	_rv_4_comp_beta->bind();
-	_grid->gpuBeta().bind(0);
-	_grid->gpuA().bind(1);
-	_grid->gpuCounts().bind(2);
-	_rv_4_comp_beta->setInt("uWidth", w);
-	_rv_4_comp_beta->setInt("uHeight", h);
-	_rv_4_comp_beta->dispatch(gx, gy);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);*/
+	// (9) Clamp beta to 1
+	exec_shader(_rho_adv_9_bwd, gxFull, gyFull);
+	exec_shader(_rho_adv_9_fwd, gxFull, gyFull);
 
-	//################## Step 10 ##################
-	// Recompute gamma
-	_grid->gpuGamma().clear();
-	_rv_6_comp_gamma->bind();
-	_grid->gpuGamma().bind(0);
-	_grid->gpuA().bind(1);
-	_grid->gpuCounts().bind(2);
-	_rv_6_comp_gamma->setInt("uWidth", w);
-	_rv_6_comp_gamma->setInt("uHeight", h);
-	_rv_6_comp_gamma->dispatch(gx, gy);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	// (6) Compute gamma
+	exec_shader(_rho_adv_6_10_bwd, gxFull, gyFull);
+	exec_shader(_rho_adv_6_10_fwd, gxFull, gyFull);
 
-	//################## Step 11 ##################
-	// Evaluate p_n+1 = A * p
-	_rv_11_Ap->bind();
-	_grid->gpuTmpRho().bind(0);
-	_grid->gpuRho().bind(1);
-	_grid->gpuA().bind(2);
-	_grid->gpuCounts().bind(3);
-	_rv_11_Ap->setInt("uWidth", w);
-	_rv_11_Ap->setInt("uHeight", h);
-	_rv_11_Ap->dispatch(gx, gy);
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-	_grid->gpuTmpRho().download(_grid->rho().data());
-	_grid->gpuRho().upload(_grid->rho().data());
+	// (11) Evaluate p_n+1 = A * p
+	exec_shader(_rho_adv_11_bwd, gxFull, gyFull);
+	exec_shader(_rho_adv_11_fwd, gxFull, gyFull);
+	exec_shader(_rho_adv_11_cpy, gxFull, gyFull);
 
 	//################## Step 12 ##################
-	// Diffusion of rho and gamma
-	/*for (int it = 0; it < 7; it++) {
-		// X-dimension
-		for (int y = 1; y < _grid->height() - 1; y++)
-		for (int x = 2; x < _grid->width()  - 1; x++) {
-			float g_j = gamma(x-1, y);
-			float g_i = gamma(x,   y);
+	// (12) Diffusion of rho and gamma
+	{
+		const unsigned int x_working_width = _grid->width() - 2;
+		const unsigned int gx_x = ( (x_working_width / 2) + 15) / 16;
+		const unsigned int gx_y = ( (_grid->height() - 2) + 15) / 16;
+		const unsigned int y_working_height = _grid->height() - 2;
+		const unsigned int gy_x = ( (_grid->width() - 2)   + 15) / 16;
+		const unsigned int gy_y = ( (y_working_height / 2) + 15) / 16;
 
-			if (boundary(x, y) == BOUNDARY || boundary(x-1, y) == BOUNDARY)
-				continue;
+		for (int it = 0; it < 7; it++) {
+			exec_shader_off(_rho_adv_12_x, gx_x, gx_y, 0);
+			exec_shader_off(_rho_adv_12_x, gx_x, gx_y, 1);
 
-			if (g_j < 1e-5f || g_i < 1e-5f) continue;
-			if (g_j == g_i) continue;
-
-			float avg = (g_j + g_i) / 2.f;
-
-			if (g_j > g_i) {
-				float dif = rho(x-1, y) * (g_j - g_i) / (2.f * g_j);
-				rho(x-1, y) -= dif;
-				rho(x,   y) += dif;
-			} else {
-				float dif = rho(x, y) * (g_i - g_j) / (2.f * g_i);
-				rho(x,   y) -= dif;
-				rho(x-1, y) += dif;
-			}
-
-			gamma(x-1, y) = avg;
-			gamma(x,   y) = avg;
+			exec_shader_off(_rho_adv_12_y, gy_x, gy_y, 0);
+			exec_shader_off(_rho_adv_12_y, gy_x, gy_y, 1);
 		}
-
-		// Y-dimension
-		for (int x = 1; x < _grid->width()  - 1; x++)
-		for (int y = 2; y < _grid->height() - 1; y++) {
-			float g_j = gamma(x, y-1);
-			float g_i = gamma(x, y  );
-
-			if (boundary(x, y) == BOUNDARY || boundary(x, y-1) == BOUNDARY)
-				continue;
-
-			if (g_j < 1e-5f || g_i < 1e-5f) continue;
-			if (g_j == g_i) continue;
-
-			float avg = (g_j + g_i) / 2.f;
-
-			if (g_j > g_i) {
-				float dif = rho(x, y-1) * (g_j - g_i) / (2.f * g_j);
-				rho(x, y-1) -= dif;
-				rho(x, y  ) += dif;
-			} else {
-				float dif = rho(x, y) * (g_i - g_j) / (2.f * g_i);
-				rho(x, y  ) -= dif;
-				rho(x, y-1) += dif;
-			}
-
-			gamma(x, y-1) = avg;
-			gamma(x, y  ) = avg;
-		}
-	}*/
+	}
 }
 
 void OpenGLSimulator2D::rho_sharpen() {
+	const unsigned int w = _grid->width();
+	const unsigned int h = _grid->height();
+	const unsigned int gx = (w - 2 + 15) / 16;
+	const unsigned int gy = (h - 2 + 15) / 16;
+
+	_rho_sharpen_calc->bind();
+	_grid->bindAll();
+	_rho_sharpen_calc->setUInt("uWidth", w);
+	_rho_sharpen_calc->setUInt("uHeight", h);
+	_rho_sharpen_calc->setFloat("uDt", PROPERTY_F(DT) * 3.f);
+	_rho_sharpen_calc->dispatch(gx, gy);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	exec_shader(_rho_sharpen_apply, gx, gy);
+
+	_rho_sharpen_scatter->bind();
+	_grid->bindAll();
+	_rho_sharpen_scatter->setUInt("uWidth", w);
+	_rho_sharpen_scatter->setUInt("uHeight", h);
+	_rho_sharpen_scatter->setFloat("uRhoD", PROPERTY_F(RHO_D));
+	_rho_sharpen_scatter->setUInt("uSubsteps", 10);
+	_rho_sharpen_scatter->dispatch(gx, gy);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void OpenGLSimulator2D::add_force() {
-    const int w = _grid->width();
-    const int h = _grid->height();
-    const int gx = (w - 2 + 15) / 16;
-    const int gy = (h - 2 + 15) / 16;
+    const unsigned int w = _grid->width();
+    const unsigned int h = _grid->height();
+    const unsigned int gx = (w - 2 + 15) / 16;
+    const unsigned int gy = (h - 2 + 15) / 16;
 
     _add_force->bind();
-    _grid->gpuVel().bind(0);
-    _grid->gpuRho().bind(1);
-    _grid->gpuForces().bind(2);
-    _grid->gpuBoundary().bind(3);
-    _add_force->setInt("uWidth", w);
-    _add_force->setInt("uHeight", h);
+    _grid->bindAll();
+    _add_force->setUInt("uWidth", w);
+    _add_force->setUInt("uHeight", h);
     _add_force->setFloat("uDt", PROPERTY_F(DT));
     _add_force->setFloat("uGravity", PROPERTY_B(GRAVITY_ENABLED) ? PROPERTY_F(GRAVITY_FORCE) : 0.f);
     _add_force->dispatch(gx, gy);
@@ -325,48 +291,32 @@ void OpenGLSimulator2D::add_force() {
 }
 
 void OpenGLSimulator2D::vel_advect() {
-    const int w = _grid->width();
-    const int h = _grid->height();
-    const int gx = (w - 2 + 15) / 16;
-    const int gy = (h - 2 + 15) / 16;
+    const unsigned int w = _grid->width();
+    const unsigned int h = _grid->height();
+    const unsigned int gx = (w - 2 + 15) / 16;
+    const unsigned int gy = (h - 2 + 15) / 16;
 
-    _vel_pass_1->bind();
-    _grid->gpuVel().bind(0);
-    _grid->gpuTmpVel().bind(1);
-    _grid->gpuBoundary().bind(2);
-    _vel_pass_1->setInt("uWidth", w);
-    _vel_pass_1->setInt("uHeight", h);
-    _vel_pass_1->setFloat("uDt", PROPERTY_F(DT));
-    _vel_pass_1->setInt("uSubsteps", 4);
-    _vel_pass_1->dispatch(gx, gy);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-    _vel_pass_2->bind();
-    _grid->gpuVel().bind(0);
-    _grid->gpuTmpVel().bind(1);
-    _grid->gpuBoundary().bind(2);
-    _vel_pass_2->setInt("uWidth", w);
-    _vel_pass_2->setInt("uHeight", h);
-    _vel_pass_2->dispatch(gx, gy);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	exec_shader_adv(_vel_adv_pass_1, gx, gy);
+	exec_shader(_vel_adv_pass_2, gx, gy);
 }
 
-void OpenGLSimulator2D::diffuse() {
-}
+void OpenGLSimulator2D::diffuse() {}
 
 void OpenGLSimulator2D::project() {
-    const int w = _grid->width();
-    const int h = _grid->height();
-    const int gx = (w - 2 + 15) / 16;
-    const int gy = (h - 2 + 15) / 16;
+    const unsigned int w = _grid->width();
+    const unsigned int h = _grid->height();
+    const unsigned int gx = (w - 2 + 15) / 16;
+    const unsigned int gy = (h - 2 + 15) / 16;
+
+	_grid->gpuDivergence().clear();
+	_grid->gpuPressure().clear();
+
+	exec_shader(_proj_enf_bound, gx, gy);
 
     _proj_calc_div->bind();
-    _grid->gpuDivergence().bind(0);
-    _grid->gpuVel().bind(1);
-    _grid->gpuRho().bind(2);
-    _grid->gpuBoundary().bind(3);
-    _proj_calc_div->setInt("uWidth", w);
-    _proj_calc_div->setInt("uHeight", h);
+    _grid->bindAll();
+    _proj_calc_div->setUInt("uWidth", w);
+    _proj_calc_div->setUInt("uHeight", h);
     _proj_calc_div->setFloat("uLambdaP", PROPERTY_F(LAMBDA_PLUS));
     _proj_calc_div->setFloat("uLambdaM", PROPERTY_F(LAMBDA_MINUS));
     _proj_calc_div->setFloat("uEta", PROPERTY_F(ETA));
@@ -380,12 +330,37 @@ void OpenGLSimulator2D::project() {
         return;
     }
 
-    _proj_sub_pg->bind();
-    _grid->gpuVel().bind(0);
-    _grid->gpuPressure().bind(1);
-    _grid->gpuBoundary().bind(2);
-    _proj_sub_pg->setInt("uWidth", w);
-    _proj_sub_pg->setInt("uHeight", h);
-    _proj_sub_pg->dispatch(gx, gy);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	exec_shader(_proj_sub_pg, gx, gy);
+
+	exec_shader(_proj_enf_bound, gx, gy);
+}
+
+void OpenGLSimulator2D::exec_shader(const Shader *shader, const unsigned int gx, const unsigned int gy) const {
+	shader->bind();
+	_grid->bindAll();
+	shader->setUInt("uWidth", _grid->width());
+	shader->setUInt("uHeight", _grid->height());
+	shader->dispatch(gx, gy);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+}
+
+void OpenGLSimulator2D::exec_shader_adv(const Shader *shader, const unsigned int gx, const unsigned int gy) const {
+	shader->bind();
+	_grid->bindAll();
+	shader->setUInt("uWidth", _grid->width());
+	shader->setUInt("uHeight", _grid->height());
+	shader->setFloat("uDt", PROPERTY_F(DT));
+	shader->setInt("uSubsteps", 4);
+	shader->dispatch(gx, gy);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+}
+
+void OpenGLSimulator2D::exec_shader_off(const Shader *shader, const unsigned int gx, const unsigned int gy, const unsigned int offset) const {
+	shader->bind();
+	_grid->bindAll();
+	shader->setUInt("uWidth", _grid->width());
+	shader->setUInt("uHeight", _grid->height());
+	shader->setUInt("uOffset", offset);
+	shader->dispatch(gx, gy);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }

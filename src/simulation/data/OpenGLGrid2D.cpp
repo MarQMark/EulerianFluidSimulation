@@ -1,5 +1,7 @@
 #include "simulation/data/OpenGLGrid2D.h"
 
+#include <algorithm>
+
 #include "glm/vec2.hpp"
 #include "simulation/Properties.h"
 #include "simulation/data/ScalField2D.h"
@@ -17,8 +19,10 @@ OpenGLGrid2D::OpenGLGrid2D(const unsigned width, const unsigned height) : IGrid2
     _gpu_gamma      = new StorageBuffer(_size * sizeof(float));
     _gpu_new_gamma  = new StorageBuffer(_size * sizeof(float));
     _gpu_beta       = new StorageBuffer(_size * sizeof(float));
-    _gpu_A          = new StorageBuffer(_size * sizeof(AdvCell) * 8); // 4 backward trace + 4 forward trace
-    _gpu_counts     = new StorageBuffer(_size * sizeof(unsigned int));
+    _gpu_A_bwd      = new StorageBuffer(_size * sizeof(AdvCell) * 4);
+    _gpu_A_fwd      = new StorageBuffer(_size * sizeof(AdvCell) * 4);
+    _gpu_counts_bwd = new StorageBuffer(_size * sizeof(unsigned int));
+    _gpu_counts_fwd = new StorageBuffer(_size * sizeof(unsigned int));
 
     _gpu_divergence = new StorageBuffer(_size * sizeof(float));
     _gpu_pressure   = new StorageBuffer(_size * sizeof(float));
@@ -88,8 +92,10 @@ OpenGLGrid2D::~OpenGLGrid2D() {
     delete _gpu_gamma;
     delete _gpu_new_gamma;
     delete _gpu_beta;
-    delete _gpu_A;
-    delete _gpu_counts;
+    delete _gpu_A_bwd;
+    delete _gpu_A_fwd;
+    delete _gpu_counts_bwd;
+    delete _gpu_counts_fwd;
     delete _gpu_divergence;
     delete _gpu_pressure;
     delete _gpu_forces;
@@ -149,12 +155,36 @@ StorageBuffer & OpenGLGrid2D::gpuTmpRho() const { return *_gpu_tmp_rho; }
 StorageBuffer & OpenGLGrid2D::gpuGamma() const { return *_gpu_gamma; }
 StorageBuffer & OpenGLGrid2D::gpuNewGamma() const { return *_gpu_new_gamma; }
 StorageBuffer & OpenGLGrid2D::gpuBeta() const { return *_gpu_beta; }
-StorageBuffer & OpenGLGrid2D::gpuA() const { return *_gpu_A; }
-StorageBuffer & OpenGLGrid2D::gpuCounts() const { return *_gpu_counts; }
 StorageBuffer & OpenGLGrid2D::gpuDivergence() const { return *_gpu_divergence; }
 StorageBuffer & OpenGLGrid2D::gpuPressure() const { return *_gpu_pressure; }
 StorageBuffer & OpenGLGrid2D::gpuForces() const { return *_gpu_forces; }
 StorageBuffer & OpenGLGrid2D::gpuBoundary() const { return *_gpu_boundary;}
+
+void OpenGLGrid2D::bindAll() const {
+    _gpu_vel       ->bind(0);
+    _gpu_tmp_vel   ->bind(1);
+    _gpu_rho       ->bind(2);
+    _gpu_tmp_rho   ->bind(3);
+    _gpu_gamma     ->bind(4);
+    _gpu_new_gamma ->bind(5);
+    _gpu_beta      ->bind(6);
+    _gpu_A_bwd     ->bind(7);
+    _gpu_A_fwd     ->bind(8);
+    _gpu_counts_bwd->bind(9);
+    _gpu_counts_fwd->bind(10);
+    _gpu_divergence->bind(11);
+    _gpu_pressure  ->bind(12);
+    _gpu_forces    ->bind(13);
+    _gpu_boundary  ->bind(14);
+}
+
+void OpenGLGrid2D::clearA() const {
+    _gpu_beta->clear();
+    _gpu_A_bwd->clear();
+    _gpu_A_fwd->clear();
+    _gpu_counts_bwd->clear();
+    _gpu_counts_fwd->clear();
+}
 
 void OpenGLGrid2D::upload() const {
     _gpu_vel->upload(_vel->data());

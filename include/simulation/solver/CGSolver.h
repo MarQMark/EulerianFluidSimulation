@@ -25,7 +25,7 @@ private:
 
 class CGSolverOpenGL2D final : public ISolverOpenGL2D {
 public:
-    CGSolverOpenGL2D(int width, int height);
+    CGSolverOpenGL2D(unsigned int width, unsigned int height);
     ~CGSolverOpenGL2D() override;
 
     float solve(IGrid2D* grid) override;

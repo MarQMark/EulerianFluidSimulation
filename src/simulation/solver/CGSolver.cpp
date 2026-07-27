@@ -110,7 +110,8 @@ void CGSolverCPU2D::impl_mat_mul(ScalField2D &result, const ScalField2D &x,
     }
 }
 
-CGSolverOpenGL2D::CGSolverOpenGL2D(const int width, const int height) : ISolverOpenGL2D(width, height){
+CGSolverOpenGL2D::CGSolverOpenGL2D(const unsigned int width, unsigned const int height)
+    : ISolverOpenGL2D(width, height){
     _shader_as  = new Shader({{"assets/shaders/openGL_CG/cg_add_scaled.comp", Shader::COMPUTE }});
     _shader_mm  = new Shader({{"assets/shaders/openGL_CG/cg_mat_mul.comp", Shader::COMPUTE }});
     _shader_ss  = new Shader({{"assets/shaders/openGL_CG/cg_set_subtract.comp", Shader::COMPUTE }});

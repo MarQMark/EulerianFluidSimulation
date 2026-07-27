@@ -5,13 +5,14 @@
 #include "simulation/data/ScalField2D.h"
 
 class Texture2D;
+class RenderData2D;
 
 class Renderer2D {
 public:
     Renderer2D(int width, int height);
     ~Renderer2D();
 
-    void render(IGrid2D* grid);
+    void render(void* renderData);
 
     Texture2D* getTexture2D() const;
 

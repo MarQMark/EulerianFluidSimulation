@@ -34,11 +34,12 @@ public:
     void bind() const;
     void unbind() const;
 
-    void dispatch(int gx, int gy = 1, int gz = 1) const;
+    void dispatch(unsigned int gx, unsigned int gy = 1, unsigned int gz = 1) const;
 
     // --- Uniforms ---
     void setFloat(const std::string& name, float value) const;
     void setInt(const std::string& name, int value) const;
+    void setUInt(const std::string &name, unsigned int value) const;
     void setBool(const std::string& name, bool value) const;
     void setMat4(const std::string& name, const glm::mat4& value) const;
     void setVec2(const std::string& name, const glm::vec2& value) const;

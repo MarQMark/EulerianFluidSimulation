@@ -30,12 +30,13 @@ public:
     StorageBuffer& gpuGamma() const;
     StorageBuffer& gpuNewGamma() const;
     StorageBuffer& gpuBeta() const;
-    StorageBuffer& gpuA() const;
-    StorageBuffer& gpuCounts() const;
     StorageBuffer& gpuDivergence() const;
     StorageBuffer& gpuPressure() const;
     StorageBuffer& gpuForces() const;
     StorageBuffer& gpuBoundary() const;
+
+    void bindAll() const;
+    void clearA() const;
 
 private:
     StorageBuffer* _gpu_vel{};
@@ -45,8 +46,10 @@ private:
     StorageBuffer* _gpu_gamma{};
     StorageBuffer* _gpu_new_gamma{};
     StorageBuffer* _gpu_beta{};
-    StorageBuffer* _gpu_A{};
-    StorageBuffer* _gpu_counts{};
+    StorageBuffer* _gpu_A_bwd{};
+    StorageBuffer* _gpu_A_fwd{};
+    StorageBuffer* _gpu_counts_bwd{};
+    StorageBuffer* _gpu_counts_fwd{};
     StorageBuffer* _gpu_divergence{};
     StorageBuffer* _gpu_pressure{};
     StorageBuffer* _gpu_forces{};
