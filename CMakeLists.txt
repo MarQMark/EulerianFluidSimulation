@@ -57,8 +57,16 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
 find_package(CUDAToolkit QUIET)
 if(CUDAToolkit_FOUND)
+    message(STATUS "Cuda available")
+    enable_language(CUDA)
+
 #    set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
-    set(CMAKE_CUDA_ARCHITECTURES 61 75 80)
+    message(STATUS "nvcc version: ${CMAKE_CUDA_COMPILER_VERSION}")
+    if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 13.0)
+        set(CMAKE_CUDA_ARCHITECTURES 61 75 80)
+    else()
+        set(CMAKE_CUDA_ARCHITECTURES 75 80)
+    endif()
 
     file(GLOB_RECURSE CUDA_SOURCES CONFIGURE_DEPENDS "src/*.cu")
 endif()
@@ -67,9 +75,6 @@ add_executable(EulerianFluidSimulation ${SOURCES} ${CUDA_SOURCES})
 
 
 if(CUDAToolkit_FOUND)
-    message(STATUS "Cuda available")
-
-    enable_language(CUDA)
 
     target_compile_definitions(EulerianFluidSimulation PRIVATE HAS_CUDA)
     target_compile_options(EulerianFluidSimulation PRIVATE
