@@ -59,6 +59,8 @@ private:
     bool isCompute = false;
 
     std::unordered_map<Type, std::string> sources;
+
+    int get_location(const std::string& name) const;
 };
 
 #endif //FLUIDSIMSPH_SHADER_H

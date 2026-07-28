@@ -173,36 +173,44 @@ void Shader::dispatch(const unsigned int gx, const unsigned int gy, const unsign
     glDispatchCompute(gx, gy, gz);
 }
 
+
+int Shader::get_location(const std::string &name) const {
+    const int loc = glGetUniformLocation(shader, name.c_str());
+    //if (loc == -1)
+    //    LOG_WARN("uniform " + name + " not found");
+    return loc;
+}
+
 void Shader::setFloat(const std::string& name, const float value) const {
-    glUniform1f(glGetUniformLocation(shader, name.c_str()), value);
+    glUniform1f(get_location(name), value);
 }
 
 void Shader::setInt(const std::string& name, const int value) const {
-    glUniform1i(glGetUniformLocation(shader, name.c_str()), value);
+    glUniform1i(get_location(name), value);
 }
 
 void Shader::setUInt(const std::string& name, const unsigned int value) const {
-    glUniform1ui(glGetUniformLocation(shader, name.c_str()), value);
+    glUniform1ui(get_location(name), value);
 }
 
 void Shader::setBool(const std::string& name, const bool value) const {
-    glUniform1i(glGetUniformLocation(shader, name.c_str()), value);
+    glUniform1i(get_location(name), value);
 }
 
 void Shader::setMat4(const std::string& name, const glm::mat4& value) const {
-    glUniformMatrix4fv(glGetUniformLocation(shader, name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
+    glUniformMatrix4fv(get_location(name), 1, GL_FALSE, glm::value_ptr(value));
 }
 
 void Shader::setVec2(const std::string& name, const glm::vec2& value) const {
-    glUniform2fv(glGetUniformLocation(shader, name.c_str()), 1, glm::value_ptr(value));
+    glUniform2fv(get_location(name), 1, glm::value_ptr(value));
 }
 
 void Shader::setVec3(const std::string& name, const glm::vec3& value) const {
-    glUniform3fv(glGetUniformLocation(shader, name.c_str()), 1, glm::value_ptr(value));
+    glUniform3fv(get_location(name), 1, glm::value_ptr(value));
 }
 
 void Shader::setVec4(const std::string& name, const glm::vec4& value) const {
-    glUniform4fv(glGetUniformLocation(shader, name.c_str()), 1, glm::value_ptr(value));
+    glUniform4fv(get_location(name), 1, glm::value_ptr(value));
 }
 
 GLuint Shader::getId() const {
