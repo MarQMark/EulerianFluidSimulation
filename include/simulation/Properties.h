@@ -403,6 +403,7 @@ public:
         OPENGL_2D,
         END_2D_SIMULATIONS = OPENGL_2D,
         CPU_3D,
+        OPENGL_3D,
 #ifdef HAS_CUDA
         CUDA_3D,
 #endif

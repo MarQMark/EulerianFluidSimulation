@@ -4,7 +4,7 @@
 
 #include "simulation/scene/nodes/QueryNode.h"
 #include <cuda_runtime_api.h>
-#include <c++/16/fstream>
+#include <fstream>
 #include <cub/device/device_reduce.cuh>
 #include "util/Logger.h"
 

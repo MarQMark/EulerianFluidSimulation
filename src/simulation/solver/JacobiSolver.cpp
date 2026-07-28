@@ -3,6 +3,7 @@
 #include "simulation/data/Grid2D.h"
 #include "simulation/Properties.h"
 #include "simulation/data/OpenGLGrid2D.h"
+#include "simulation/data/OpenGLGrid3D.h"
 #include "simulation/data/ScalField3D.h"
 
 JacobiSolverCPU2D::JacobiSolverCPU2D(const unsigned int width, const unsigned int height)
@@ -102,8 +103,8 @@ void JacobiSolverCPU2D::impl_mat_mul(ScalField2D &result, const ScalField2D &x, 
 
 JacobiSolverOpenGL2D::JacobiSolverOpenGL2D(const unsigned int width, const unsigned int height)
     : ISolverOpenGL2D(width, height){
-    _shader_jp  = new Shader({{"assets/shaders/jacobi_pass.comp", Shader::COMPUTE }});
-    _gpu_tmp = new StorageBuffer(width * height * sizeof(float));
+    _shader_jp  = new Shader({{"assets/shaders/jacobi_pass_2D.comp", Shader::COMPUTE }});
+    _gpu_tmp = new StorageBuffer(_size * sizeof(float));
 }
 
 JacobiSolverOpenGL2D::~JacobiSolverOpenGL2D() {
@@ -243,4 +244,47 @@ void JacobiSolverCPU3D::impl_mat_mul(ScalField3D &result, const ScalField3D &x, 
         // (Ap)_i = Σ x_neighbors − nCount * x_i  (discrete Laplacian row)
         result(x_, y, z) = nCount > 0 ? sum - (float)nCount * x(x_, y, z) : 0.0f;
     }
+}
+
+JacobiSolverOpenGL3D::JacobiSolverOpenGL3D(const unsigned int width, const unsigned int height, const unsigned int depth)
+    : ISolverOpenGL3D(width, height, depth) {
+    _shader_jp  = new Shader({{"assets/shaders/jacobi_pass_3D.comp", Shader::COMPUTE }});
+    _gpu_tmp = new StorageBuffer(_size * sizeof(float));
+}
+
+JacobiSolverOpenGL3D::~JacobiSolverOpenGL3D() {
+    delete _shader_jp;
+    delete _gpu_tmp;
+}
+
+float JacobiSolverOpenGL3D::solve(IGrid3D *_grid) {
+    const auto* grid = dynamic_cast<OpenGLGrid3D*>(_grid);
+    if (!grid) return 0;
+
+    const int iter = PROPERTY_I(MAX_STEPS);
+
+    const unsigned int gx2d = (grid->width()  + 7) / 8;
+    const unsigned int gy2d = (grid->height() + 7) / 8;
+    const unsigned int gz2d = (grid->depth()  + 7) / 8;
+
+    auto gpu_jacobi_pass = [&](const StorageBuffer& x1, const StorageBuffer& x0) {
+        _shader_jp->bind();
+        x1.bind(0);
+        x0.bind(1);
+        grid->gpuDivergence().bind(2);
+        grid->gpuRho().bind(3);
+        grid->gpuBoundary().bind(4);
+        _shader_jp->setInt("uWidth",  (int)grid->width());
+        _shader_jp->setInt("uHeight", (int)grid->height());
+        _shader_jp->setInt("uDepth",  (int)grid->depth());
+        _shader_jp->dispatch(gx2d, gy2d, gz2d);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    };
+
+    for (int i = 0; i < iter; i++) {
+        gpu_jacobi_pass(*_gpu_tmp, grid->gpuPressure());
+        gpu_jacobi_pass(grid->gpuPressure(), *_gpu_tmp);
+    }
+
+    return 0;
 }

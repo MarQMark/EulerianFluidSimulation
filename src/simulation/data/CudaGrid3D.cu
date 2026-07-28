@@ -267,4 +267,4 @@ void CudaGrid3D::clearProj() const {
     cudaMemset(_cuda_data.divergence, 0,_size * sizeof(float));
 }
 
-#undef LOOP_2D
+#undef LOOP_3D

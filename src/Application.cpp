@@ -6,6 +6,7 @@
 #include "simulation/simulator/CPUSimulator2D.h"
 #include "simulation/simulator/CPUSimulator3D.h"
 #include "simulation/simulator/OpenGLSimulator2D.h"
+#include "simulation/simulator/OpenGLSimulator3D.h"
 #include "util/Time.h"
 #include "views/DistributionView.h"
 #include "views/FPSView.h"
@@ -110,6 +111,17 @@ void Application::rebuild() {
             _display = new SimulationDisplay2D(WIDTH, HEIGHT);
             break;
         }
+    	case Properties::OPENGL_3D:
+        {
+        	_display = new SimulationDisplay3D(_window);
+
+        	const int WIDTH	 = PROPERTY_I(WIDTH_3D);
+        	const int HEIGHT = PROPERTY_I(HEIGHT_3D);
+        	const int DEPTH	 = PROPERTY_I(DEPTH_3D);
+
+        	_simulator = new OpenGLSimulator3D(WIDTH, HEIGHT, DEPTH);
+        	break;
+        }
         case Properties::CPU_3D:
         {
             _display = new SimulationDisplay3D(_window);
@@ -172,6 +184,15 @@ void Application::reset() {
 			const int HEIGHT = PROPERTY_I(HEIGHT_2D);
 
 			_simulator = new OpenGLSimulator2D(WIDTH, HEIGHT);
+			break;
+		}
+		case Properties::OPENGL_3D:
+		{
+			const int WIDTH	 = PROPERTY_I(WIDTH_3D);
+			const int HEIGHT = PROPERTY_I(HEIGHT_3D);
+			const int DEPTH	 = PROPERTY_I(DEPTH_3D);
+
+			_simulator = new OpenGLSimulator3D(WIDTH, HEIGHT, DEPTH);
 			break;
 		}
 		case Properties::CPU_3D:

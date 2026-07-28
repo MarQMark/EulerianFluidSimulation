@@ -159,6 +159,10 @@ void Views::render_menubar() {
                     SET_PROPERTY(SIMULATION_TYPE, Properties::OPENGL_2D, Properties::SimulatorType);
                     SET_PROPERTY_B(SIMULATION_REBUILD, true);
                 }
+                if (ImGui::MenuItem("OpenGL 3D")) {
+                    SET_PROPERTY(SIMULATION_TYPE, Properties::OPENGL_3D, Properties::SimulatorType);
+                    SET_PROPERTY_B(SIMULATION_REBUILD, true);
+                }
 #ifdef HAS_CUDA
                 const bool cudaEnabled = PROPERTY_B(CUDA_ENABLED);
                 if (!cudaEnabled) ImGui::BeginDisabled();
@@ -193,11 +197,14 @@ void Views::render_menubar() {
             case Properties::CPU_2D:
                 simTitle = "CPU 2D";
                 break;
+            case Properties::CPU_3D:
+                simTitle = "CPU 3D";
+                break;
             case Properties::OPENGL_2D:
                 simTitle = "OpenGL 2D";
                 break;
-            case Properties::CPU_3D:
-                simTitle = "CPU 3D";
+            case Properties::OPENGL_3D:
+                simTitle = "OpenGL 3D";
                 break;
 #ifdef HAS_CUDA
             case Properties::CUDA_2D:

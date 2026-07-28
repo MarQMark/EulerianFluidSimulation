@@ -7,8 +7,6 @@
 #include "simulation/display/SimulationDisplay2D.h"
 #include "simulation/solver/ISolver.h"
 
-class SimulationDisplay2D;
-
 class OpenGLSimulator2D final : public ISimulator2D {
 public:
     OpenGLSimulator2D(unsigned width, unsigned height);

@@ -17,7 +17,6 @@ StorageBuffer::~StorageBuffer() {
 }
 
 void StorageBuffer::bind(const int point) const {
-    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _id);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, point, _id);
 }
 

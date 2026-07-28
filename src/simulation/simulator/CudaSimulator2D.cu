@@ -75,6 +75,7 @@ CudaSimulator2D::CudaSimulator2D(const unsigned width, const unsigned height) : 
 CudaSimulator2D::~CudaSimulator2D() {
     delete _grid;
     delete _solver;
+	delete _data;
 }
 
 void* CudaSimulator2D::getRenderData() {

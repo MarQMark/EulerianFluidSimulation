@@ -51,5 +51,10 @@ public:
     ISolverCPU3D(const unsigned int width, const unsigned int height, const unsigned int depth)
         : ISolver3D(width, height, depth) {}
 };
+class ISolverOpenGL3D : public ISolver3D {
+protected:
+    ISolverOpenGL3D(const unsigned int width, const unsigned int height, const unsigned int depth)
+        : ISolver3D(width, height, depth) {}
+};
 
 #endif //EULERIANFLUIDSIMULATION_ISOLVER_H

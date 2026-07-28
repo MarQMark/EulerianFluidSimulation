@@ -43,4 +43,16 @@ private:
     void impl_mat_mul(ScalField3D& result, const ScalField3D& x, const ScalField3D& rho, const ScalField3D& boundary) const;
 };
 
+class JacobiSolverOpenGL3D final : public ISolverOpenGL3D {
+public:
+    JacobiSolverOpenGL3D(unsigned int width, unsigned int height, unsigned int depth);
+    ~JacobiSolverOpenGL3D() override;
+
+    float solve(IGrid3D *grid) override;
+
+private:
+    Shader* _shader_jp{};
+    StorageBuffer* _gpu_tmp{};
+};
+
 #endif //EULERIANFLUIDSIMULATION_JACOBISOLVER_H

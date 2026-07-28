@@ -92,6 +92,10 @@ OpenGLSimulator2D::~OpenGLSimulator2D() {
 	delete _proj_calc_div;
 	delete _proj_sub_pg;
 	delete _proj_enf_bound;
+
+	delete _solver;
+	delete _grid;
+	delete _data;
 }
 
 void* OpenGLSimulator2D::getRenderData() {

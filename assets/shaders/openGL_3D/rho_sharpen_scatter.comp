@@ -1,0 +1,159 @@
+#version 430
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+struct AdvCell { uint j; float val; };
+
+layout(std430, binding = 0)            buffer BufVel        { vec4    vel[];        };
+layout(std430, binding = 1)            buffer BufVelTmp     { vec4    tmpVel[];     };
+layout(std430, binding = 2)            buffer BufRho        { uint    rho[];        };
+layout(std430, binding = 3)            buffer BufRhoTmp     { float   tmpRho[];     };
+layout(std430, binding = 4)            buffer BufGamma      { float   gamma[];      };
+layout(std430, binding = 5)            buffer BufNewGamma   { float   delRho[];     };
+layout(std430, binding = 6)            buffer BufBeta       { float   beta[];       };
+layout(std430, binding = 7)            buffer BufABwd       { AdvCell ABwd[];       };
+layout(std430, binding = 8)            buffer BufAFwd       { AdvCell AFwd[];       };
+layout(std430, binding = 9)            buffer BufCountsBwd  { uint    countsBwd[];  };
+layout(std430, binding = 10)           buffer BufCountsFwd  { uint    countsFwd[];  };
+layout(std430, binding = 11) writeonly buffer BufDivergence { float   divergence[]; };
+layout(std430, binding = 12) readonly  buffer BufPressure   { float   pressure[];   };
+layout(std430, binding = 13) readonly  buffer BufForces     { vec4    forces[];     };
+layout(std430, binding = 14) readonly  buffer BufBoundary   { float   boundary[];   };
+
+uniform uint uWidth;
+uniform uint uHeight;
+uniform uint uDepth;
+uint idx(uint x, uint y, uint z) { return z * uWidth * uHeight + y * uWidth + x; }
+
+uniform float uRhoD;
+uniform uint uSubsteps;
+
+float sampleRho(vec3 pos) {
+    vec3 p = pos - vec3(0.5);
+
+    ivec3 i0 = ivec3(floor(p));
+    ivec3 i1 = i0 + ivec3(1);
+
+    ivec3 maxIdx = ivec3(int(uWidth) - 1, int(uHeight) - 1, int(uDepth) - 1);
+    i0 = clamp(i0, ivec3(0), maxIdx);
+    i1 = clamp(i1, ivec3(0), maxIdx);
+
+    vec3 t = fract(p);
+
+    float c00 = mix(rho[idx(i0.x, i0.y, i0.z)], rho[idx(i1.x, i0.y, i0.z)], t.x);
+    float c10 = mix(rho[idx(i0.x, i1.y, i0.z)], rho[idx(i1.x, i1.y, i0.z)], t.x);
+    float c01 = mix(rho[idx(i0.x, i0.y, i1.z)], rho[idx(i1.x, i0.y, i1.z)], t.x);
+    float c11 = mix(rho[idx(i0.x, i1.y, i1.z)], rho[idx(i1.x, i1.y, i1.z)], t.x);
+
+    float c0 = mix(c00, c10, t.y);
+    float c1 = mix(c01, c11, t.y);
+
+    return mix(c0, c1, t.z);
+}
+
+vec3 traceAlongField(vec3 pos) {
+    const float stepSize = uRhoD / float(uSubsteps);
+
+    for (int s = 0; s < uSubsteps; s++) {
+    if (sampleRho(pos) >= 0.5f)
+        break;
+
+    const uint ix = max(1u, min(uint(pos.x), uWidth  - 2u));
+    const uint iy = max(1u, min(uint(pos.y), uHeight - 2u));
+    const uint iz = max(1u, min(uint(pos.z), uDepth  - 2u));
+
+    vec3 grad = vec3(
+        rho[idx(ix+1, iy,   iz  )] - rho[idx(ix-1, iy,   iz  )],
+        rho[idx(ix,   iy+1, iz  )] - rho[idx(ix,   iy-1, iz  )],
+        rho[idx(ix,   iy,   iz+1)] - rho[idx(ix,   iy,   iz-1)]
+    );
+    const float len = sqrt(grad.x*grad.x + grad.y*grad.y + grad.z*grad.z);
+    if (len < 1e-6f)
+        break;
+
+    vec3 next = pos + (grad / len) * stepSize;
+    next.x = clamp(next.x, 1.f, float(uWidth)  - 2.f);
+    next.y = clamp(next.y, 1.f, float(uHeight) - 2.f);
+    next.z = clamp(next.z, 1.f, float(uDepth)  - 2.f);
+
+    if (boundary[idx(uint(next.x), uint(next.y), uint(next.z))] > 0.5f)
+        break;
+        pos = next;
+    }
+
+    return pos;
+}
+
+void atomicAddFloat(uint index, float val) {
+    uint assumed;
+    uint oldVal = rho[index];
+
+    do {
+        assumed = oldVal;
+        float currentVal = uintBitsToFloat(assumed);
+        uint newVal = floatBitsToUint(currentVal + val);
+        oldVal = atomicCompSwap(rho[index], assumed, newVal);
+
+    } while (assumed != oldVal);
+}
+
+void scatterRho(const vec3 pos, const float value) {
+    const uint x0 = max(0u, min(uint(pos.x),      uWidth  - 1u));
+    const uint y0 = max(0u, min(uint(pos.y),      uHeight - 1u));
+    const uint z0 = max(0u, min(uint(pos.z),      uDepth  - 1u));
+    const uint x1 = max(0u, min(uint(pos.x) + 1u, uWidth  - 1u));
+    const uint y1 = max(0u, min(uint(pos.y) + 1u, uHeight - 1u));
+    const uint z1 = max(0u, min(uint(pos.z) + 1u, uDepth  - 1u));
+
+    const float fx = pos.x - floor(pos.x);
+    const float fy = pos.y - floor(pos.y);
+    const float fz = pos.z - floor(pos.z);
+
+    float w000 = (1.f-fx) * (1.f-fy) * (1.f-fz);
+    float w100 =      fx  * (1.f-fy) * (1.f-fz);
+    float w010 = (1.f-fx) *      fy  * (1.f-fz);
+    float w110 =      fx  *      fy  * (1.f-fz);
+    float w001 = (1.f-fx) * (1.f-fy) *      fz;
+    float w101 =      fx  * (1.f-fy) *      fz;
+    float w011 = (1.f-fx) *      fy  *      fz;
+    float w111 =      fx  *      fy  *      fz;
+
+    if (boundary[idx(x0, y0, z0)] > 0.5f) w000 = 0.f;
+    if (boundary[idx(x1, y0, z0)] > 0.5f) w100 = 0.f;
+    if (boundary[idx(x0, y1, z0)] > 0.5f) w010 = 0.f;
+    if (boundary[idx(x1, y1, z0)] > 0.5f) w110 = 0.f;
+    if (boundary[idx(x0, y0, z1)] > 0.5f) w001 = 0.f;
+    if (boundary[idx(x1, y0, z1)] > 0.5f) w101 = 0.f;
+    if (boundary[idx(x0, y1, z1)] > 0.5f) w011 = 0.f;
+    if (boundary[idx(x1, y1, z1)] > 0.5f) w111 = 0.f;
+
+    const float total = w000 + w100 + w010 + w110 + w001 + w101 + w011 + w111;
+    if (total < 1e-6f)
+    return;
+    const float inv = 1.f / total;
+
+    atomicAddFloat(idx(x0, y0, z0), value * w000 * inv);
+    atomicAddFloat(idx(x1, y0, z0), value * w100 * inv);
+    atomicAddFloat(idx(x0, y1, z0), value * w010 * inv);
+    atomicAddFloat(idx(x1, y1, z0), value * w110 * inv);
+    atomicAddFloat(idx(x0, y0, z1), value * w001 * inv);
+    atomicAddFloat(idx(x1, y0, z1), value * w101 * inv);
+    atomicAddFloat(idx(x0, y1, z1), value * w011 * inv);
+    atomicAddFloat(idx(x1, y1, z1), value * w111 * inv);
+}
+
+void main() {
+    uint x = int(gl_GlobalInvocationID.x) + 1;
+    uint y = int(gl_GlobalInvocationID.y) + 1;
+    uint z = int(gl_GlobalInvocationID.z) + 1;
+    if (x >= uWidth - 1 || y >= uHeight - 1 || z >= uDepth - 1) return;
+
+    const uint i = idx(x, y, z);
+
+    const float dr = delRho[i];
+    if (abs(dr) < 1e-6f) return;
+
+    const vec3 p = traceAlongField(vec3(x, y, z));
+    scatterRho(p, -dr);
+}
+
+// rho_sharpen_scatter.comp

@@ -45,8 +45,14 @@ void main() {
     samp(x, y-1, sum, n);
     samp(x, y+1, sum, n);
 
-    dstVel[i]   = (n > 0) ? sum / n : srcVel[i];
-    dstValid[i] = (n > 0) ? 1.f : 0.f;
+    if(n > 0){
+        dstVel[i] = sum / n;
+        dstValid[i] = 1.;
+    }
+    else{
+        dstVel[i] = srcVel[i];
+        dstValid[i] = 0.;
+    }
 }
 
 // rho_extrapolate.comp
