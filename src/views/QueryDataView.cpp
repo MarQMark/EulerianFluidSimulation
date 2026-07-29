@@ -55,48 +55,20 @@ void QueryDataView::render(void* renderData) {
 
     auto& history = queryNodes[_selectedNode]->getHistory();
 
-    // TODO - Update plotting of new metrics here
-
-    // Query Particle Count
-    // if (ImGui::CollapsingHeader("Query Particle Count")) {
-        // plotFloatMetric("##QueryParticleCount", "Query Particles", history, [] (const Metrics& m) { return (float)m.count; });
-    // }
-
     // Average Position
-    // if (ImGui::CollapsingHeader("Position")) {
-        // plotVectorMetric("##Position", "Position", history, [] (const Metrics& m) { return m.position; });
-    // }
+    if (ImGui::CollapsingHeader("Position")) {
+        plotVectorMetric("##Position", "Position", history, [] (const Metrics& m) { return m.position; });
+    }
 
     // Average Velocity
-    // if (ImGui::CollapsingHeader("Velocity")) {
-        // plotVectorMetric("##Velocity", "Velocity", history, [] (const Metrics& m) { return m.velocity; });
-    // }
-
-    // Density
-    // if (ImGui::CollapsingHeader("Density")) {
-        // plotFloatMetric("##Density", "Density", history, [] (const Metrics& m) { return m.density; });
-        // plotFloatMetric("##DensityError", "Error (%)", history, [] (const Metrics& m) { return m.densityError; });
-    // }
+    if (ImGui::CollapsingHeader("Velocity")) {
+        plotVectorMetric("##Velocity", "Velocity", history, [] (const Metrics& m) { return m.velocity; });
+    }
 
     // Pressure
-    // if (ImGui::CollapsingHeader("Pressure")) {
-        // plotFloatMetric("##Pressure", "Pressure", history, [] (const Metrics& m) { return m.pressure; });
-    // }
-
-    // Average Pressure Force
-    // if (ImGui::CollapsingHeader("Pressure Force")) {
-        // plotVectorMetric("##Pressure Force", "Pressure Force", history, [] (const Metrics& m) { return m.pressureForce; });
-    // }
-
-    // Average Viscosity Force
-    // if (ImGui::CollapsingHeader("Viscosity Force")) {
-        // plotVectorMetric("##Viscosity Force", "Viscosity Force", history, [] (const Metrics& m) { return m.viscosityForce; });
-    // }
-
-    // Average Surface Tension Force
-    // if (ImGui::CollapsingHeader("Surface Tension Force")) {
-        // plotVectorMetric("##Surface Tension Force", "Surface Tension Force", history, [] (const Metrics& m) { return m.surfaceTensionForce; });
-    // }
+    if (ImGui::CollapsingHeader("Pressure")) {
+        plotFloatMetric("##Pressure", "Pressure", history, [] (const Metrics& m) { return m.pressure; });
+    }
 
     ImGui::End();
 }

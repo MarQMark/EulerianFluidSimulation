@@ -28,6 +28,9 @@ void Simulation2DView::render(void* renderData) {
     if (!grid)
         return;
 
+    _width = grid->width();
+    _height = grid->height();
+
     auto& forces = grid->forces();
     auto& boundary = grid->boundary();
     auto& rho = grid->rho();

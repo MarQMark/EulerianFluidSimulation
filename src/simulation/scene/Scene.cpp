@@ -32,9 +32,13 @@ Scene::Scene(Window* window) {
     addSceneNode(std::move(fluidNode));
 }
 
-void Scene::update(float deltaTime) const {
-    for (auto& node : sceneNodes)
+void Scene::update(float deltaTime, void* simulationData) const {
+    for (auto& node : sceneNodes) {
+        if (const auto qNode = dynamic_cast<QueryNode*>(node.get()))
+            qNode->setSimulationData(simulationData);
+
         node->update(deltaTime);
+    }
 }
 
 CameraNode* Scene::getCamera() const {

@@ -24,7 +24,7 @@ class Scene {
 public:
     Scene(Window* window);
 
-    void update(float deltaTime) const;
+    void update(float deltaTime, void* simulationData) const;
 
     void addSceneNode(std::unique_ptr<SceneNode> node);
     void removeSceneNode(const SceneNode* node);

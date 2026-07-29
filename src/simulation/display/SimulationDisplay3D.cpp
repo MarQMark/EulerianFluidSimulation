@@ -45,7 +45,7 @@ SimulationDisplay3D::~SimulationDisplay3D() {
 void SimulationDisplay3D::update(void* simulationData) {
     const auto* data = static_cast<RenderData3D *>(simulationData);
     _editor->updateForceFields(data->grid->forces());
-    _scene->update(Time::Get()->dt / 1000.f);
+    _scene->update(Time::Get()->dt / 1000.f, simulationData);
 }
 
 void SimulationDisplay3D::render(void* renderData) {

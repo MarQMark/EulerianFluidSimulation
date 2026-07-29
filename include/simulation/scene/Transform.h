@@ -12,7 +12,7 @@ class Transform {
 public:
     virtual ~Transform() = default;
 
-    glm::mat4 getTransform() const;
+    virtual glm::mat4 getTransform() const;
     virtual void setTransform(glm::mat4 transform);
 
     glm::vec3 getPosition();

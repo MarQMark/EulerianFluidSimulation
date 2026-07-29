@@ -122,7 +122,7 @@ private:
         ADD(simulation_rho, RHO_D, "D", "", 3.f)
 
         auto& simulation_forces = add_sub_category(simulation, "Forces");
-        ADD(simulation_forces, GRAVITY_FORCE, "Gravity Force", "", 0.02f)
+        ADD(simulation_forces, GRAVITY_FORCE, "Gravity Force", "", 10.f)
         ADD(simulation_forces, GRAVITY_ENABLED, "Gravity Enabled", "", true)
         ADD_3D(simulation_forces, MAX_FORCEFIELD_CELLS, "Max ForceField cells", "Maximum cells a ForceField might occupy", 1000)
 
@@ -132,7 +132,7 @@ private:
         ADD(simulation_solver, MAX_STEPS, "Max Steps", "Maximum amount of iterations solver does", 2000)
         ADD(simulation_solver, SOLVER_THRESHOLD, "Threshold", "Threshold at which solver considers system solved", 1e-5f)
 
-        ADD(simulation, DT, "DT", "Delta time", 1.67f)
+        ADD(simulation, DT, "DT", "Delta time", 0.0167f)
         ADD(simulation, VEL_DECAY, "Vel Decay", "Velocity Decay", 0.8f)
         ADD(simulation, VISCOSITY, "Viscosity", "", 0.f)
 
@@ -312,7 +312,7 @@ public:
 
         auto p = dynamic_cast<Property<T> *>(_properties[token]);
         if (!p) {
-            std::cerr << "Property " << p->name << " type mismatch: " << typeid(T).name() << std::endl;
+            std::cerr << "Property " << _properties[token]->name << " type mismatch: " << typeid(T).name() << std::endl;
             std::abort();
         }
 
@@ -335,7 +335,7 @@ public:
 
         auto p = dynamic_cast<Property<T> *>(_properties[token]);
         if (!p) {
-            std::cerr << "Property " << p->name << " type mismatch: " << typeid(T).name() << std::endl;
+            std::cerr << "Property " << _properties[token]->name << " type mismatch: " << typeid(T).name() << std::endl;
             std::abort();
         }
 
@@ -358,7 +358,7 @@ public:
 
         auto p = dynamic_cast<Property<T> *>(_properties[token]);
         if (!p) {
-            std::cerr << "Property " << p->name << " type mismatch: " << typeid(T).name() << std::endl;
+            std::cerr << "Property " << _properties[token]->name << " type mismatch: " << typeid(T).name() << std::endl;
             std::abort();
         }
 

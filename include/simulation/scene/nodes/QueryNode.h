@@ -8,34 +8,16 @@
 #include "BoundingBoxNode.h"
 
 struct Metrics {
-    int count = 0;
-
-    // TODO - STEP 1. Add metric to be tracked here
-    // Average particle across all particles inside query bb
-    // glm::vec3 position              = { 0.0, 0.0, 0.0 };
-    // glm::vec3 velocity              = { 0.0, 0.0, 0.0 };
-    // glm::vec3 pressureForce         = { 0.0, 0.0, 0.0 };
-    // glm::vec3 viscosityForce        = { 0.0, 0.0, 0.0 };
-    // glm::vec3 surfaceTensionForce   = { 0.0, 0.0, 0.0 };
-    //
-    // float density                   = 0;
-    // float densityError              = 0;
-    // float pressure                  = 0;
-
+    glm::vec3 position              = { 0.0, 0.0, 0.0 };
+    glm::vec3 velocity              = { 0.0, 0.0, 0.0 };
+    float pressure                  = 0;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Metrics& m) {
-    // TODO - STEP 2. Update CSV export accordingly
-    // os
-    //     << m.count << ","
-    //     << m.position.x << "," << m.position.y << "," << m.position.z << ","
-    //     << m.velocity.x << "," << m.velocity.y << "," << m.velocity.z << ","
-    //     << m.pressureForce.x << "," << m.pressureForce.y << "," << m.pressureForce.z << ","
-    //     << m.viscosityForce.x << "," << m.viscosityForce.y << "," << m.viscosityForce.z << ","
-    //     << m.surfaceTensionForce.x << "," << m.surfaceTensionForce.y << "," << m.surfaceTensionForce.z << ","
-    //     << m.density << ","
-    //     << m.densityError << ","
-    //     << m.pressure;
+    os
+        << m.position.x << "," << m.position.y << "," << m.position.z << ","
+        << m.velocity.x << "," << m.velocity.y << "," << m.velocity.z << ","
+        << m.pressure;
 
     return os;
 }
@@ -51,6 +33,12 @@ public:
     void reset();
     void exportData(const std::string& path);
 
+    void draw(const glm::mat4 &view, const glm::mat4 &projection) const override;
+    void setTransform(const AABB& boundingBox) override;
+    void setTransform(glm::mat4 transform) override;
+    glm::mat4 getTransform() const override;
+    void updateTransform() override;
+
     std::vector<Metrics>& getHistory();
 
     NodeProperties buildProperties() override;
@@ -58,10 +46,19 @@ public:
     nlohmann::json toJson() const override;
     std::string getTypeName() const override;
 
+    void setSimulationData(void* data);
+
 private:
     int filter = 0;
 
+    glm::mat4 getVoxelTransform() const;
+    glm::mat4 getInvVoxelTransform() const;
+    glm::vec3 getTranslationOffset() const;
+
+    glm::mat4 _model_mat;
     std::vector<Metrics> history;
+
+    void* _sim_data{};
 };
 
 #endif //SPHLASH_QUERYNODE_H

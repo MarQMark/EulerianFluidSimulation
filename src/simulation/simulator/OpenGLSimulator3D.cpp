@@ -141,11 +141,6 @@ void OpenGLSimulator3D::update() {
 	_grid->download();
 }
 
-#define BOUNDARY 1.f
-#define LOOP_3D_GRID(x, y, z, offset)   for (int z = offset; z < _grid->depth()  - (offset); z++) \
-for (int y = offset; y < _grid->height() - (offset); y++) \
-for (int x = offset; x < _grid->width()  - (offset); x++)
-
 void OpenGLSimulator3D::vel_decay() const {
 	const unsigned int w = _grid->width();
 	const unsigned int h = _grid->height();

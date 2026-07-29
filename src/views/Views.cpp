@@ -8,11 +8,13 @@
 #include <GLFW/glfw3.h>
 
 #include "ImGuizmo.h"
+#include "implot.h"
 #include "core/Input.h"
 #include "simulation/Properties.h"
 
 Views::Views(const Window* window) {
     ImGui::CreateContext();
+    ImPlot::CreateContext();
     Util::ApplyTheme();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
