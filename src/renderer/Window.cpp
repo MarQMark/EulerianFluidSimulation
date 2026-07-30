@@ -6,6 +6,7 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
+#include "stb/stb_image.h"
 #include "util/Logger.h"
 
 Window::Window(const int width, const int height, std::string title) : _width(width), _height(height), _title(std::move(title)){
@@ -80,6 +81,26 @@ Window::Window(const int width, const int height, std::string title) : _width(wi
         for (auto &callback : w->resizeCallback)
             callback(w, width, height);
     });
+
+    {
+        int width, height, channels;
+        unsigned char* pixels = stbi_load(
+            "assets/textures/icon.png",
+            &width,
+            &height,
+            &channels,
+            4);
+        if (pixels) {
+            GLFWimage image;
+            image.width = width;
+            image.height = height;
+            image.pixels = pixels;
+
+            glfwSetWindowIcon(_win, 1, &image);
+
+            stbi_image_free(pixels);
+        }
+    }
 }
 
 Window::~Window() {
