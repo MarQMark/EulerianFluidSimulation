@@ -55,40 +55,14 @@ CPUSimulator2D::~CPUSimulator2D() {
 }
 
 void CPUSimulator2D::update() {
-	Profiler* profiler = Profiler::Get();
-
-	profiler->start("0 Vel Decay");
-	if (!PROPERTY_B(DISABLE_VEL_DECAY))	vel_decay();
-	profiler->stop();
-
-	profiler->start("1 Vel Extrapolate");
-	if (!PROPERTY_B(DISABLE_VEL_EXTRAPOLATE)) vel_extrapolate();
-	profiler->stop();
-
-	//diffuse();
-
-	profiler->start("2 Rho Sharpen");
-	if (!PROPERTY_B(DISABLE_RHO_SHARPEN)) rho_sharpen();
-	profiler->stop();
-	profiler->start("3 Rho Advect");
-	if (!PROPERTY_B(DISABLE_RHO_ADVECT))  rho_advect();
-	profiler->stop();
-	profiler->start("4 Vel Advect");
-	if (!PROPERTY_B(DISABLE_VEL_ADVECT))  vel_advect();
-	profiler->stop();
-	profiler->start("5 Add Force");
-	if (!PROPERTY_B(DISABLE_ADD_FORCE))   add_force();
-	profiler->stop();
-	profiler->start("6 Project");
-	if (!PROPERTY_B(DISABLE_PROJECT))     project();
-	profiler->stop();
+	ISimulator::update();
 }
 
 void* CPUSimulator2D::getRenderData() {
     return _data;
 }
 
-void CPUSimulator2D::vel_decay() const {
+void CPUSimulator2D::vel_decay() {
 	LOOP_2D_GRID(x, y, 1) {
 		if (_grid->rho()(x, y) < 0.5)
 			_grid->vel()(x, y) *= PROPERTY_F(VEL_DECAY);
@@ -468,9 +442,6 @@ void CPUSimulator2D::vel_advect() {
 		else
 			velField(x, y).y = 0.5f * (newVel(x, y).y + newVel(x, y - 1).y);
 	}
-}
-
-void CPUSimulator2D::diffuse() {
 }
 
 void CPUSimulator2D::project() {

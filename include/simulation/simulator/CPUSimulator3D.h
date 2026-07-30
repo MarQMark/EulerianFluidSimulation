@@ -17,15 +17,12 @@ public:
     void* getRenderData() override;
 
 private:
-    void vel_decay() const;
+    void vel_decay() override;
     void vel_extrapolate() override;
     void rho_advect() override;
-
-
     void rho_sharpen() override;
     void add_force() override;
     void vel_advect() override;
-    void diffuse() override;
     void project() override;
 
     glm::vec3 trace_along_field(glm::vec3 start, float D, int substeps) const;

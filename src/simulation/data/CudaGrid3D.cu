@@ -88,7 +88,14 @@ CudaGrid3D::CudaGrid3D(const unsigned int width, const unsigned int height, cons
         ADD_PROPERTY_F(TOTAL_RHO, (*_rho)(x, y, z));
     }
 
-    upload();
+    gpu_copy_H2D(_cuda_data.vel,        _vel->data(),       _size * sizeof(glm::vec3));
+    gpu_copy_H2D(_cuda_data.rho,        _rho->data(),       _size * sizeof(float));
+    gpu_copy_H2D(_cuda_data.gamma,      _gamma->data(),     _size * sizeof(float));
+    gpu_copy_H2D(_cuda_data.beta,       _beta->data(),      _size * sizeof(float));
+    gpu_copy_H2D(_cuda_data.divergence, _divergence->data(),_size * sizeof(float));
+    gpu_copy_H2D(_cuda_data.pressure,   _pressure->data(),  _size * sizeof(float));
+    gpu_copy_H2D(_cuda_data.forces,     _forces->data(),    _size * sizeof(glm::vec3));
+    gpu_copy_H2D(_cuda_data.boundary,   _boundary->data(),  _size * sizeof(float));
 }
 
 CudaGrid3D::~CudaGrid3D() {

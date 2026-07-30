@@ -1,5 +1,6 @@
 #ifndef EULERIANFLUIDSIMULATION_IGRID_H
 #define EULERIANFLUIDSIMULATION_IGRID_H
+#include "StorageBuffer.h"
 
 class VecField2D;
 class ScalField2D;

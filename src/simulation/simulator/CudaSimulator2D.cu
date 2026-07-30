@@ -83,41 +83,19 @@ void* CudaSimulator2D::getRenderData() {
 }
 
 void CudaSimulator2D::update() {
-	_grid->upload();
-
     Profiler* profiler = Profiler::Get();
-	profiler->start("0 Vel Decay");
-	if (!PROPERTY_B(DISABLE_VEL_DECAY))	vel_decay();
-	profiler->stop();
+	PROFILE("Upload",
+			if (!PROPERTY_B(DISABLE_UDLOAD)) _grid->upload();
+		)
 
-    profiler->start("1 Vel Extrapolate");
-    if (!PROPERTY_B(DISABLE_VEL_EXTRAPOLATE))	vel_extrapolate();
-    profiler->stop();
+		ISimulator::update();
 
-    profiler->start("2 Rho Sharpen");
-    if (!PROPERTY_B(DISABLE_RHO_SHARPEN))		rho_sharpen();
-    profiler->stop();
-
-    profiler->start("3 Rho Advect");
-    if (!PROPERTY_B(DISABLE_RHO_ADVECT))		rho_advect();
-    profiler->stop();
-
-    profiler->start("4 Vel Advect");
-    if (!PROPERTY_B(DISABLE_VEL_ADVECT))		vel_advect();
-    profiler->stop();
-
-    profiler->start("5 Add Force");
-    if (!PROPERTY_B(DISABLE_ADD_FORCE))			add_force();
-    profiler->stop();
-
-    profiler->start("6 Project");
-    if (!PROPERTY_B(DISABLE_PROJECT))			project();
-    profiler->stop();
-
-	_grid->download();
+	PROFILE("Download",
+		if (!PROPERTY_B(DISABLE_UDLOAD)) _grid->download();
+	)
 }
 
-void CudaSimulator2D::vel_decay() const {
+void CudaSimulator2D::vel_decay() {
 	constexpr dim3 blockSize(16, 16);
 	const dim3 gridSize(
 		(_grid->width()  - 2 + blockSize.x - 1) / blockSize.x,
@@ -246,8 +224,6 @@ void CudaSimulator2D::add_force() {
         PROPERTY_B(GRAVITY_ENABLED) ? PROPERTY_F(GRAVITY_FORCE) : 0.f);
 }
 
-void CudaSimulator2D::diffuse() {}
-
 void CudaSimulator2D::vel_advect() {
 	constexpr dim3 blockSize(16, 16);
     const dim3 gridSize(
@@ -282,11 +258,11 @@ void CudaSimulator2D::project() {
 	    PROPERTY_F(LAMBDA_PLUS),
 	    PROPERTY_F(LAMBDA_MINUS),
 	    PROPERTY_F(ETA));
-	profiler->stop();
+	profiler->stop("Calc Divergence");
 
 	profiler->start("Solve");
     const float err = _solver->solve(_grid);
-	profiler->stop();
+	profiler->stop("Solve");
     if (err > PROPERTY_F(SOLVER_THRESHOLD)) {
         fprintf(stderr, "solution for projection did not converge! error: %f\n", err);
         SET_PROPERTY_B(PAUSED, true);
@@ -295,7 +271,7 @@ void CudaSimulator2D::project() {
 
 	profiler->start("Sub PG");
 	cuda_proj_sub_pg<<<gridSizeCore, blockSize>>>(_grid->cudaData());
-	profiler->stop();
+	profiler->stop("Sub PG");
 
 	cuda_proj_enf_bound<<<gridSizeFull, blockSize>>>(_grid->cudaData());
 }

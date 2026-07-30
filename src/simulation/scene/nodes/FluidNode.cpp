@@ -6,6 +6,7 @@
 #include "renderer/MarchingCubes.h"
 #include "simulation/data/Grid3D.h"
 #include "simulation/Properties.h"
+#include "simulation/data/OpenGLGrid3D.h"
 #include "simulation/scene/Scene.h"
 #include "simulation/scene/nodes/BoundingBoxNode.h"
 
@@ -46,16 +47,25 @@ void FluidNode::update(float deltaTime) {
     if (!_renderData)
         return;
 
+    const StorageBuffer* gpuRho = nullptr;
+    if (PROPERTY(SIMULATION_TYPE, Properties::SimulatorType) == Properties::SimulatorType::OPENGL_3D) {
+        if (const auto* grid = dynamic_cast<OpenGLGrid3D*>(_renderData->grid))
+            gpuRho = &grid->gpuRho();
+    }
+
     if (_settings.mode == MARCHING_CUBES) {
         _marchingCubes->updateMesh(
             _renderData->grid->rho(),
-            scene->getSimulationDomain()->getWorldBoundingBox());
+            scene->getSimulationDomain()->getWorldBoundingBox(),
+            gpuRho
+        );
     }
 
     if (_settings.mode == CUBES) {
         _simpleCubes->update(
             _renderData->grid->rho(),
-            scene->getSimulationDomain()->getWorldBoundingBox()
+            scene->getSimulationDomain()->getWorldBoundingBox(),
+            gpuRho
         );
     }
 }

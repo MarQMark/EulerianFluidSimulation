@@ -351,7 +351,7 @@ float CGSolverOpenGL2D::solve(IGrid2D *_grid) {
 
     float gamma_last = gamma0;
 
-    profiler->stop();
+    profiler->stop("6.1 Solver Start");
     profiler->start("6.2 Solver Loop");
     int i = 0;
     for (i = 0; i < steps; i++)
@@ -359,12 +359,12 @@ float CGSolverOpenGL2D::solve(IGrid2D *_grid) {
         // x += alpha * d           (alpha = scalars[SCALAR_ALPHA])
         profiler->start("6.2.1 | x += alpha * d");
         gpu_add_scaled_gpu(grid->gpuPressure(), *_gpu_d,  +1.0f, SCALAR_ALPHA);
-        profiler->stop();
+        profiler->stop("6.2.1 | x += alpha * d");
 
         // r -= alpha * z
         profiler->start("6.2.2 | r -= alpha * z");
         gpu_add_scaled_gpu(*_gpu_r, *_gpu_t, -1.0f, SCALAR_ALPHA);
-        profiler->stop();
+        profiler->stop("6.2.2 | r -= alpha * z");
 
         // ── Residual replacement every 64 iterations ──────────────────────
         // Resets the accumulated floating-point error in r by recomputing
@@ -374,49 +374,49 @@ float CGSolverOpenGL2D::solve(IGrid2D *_grid) {
             gpu_mat_mul(*_gpu_tmp, grid->gpuPressure());                 // tmp  = A*x
             gpu_set_subtract(*_gpu_r, grid->gpuDivergence(), *_gpu_tmp); // r    = b − A*x
         }
-        profiler->stop();
+        profiler->stop("6.2.3 | r = b − A*x");
 
         // w = A*r  (always needed for the reduction)
         profiler->start("6.2.4 | w = A*r");
         gpu_mat_mul(*_gpu_tmp, *_gpu_r);
-        profiler->stop();
+        profiler->stop("6.2.4 | w = A*r");
 
         // Full reduction: dot(r,r), dot(r,w) → scalars[0..1]
         profiler->start("6.2.5 | dot(r,r), dot(r,w)");
         gpu_full_reduce();
-        profiler->stop();
+        profiler->stop("6.2.5 | dot(r,r), dot(r,w)");
 
         // alpha, beta update on GPU: scalars[2..4] ← f(scalars[0..4])
         profiler->start("6.2.6 | update scalars");
         gpu_update_scalars();
-        profiler->stop();
+        profiler->stop("6.2.6 | update scalars");
 
         // d = beta*d + r   (beta = scalars[SCALAR_BETA])
         profiler->start("6.2.7 | d = beta*d + r");
         gpu_scale_add_gpu(*_gpu_d, *_gpu_r,   SCALAR_BETA);
-        profiler->stop();
+        profiler->stop("6.2.7 | d = beta*d + r");
 
         // z = beta*z + w
         profiler->start("6.2.8 | z = beta*z + w");
         gpu_scale_add_gpu(*_gpu_t, *_gpu_tmp, SCALAR_BETA);
-        profiler->stop();
+        profiler->stop("6.2.8 | z = beta*z + w");
 
         profiler->start("6.2.9 | gamma download");
         if ((i % convCheck) == (convCheck - 1))
         {
             _gpu_scalars->download(&gamma_last, sizeof(float));
             if (gamma_last < errorThreshold) {
-                profiler->stop();
+                profiler->stop("6.2 Solver Loop");
                 break;
             }
         }
-        profiler->stop();
+        profiler->stop("6.2.9 | gamma download");
     }
-    profiler->stop();
+    profiler->stop("6.2 Solver Loop");
     profiler->start("6.3 Solver End");
 
     SET_PROPERTY_I(SOLVE_STEPS, i + 1);
-    profiler->stop();
+    profiler->stop("6.3 Solver End");
     return gamma_last;
 }
 

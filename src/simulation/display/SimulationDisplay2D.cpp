@@ -10,7 +10,6 @@ SimulationDisplay2D::SimulationDisplay2D(const unsigned int width, const unsigne
     _renderer = new Renderer2D(width, height);
     _viewables["Simulation2D"] = new Simulation2DView(_width, _height);
     _viewables["Distribution"] = new DistributionView();
-    _viewables["Stats"] = new StatsView();
 
     _viewables["FieldViewerVel"] = new FieldViewerView2D(Properties::VELOCITY, "FieldViewerVel");
     _viewables["FieldViewerRho"] = new FieldViewerView2D(Properties::DENSITY, "FieldViewerRho");

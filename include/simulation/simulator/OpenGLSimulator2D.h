@@ -19,13 +19,12 @@ private:
 
     void update() override;
 
-    void vel_decay() const;
+    void vel_decay() override;
     void vel_extrapolate() override;
     void rho_advect() override;
     void rho_sharpen() override;
     void add_force() override;
     void vel_advect() override;
-    void diffuse() override;
     void project() override;
 
     void exec_shader(const Shader* shader, unsigned int gx, unsigned int gy) const;

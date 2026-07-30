@@ -104,6 +104,9 @@ public:
     PROP_TOKEN(DISABLE_VEL_ADVECT);
     PROP_TOKEN(DISABLE_ADD_FORCE);
     PROP_TOKEN(DISABLE_PROJECT);
+    PROP_TOKEN(DISABLE_UDLOAD);
+
+    PROP_TOKEN(WARN_N_CELLS);
 
 private:
     static Properties* s_instance;
@@ -113,7 +116,7 @@ private:
         auto& interaction = add_category("Interaction");
         ADD_2D(interaction, BRUSH_SIZE, "Brush Size", "Radius of Brush in screen pixels", 50.f)
 
-        auto& simulation = add_category("Simulation");
+        auto& simulation = add_category("Simulation", true);
         auto& simulation_rho = add_sub_category(simulation, "Density");
         ADD(simulation_rho, LAMBDA_MINUS, "Lambda-", "Control how much compression is penalized", .5f)
         ADD(simulation_rho, LAMBDA_PLUS, "Lambda+", "Control how much expansion is penalized", .1f)
@@ -136,7 +139,7 @@ private:
         ADD(simulation, VEL_DECAY, "Vel Decay", "Velocity Decay", 0.8f)
         ADD(simulation, VISCOSITY, "Viscosity", "", 0.f)
 
-        auto& grid = add_category("Grid");
+        auto& grid = add_category("Grid", true);
         ADD_2D(grid, WIDTH_2D, "Width", "Number of cells in width", 72)
         ADD_2D(grid, HEIGHT_2D, "Height", "Number of cells in height", 72)
         ADD_2D(grid, INIT_SHAPE, "Init Shape", "", InitShape::HALF)
@@ -156,6 +159,7 @@ private:
         ADD(controls_steps, DISABLE_VEL_ADVECT, "Disable Velocity Advection", "", false);
         ADD(controls_steps, DISABLE_ADD_FORCE, "Disable Add Force", "", false);
         ADD(controls_steps, DISABLE_PROJECT, "Disable Projection", "", false);
+        ADD(controls, DISABLE_UDLOAD, "Disable Up/Download", "Disable upload/download of Grid data fro GPU", false);
 
 #ifdef HAS_CUDA
         ADD_HIDDEN(CUDA_ENABLED, false);
@@ -176,6 +180,8 @@ private:
         ADD_HIDDEN(SIMULATION_INITIALIZED, false)
         ADD_HIDDEN(SIMULATION_GRID_RESIZED, false)
         ADD_HIDDEN(AVLB_SOLVERS, new std::vector<SolverType>())
+
+        ADD_HIDDEN(WARN_N_CELLS, 200000)
     }
     ~Properties();
 
@@ -282,17 +288,19 @@ private:
     };
     class Category final : public ICategory {
     public:
-        explicit Category(std::string  name) : name(std::move(name)) {}
+        explicit Category(std::string name, const bool expanded)
+            : name(std::move(name)), expanded(expanded) {}
         ~Category() override {
             for (const auto cat : sub_categories)
                 delete cat;
         }
         std::string name;
+        const bool expanded;
         std::vector<SubCategory*> sub_categories;
     };
 
     std::vector<Category*> _categories;
-    Category& add_category(const std::string& name);
+    Category& add_category(const std::string& name, bool expanded = false);
     SubCategory& add_sub_category(Category& cat, const std::string& name);
 
     std::vector<IProperty*> _properties;
@@ -422,6 +430,7 @@ public:
         FLUID,
         GAMMA,
         BETA,
+        BOUNDARY
     };
     enum SolverType {
         EIGEN_CG,

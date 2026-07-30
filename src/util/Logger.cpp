@@ -47,7 +47,7 @@ void Logger::log(LogLevel level, const char* file, const char* function, const s
 #endif
         << "[" << getLevelName(level) << "] "
         << filename << " (" << function << ") "
-        << message
+        << message << "\033[0m"
         << std::endl;
 
     std::cout << oss.str();

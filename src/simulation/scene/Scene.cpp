@@ -10,6 +10,7 @@
 #include "core/Config.h"
 #include <algorithm>
 
+#include "simulation/scene/nodes/DeletionNode.h"
 #include "simulation/scene/nodes/FluidNode.h"
 #include "simulation/scene/nodes/QueryNode.h"
 #include "simulation/scene/nodes/SimulationDomainNode.h"
@@ -34,8 +35,8 @@ Scene::Scene(Window* window) {
 
 void Scene::update(float deltaTime, void* simulationData) const {
     for (auto& node : sceneNodes) {
-        if (const auto qNode = dynamic_cast<QueryNode*>(node.get()))
-            qNode->setSimulationData(simulationData);
+        if (const auto spNode = dynamic_cast<SimSpaceNode*>(node.get()))
+            spNode->setSimulationData(simulationData);
 
         node->update(deltaTime);
     }
@@ -206,6 +207,9 @@ std::unique_ptr<SceneNode> Scene::nodeFromJson(const nlohmann::json& j) {
 
     if (type == "QueryNode")
         return std::make_unique<QueryNode>(j);
+
+    if (type == "DeletionNode")
+        return std::make_unique<DeletionNode>(j);
 
     throw std::runtime_error("Unknown node type: " + type);
 }

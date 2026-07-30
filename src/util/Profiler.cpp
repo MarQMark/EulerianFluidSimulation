@@ -4,10 +4,15 @@
 #include <iostream>
 #include <ranges>
 
+#include "simulation/Properties.h"
+
 Profiler* Profiler::s_instance = nullptr;
 int Profiler::s_id = 0;
 
 void Profiler::start(const std::string &name) {
+    if (PROPERTY_B(PAUSED))
+        return;
+
     Profile* profile = get_profile(_profiles,  name);
 
     if (!profile) {
@@ -22,11 +27,14 @@ void Profiler::start(const std::string &name) {
     _profiling.push(profile);
 }
 
-void Profiler::stop() {
+void Profiler::stop(const std::string& name) {
     if (_profiling.empty())
         return;
 
     Profile* profile = _profiling.top();
+    if (profile->name() != name)
+        LOG_WARN("Profiler::Stop called with " + name + " on Profiler: " + profile->name());
+
     _profiling.pop();
     if (!_profiling.empty())
         profile->stop(_profiling.top()->idx());

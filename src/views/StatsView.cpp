@@ -4,7 +4,9 @@
 
 #include "imgui.h"
 #include "simulation/Properties.h"
+#include "simulation/data/ScalField3D.h"
 #include "simulation/display/SimulationDisplay2D.h"
+#include "simulation/display/SimulationDisplay3D.h"
 #include "util/GuiHelper.h"
 
 void StatsView::render(void* renderData) {
@@ -12,30 +14,53 @@ void StatsView::render(void* renderData) {
         return;
     if (!_visible)
         return;
-    const auto* data = static_cast<SimulationDisplay2D::RenderData2D*>(renderData);
-    auto* grid = dynamic_cast<IGrid2D*>(data->grid);
-    if (!grid)
-        return;
-
-    ImGui::Begin("Stats");
 
     float current = 0;
     float compressed = 0;
     float floating = 0;
     float sum = 0;
-    for (unsigned int i = 0; i < grid->rho().size(); i++) {
-        if (grid->rho()[i] > PROPERTY_F(LIQUID_THRESHOLD))
-            current += 1;
-        else
-            floating += grid->rho()[i];
 
-        if (grid->rho()[i] > 1.f)
-            compressed += grid->rho()[i] - 1.f;
+    if (PROPERTY(SIMULATION_TYPE, Properties::SimulatorType) <= Properties::SimulatorType::END_2D_SIMULATIONS) {
+        const auto* data = static_cast<SimulationDisplay2D::RenderData2D*>(renderData);
+        auto* grid = dynamic_cast<IGrid2D*>(data->grid);
+        if (!grid)
+            return;
 
-        sum += grid->rho()[i];
+        for (unsigned int i = 0; i < grid->rho().size(); i++) {
+            if (grid->rho()[i] > PROPERTY_F(LIQUID_THRESHOLD))
+                current += 1;
+            else
+                floating += grid->rho()[i];
+
+            if (grid->rho()[i] > 1.f)
+                compressed += grid->rho()[i] - 1.f;
+
+            sum += grid->rho()[i];
+        }
+    }
+    else {
+        const auto* data = static_cast<SimulationDisplay3D::RenderData3D*>(renderData);
+        auto* grid = dynamic_cast<IGrid3D*>(data->grid);
+        if (!grid)
+            return;
+
+        for (unsigned int i = 0; i < grid->rho().size(); i++) {
+            if (grid->rho()[i] > PROPERTY_F(LIQUID_THRESHOLD))
+                current += 1;
+            else
+                floating += grid->rho()[i];
+
+            if (grid->rho()[i] > 1.f)
+                compressed += grid->rho()[i] - 1.f;
+
+            sum += grid->rho()[i];
+        }
     }
 
     const float total = PROPERTY_F(TOTAL_RHO);
+
+
+    ImGui::Begin("Stats");
 
     // ── Record ───────────────────────────────────────────────────────────────
     _times[_times_offset] = current;

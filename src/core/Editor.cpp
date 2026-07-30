@@ -8,6 +8,8 @@
 #include <memory>
 #include "simulation/data/Grid3D.h"
 #include "simulation/Properties.h"
+#include "simulation/data/OpenGLGrid3D.h"
+#include "simulation/scene/nodes/DeletionNode.h"
 #include "simulation/scene/nodes/QueryNode.h"
 
 Editor::Editor() {
@@ -18,7 +20,10 @@ Editor::Editor() {
 
 void Editor::init(IGrid3D* grid) {
     // --- Init Fluid ---
-    initFluid(grid->rho());
+    StorageBuffer* gpuRho = nullptr;
+    if (const auto* openGLGrid = dynamic_cast<OpenGLGrid3D*>(grid))
+        gpuRho = &openGLGrid->gpuRho();
+    initFluid(grid->rho(), gpuRho);
 
     // --- Init Boundaries ---
     initBoundaries(grid->boundary());
@@ -71,12 +76,18 @@ void Editor::addQuery() {
     _scene->addSceneNode(std::move(queryNode));
 }
 
+void Editor::addDeletionArea() {
+    auto deletionNode = std::make_unique<DeletionNode>();
+    _selectedNode = deletionNode.get();
+    _scene->addSceneNode(std::move(deletionNode));
+}
+
 void Editor::updateRenderingSize(int width, int height) const {
     for (auto* node : _scene->getSceneNodes())
         node->updateSize(width, height);
 }
 
-void Editor::initFluid(ScalField3D& rho) const {
+void Editor::initFluid(ScalField3D& rho, StorageBuffer* gpuRho) const {
     SimulationDomainNode* simulationDomainNode = _scene->getSimulationDomain();
     SimulationDomainSettings domainSettings = simulationDomainNode->getDomainSettings();
 
@@ -88,19 +99,30 @@ void Editor::initFluid(ScalField3D& rho) const {
     const int gy = (height + 7) / 8;
     const int gz = (depth + 7) / 8;
 
-    StorageBuffer rhoBuffer(rho.size() * sizeof(float));
-    rhoBuffer.clear();
+    StorageBuffer* rhoBuffer = nullptr;
+
+    if (gpuRho)
+        rhoBuffer = gpuRho;
+    else
+        rhoBuffer = new StorageBuffer(rho.size() * sizeof(float));
+    rhoBuffer->clear();
 
     // Fluid Spawns Init
     std::vector<Triangle> triangles;
+    std::vector<AABB> spNodes;
 
     for (const auto& s : _scene->getFluidSpawns()) {
-        const auto& shape = s->getFluidSpawn().shape;
-        triangles.insert(
-            triangles.end(),
-            shape.begin(),
-            shape.end()
-        );
+        if (const auto spNode = dynamic_cast<SimSpaceNode*>(s)) {
+            spNodes.push_back(s->getFluidSpawn().area);
+        }
+        else {
+            const auto& shape = s->getFluidSpawn().shape;
+            triangles.insert(
+                triangles.end(),
+                shape.begin(),
+                shape.end()
+            );
+        }
     }
 
     if (!triangles.empty()) {
@@ -122,11 +144,11 @@ void Editor::initFluid(ScalField3D& rho) const {
         _sdfShader->setVec3("uDomainCenter", domain.center);
 
         triangleBuffer.bind(0);
-        rhoBuffer.bind(1);
+        rhoBuffer->bind(1);
 
         _sdfShader->dispatch(gx, gy, gz);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
-        rhoBuffer.download(rho.data());
+        rhoBuffer->download(rho.data());
     }
 
     // Percentage Filled Init
@@ -142,11 +164,27 @@ void Editor::initFluid(ScalField3D& rho) const {
         auto domain = simulationDomainNode->getWorldBoundingBox();
         _baseFluidFillShader->setVec3("uDomainSize", domain.size);
         _baseFluidFillShader->setVec3("uDomainCenter", domain.center);
-        rhoBuffer.bind(0);
+        rhoBuffer->bind(0);
 
         _baseFluidFillShader->dispatch(gx, gy, gz);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
-        rhoBuffer.download(rho.data());
+        rhoBuffer->download(rho.data());
+    }
+
+    if (!gpuRho) delete rhoBuffer;
+
+    for (const auto [position, size] : spNodes) {
+        for (int z = (int)position.z; z < (int)(position.z + size.z); z++)
+        for (int y = (int)position.y; y < (int)(position.y + size.y); y++)
+        for (int x = (int)position.x; x < (int)(position.x + size.x); x++) {
+            rho(x, y, z) = 1.f;
+        }
+    }
+    if (gpuRho) gpuRho->upload(rho.data());
+
+    SET_PROPERTY_F(TOTAL_RHO, 0.f);
+    for (unsigned int i = 0; i < rho.size(); i++) {
+        ADD_PROPERTY_F(TOTAL_RHO, rho[i]);
     }
 }
 
@@ -163,13 +201,14 @@ void Editor::initBoundaries(ScalField3D& boundary) const {
 
     StorageBuffer boundaryBuffer(boundary.size() * sizeof(float));
     boundaryBuffer.clear();
+    boundary.clear();
 
     // Fluid Spawns Init
     std::vector<Triangle> triangles;
 
     for (const auto& model : _scene->getModels()) {
         if (!model->isBoundary())
-            return;
+            continue;
 
         const auto& shape = model->getWorldSpaceTriangles();
         triangles.insert(
@@ -203,6 +242,17 @@ void Editor::initBoundaries(ScalField3D& boundary) const {
         _sdfShader->dispatch(gx, gy, gz);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
         boundaryBuffer.download(boundary.data());
+    }
+
+    for (int z = 0; z < boundary.depth()  - 0; z++)
+    for (int y = 0; y < boundary.height() - 0; y++)
+    for (int x = 0; x < boundary.width()  - 0; x++) {
+        if (z == 0) boundary(x, y, z) = 1.f;
+        if (y == 0) boundary(x, y, z) = 1.f;
+        if (x == 0) boundary(x, y, z) = 1.f;
+        if (x == boundary.width()  - 1) boundary(x, y, z) = 1.f;
+        if (y == boundary.height() - 1) boundary(x, y, z) = 1.f;
+        if (z == boundary.depth()  - 1) boundary(x, y, z) = 1.f;
     }
 }
 

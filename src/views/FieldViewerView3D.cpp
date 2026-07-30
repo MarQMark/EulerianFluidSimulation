@@ -48,6 +48,9 @@ void FieldViewerView3D::render(void *renderData) {
         case Properties::BETA:
             sField = &grid->beta();
             break;
+        case Properties::BOUNDARY:
+            sField = &grid->boundary();
+            break;
         default:;
     }
 
@@ -61,7 +64,7 @@ void FieldViewerView3D::render(void *renderData) {
     const float win_x = ImGui::GetWindowPos().x;
     const float win_y = ImGui::GetWindowPos().y + 10;
     const float win_w = ImGui::GetWindowWidth();
-    const float win_h = ImGui::GetWindowHeight() - 10;
+    const float win_h = ImGui::GetWindowHeight() - 10 - 50;
     const float txtAspect = (float)_txt->getWidth() / (float)_txt->getHeight();
     const float winAspect = win_w / win_h;
 
@@ -102,8 +105,8 @@ void FieldViewerView3D::render(void *renderData) {
     const float draw_w = x_max - x_min;
     const float draw_h = y_max - y_min;
 
-    const int grid_w = grid->width();
-    const int grid_h = grid->height();
+    const int grid_w = _txt->getWidth();
+    const int grid_h = _txt->getHeight();
 
     ImVec2 mouse = ImGui::GetMousePos();
 
@@ -147,15 +150,21 @@ void FieldViewerView3D::render(void *renderData) {
             ImGui::Text("z: %d", cell_y);
         }
         else if (_dim == 1) {
-            ImGui::Text("x: %d", cell_x);
-            ImGui::Text("z: %d", cell_y);
+            ImGui::Text("x: %d", cell_y);
+            ImGui::Text("z: %d", cell_x);
         }
         else if (_dim == 2) {
             ImGui::Text("x: %d", cell_x);
             ImGui::Text("y: %d", cell_y);
         }
 
-        if (sField) ImGui::Text("value: %.6f", (*sField)(cell_x, cell_y, 1));
+        if (sField) {
+            float v = 0.f;
+            if (_dim == 0) v = (*sField)(_level, cell_x, cell_y);
+            else if (_dim == 1) v = (*sField)(cell_y, _level, cell_x);
+            else if (_dim == 2) v = (*sField)(cell_x, cell_y, _level);
+            ImGui::Text("value: %.6f", v);
+        }
         if (vField) {
             auto v = glm::vec3(0.f);
             if (_dim == 0) v = (*vField)(_level, cell_x, cell_y);

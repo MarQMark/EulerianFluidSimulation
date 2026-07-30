@@ -22,10 +22,15 @@ SimpleCubes::SimpleCubes(Mesh* mesh) : _mesh(mesh) {
 }
 
 SimpleCubes::~SimpleCubes() {
+    delete _fieldBuffer;
+    delete _vertexCountBuffer;
+    delete _indexCountBuffer;
+    delete _vertexBuffer;
+    delete _indexBuffer;
     delete _scShader;
 }
 
-void SimpleCubes::update(const ScalField3D& field, AABB domain) {
+void SimpleCubes::update(const ScalField3D& field, AABB domain, const StorageBuffer* gpuField) {
     if (field.width() != _lastSize.x || field.height() != _lastSize.y || field.depth() != _lastSize.z)
         resizeBuffers(field.width(), field.height(), field.depth());
 
@@ -42,8 +47,13 @@ void SimpleCubes::update(const ScalField3D& field, AABB domain) {
     _scShader->setVec3("uDomainSize", domain.size);
     _scShader->setVec3("uDomainCenter", domain.center);
 
-    _fieldBuffer->bind(0);
-    _fieldBuffer->upload(field.data());
+    if (gpuField) {
+        gpuField->bind(0);
+    }
+    else {
+        _fieldBuffer->bind(0);
+        _fieldBuffer->upload(field.data());
+    }
 
     _vertexCountBuffer->bind(1);
     _vertexBuffer->bind(2);

@@ -44,43 +44,14 @@ CPUSimulator3D::~CPUSimulator3D() {
 }
 
 void CPUSimulator3D::update() {
-    // Setup grid if not initialized
-	Profiler* profiler = Profiler::Get();
-
-	profiler->start("0 Vel Decay");
-	if (!PROPERTY_B(DISABLE_VEL_DECAY))	vel_decay();
-	profiler->stop();
-
-	profiler->start("1 Vel Extrapolate");
-	if (!PROPERTY_B(DISABLE_VEL_EXTRAPOLATE)) vel_extrapolate();
-	profiler->stop();
-
-	profiler->start("2 Rho Sharpen");
-	if (!PROPERTY_B(DISABLE_RHO_SHARPEN)) rho_sharpen();
-	profiler->stop();
-
-	profiler->start("3 Rho Advect");
-	if (!PROPERTY_B(DISABLE_RHO_ADVECT))  rho_advect();
-	profiler->stop();
-
-	profiler->start("4 Vel Advect");
-	if (!PROPERTY_B(DISABLE_VEL_ADVECT))  vel_advect();
-	profiler->stop();
-
-	profiler->start("5 Add Force");
-	if (!PROPERTY_B(DISABLE_ADD_FORCE))   add_force();
-	profiler->stop();
-
-	profiler->start("6 Project");
-	if (!PROPERTY_B(DISABLE_PROJECT))     project();
-	profiler->stop();
+    ISimulator::update();
 }
 
 void* CPUSimulator3D::getRenderData() {
     return _data;
 }
 
-void CPUSimulator3D::vel_decay() const {
+void CPUSimulator3D::vel_decay() {
 	LOOP_3D_GRID(x, y, z, 1) {
 		if (_grid->rho()(x, y, z) < 0.5)
 			_grid->vel()(x, y, z) *= PROPERTY_F(VEL_DECAY);
@@ -532,9 +503,6 @@ void CPUSimulator3D::vel_advect() {
     }
 }
 
-void CPUSimulator3D::diffuse() {
-}
-
 void CPUSimulator3D::project() {
     auto& vel = _grid->vel();
 	auto& rho = _grid->rho();
@@ -698,6 +666,8 @@ void CPUSimulator3D::enforce_wall_boundaries() const {
 	auto& boundary = _grid->boundary();
 
 	LOOP_3D_GRID(x, y, z, 0){
+		if (x == 0 || y == 0 || z == 0) continue;
+
 		if (boundary(x, y, z) == 1.f && vel(x, y, z).x > 0)
 			vel(x, y, z).x = 0.f;
 		if (boundary(x - 1, y, z) == 1.f && vel(x, y, z).x < 0)

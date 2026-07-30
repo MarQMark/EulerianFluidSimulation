@@ -28,7 +28,7 @@ void main() {
     uint x = int(gl_GlobalInvocationID.x) + 1;
     uint y = int(gl_GlobalInvocationID.y) + 1;
     uint z = int(gl_GlobalInvocationID.z) + 1;
-    if (x >= uWidth - 1 || y >= uHeight - 1 || z >= uDepth - 1) return;
+    if (x >= uWidth || y >= uHeight || z >= uDepth) return;
 
     const uint i = idx(x, y, z);
 

@@ -8,28 +8,29 @@
 #include "simulation/scene/NodeProperties.h"
 
 BoundingBoxFluidSpawnNode::BoundingBoxFluidSpawnNode(const std::string& name)
-    : BoundingBoxNode(name, glm::vec3(1.0f, 0.0, 0.0))
+    : SimSpaceNode(name, glm::vec3(1.0f, 0.0, 0.0))
 {
     // Init particle spawn
     _mesh = Mesh::createCube("Box");
     _fluidSpawn.shape = _mesh->getWorldSpaceTriangles(glm::mat4(1.0f));
 }
 
-BoundingBoxFluidSpawnNode::BoundingBoxFluidSpawnNode(const nlohmann::json json) : BoundingBoxNode(json) {
+BoundingBoxFluidSpawnNode::BoundingBoxFluidSpawnNode(const nlohmann::json json) : SimSpaceNode(json) {
     _mesh = Mesh::createCube("Box");
     _fluidSpawn.shape = _mesh->getWorldSpaceTriangles(glm::mat4(1.0f));
 }
 
 FluidSpawn BoundingBoxFluidSpawnNode::getFluidSpawn() {
     // Update bounding box
-    _fluidSpawn.shape = _mesh->getWorldSpaceTriangles(transform);
-    _fluidSpawn.area = getWorldBoundingBox();
+    //_fluidSpawn.shape = _mesh->getWorldSpaceTriangles(transform);
+    _fluidSpawn.area.size = scale;
+    _fluidSpawn.area.center = position;
 
     return _fluidSpawn;
 }
 
 NodeProperties BoundingBoxFluidSpawnNode::buildProperties() {
-    NodeProperties properties = BoundingBoxNode::buildProperties();
+    NodeProperties properties = SimSpaceNode::buildProperties();
     return properties;
 }
 

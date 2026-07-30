@@ -319,7 +319,7 @@ public:
     MarchingCubes(Mesh* mesh);
     ~MarchingCubes();
 
-    void updateMesh(const ScalField3D& field, AABB domain);
+    void updateMesh(const ScalField3D& field, AABB domain, const StorageBuffer* gpuField = nullptr);
     void resizeBuffers(int x, int y, int z);
 
 private:

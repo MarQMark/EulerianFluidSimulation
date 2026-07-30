@@ -8,6 +8,23 @@
 
 #define PROFILER_SAMPLES 1000
 
+
+// This necessitates that the Profiler exists as a pointer with the name profiler
+#define PROFILE(name, code)                \
+                {                          \
+                    profiler->start(name); \
+                    code                   \
+                    profiler->stop(name);  \
+                }
+
+#define PROFILE_FULL(name, code)                          \
+                {                                         \
+                    Profiler* profiler = Profiler::Get(); \
+                    profiler->start(name);                \
+                    code                                  \
+                    profiler->stop(name);                 \
+                }
+
 class Profiler {
 private:
     static Profiler* s_instance;
@@ -56,7 +73,7 @@ public:
     }
 
     void start(const std::string& name);
-    void stop();
+    void stop(const std::string& name);
 
     void reset();
 

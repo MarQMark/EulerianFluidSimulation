@@ -32,6 +32,7 @@ SimulationDisplay3D::SimulationDisplay3D(Window* window) : ISimulationDisplay() 
     _viewables["FieldViewerDiv"] = new FieldViewerView3D(Properties::DIVERGENCE, "FieldViewerDiv");
     _viewables["FieldViewerBeta"] = new FieldViewerView3D(Properties::BETA, "FieldViewerBeta");
     _viewables["FieldViewerGamma"] = new FieldViewerView3D(Properties::GAMMA, "FieldViewerGamma");
+    _viewables["FieldViewerBoundary"] = new FieldViewerView3D(Properties::BOUNDARY, "FieldViewerBoundary");
 
     SET_PROPERTY_B(PAUSED, true);
 }

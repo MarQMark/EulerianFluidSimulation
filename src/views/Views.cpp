@@ -194,12 +194,15 @@ void Views::render_menubar() {
             ImGui::EndMenu();
         }
 
+        bool warn = false;
         std::string simTitle;
         switch (PROPERTY(SIMULATION_TYPE, Properties::SimulatorType)) {
             case Properties::CPU_2D:
+                warn = (PROPERTY_I(WIDTH_2D) * PROPERTY_I(HEIGHT_2D) > PROPERTY_I(WARN_N_CELLS));
                 simTitle = "CPU 2D";
                 break;
             case Properties::CPU_3D:
+                warn = (PROPERTY_I(WIDTH_3D) * PROPERTY_I(HEIGHT_3D) * PROPERTY_I(DEPTH_3D) > PROPERTY_I(WARN_N_CELLS));
                 simTitle = "CPU 3D";
                 break;
             case Properties::OPENGL_2D:
@@ -222,7 +225,9 @@ void Views::render_menubar() {
         const float textWidth = ImGui::CalcTextSize(simTitle.c_str()).x;
         const float availWidth = ImGui::GetWindowWidth();
         ImGui::SetCursorPosX(availWidth - (textWidth + 10));
+        if (warn) ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
         ImGui::TextUnformatted(simTitle.c_str());
+        if (warn) ImGui::PopStyleColor();
 
         ImGui::EndMenuBar();
     }

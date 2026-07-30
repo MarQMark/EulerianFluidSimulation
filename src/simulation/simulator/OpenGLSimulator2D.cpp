@@ -104,41 +104,20 @@ void* OpenGLSimulator2D::getRenderData() {
 
 void OpenGLSimulator2D::update() {
 	//_grid->setDirty();
-    _grid->upload();
-
 	Profiler* profiler = Profiler::Get();
-	profiler->start("0 Vel Decay");
-	if (!PROPERTY_B(DISABLE_VEL_DECAY))			vel_decay();
-	profiler->stop();
 
-	profiler->start("1 Vel Extrapolate");
-	if (!PROPERTY_B(DISABLE_VEL_EXTRAPOLATE))	vel_extrapolate();
-	profiler->stop();
+	PROFILE("Upload",
+		if (!PROPERTY_B(DISABLE_UDLOAD)) _grid->upload();
+	)
 
-	profiler->start("2 Rho Sharpen");
-	if (!PROPERTY_B(DISABLE_RHO_SHARPEN))		rho_sharpen();
-	profiler->stop();
+	ISimulator::update();
 
-	profiler->start("3 Rho Advect");
-	if (!PROPERTY_B(DISABLE_RHO_ADVECT))		rho_advect();
-	profiler->stop();
-
-	profiler->start("4 Vel Advect");
-	if (!PROPERTY_B(DISABLE_VEL_ADVECT))		vel_advect();
-	profiler->stop();
-
-	profiler->start("5 Add Force");
-	if (!PROPERTY_B(DISABLE_ADD_FORCE))			add_force();
-	profiler->stop();
-
-	profiler->start("6 Project");
-	if (!PROPERTY_B(DISABLE_PROJECT))			project();
-	profiler->stop();
-
-    _grid->download();
+	PROFILE("Download",
+		if (!PROPERTY_B(DISABLE_UDLOAD)) _grid->download();
+	)
 }
 
-void OpenGLSimulator2D::vel_decay() const {
+void OpenGLSimulator2D::vel_decay() {
 	const unsigned int w = _grid->width();
 	const unsigned int h = _grid->height();
 	const unsigned int gx = (w - 2 + 15) / 16;
@@ -303,8 +282,6 @@ void OpenGLSimulator2D::vel_advect() {
 	exec_shader_adv(_vel_adv_pass_1, gx, gy);
 	exec_shader(_vel_adv_pass_2, gx, gy);
 }
-
-void OpenGLSimulator2D::diffuse() {}
 
 void OpenGLSimulator2D::project() {
     const unsigned int w = _grid->width();

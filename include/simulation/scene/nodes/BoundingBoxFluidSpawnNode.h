@@ -6,11 +6,12 @@
 #define SPHLASH_BOUNDINGBOXPARTICLESPAWN_H
 
 #include "BoundingBoxNode.h"
+#include "SimSpaceNode.h"
 #include "simulation/scene/IFluidSpawn.h"
 
-class BoundingBoxFluidSpawnNode : public BoundingBoxNode, public IFluidSpawn {
+class BoundingBoxFluidSpawnNode : public SimSpaceNode, public IFluidSpawn {
 public:
-    BoundingBoxFluidSpawnNode(const std::string& name);
+    explicit BoundingBoxFluidSpawnNode(const std::string& name);
     explicit BoundingBoxFluidSpawnNode(const nlohmann::json json);
 
     FluidSpawn getFluidSpawn() override;

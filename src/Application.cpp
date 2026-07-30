@@ -13,6 +13,7 @@
 #include "views/ProfilerView.h"
 #include "views/PropertiesView.h"
 #include "views/SolverStepsView.h"
+#include "views/StatsView.h"
 
 #ifdef HAS_CUDA
 #include <cuda_runtime.h>
@@ -22,7 +23,7 @@
 
 
 Application::Application() {
-    _window = new Window(1280, 720, "Eulerian Fluid Simulation");
+    _window = new Window(1920, 1080, "Eulerian Fluid Simulation");
 	Input::Get()->addInputWindow(_window);
 
     _views = new Views(_window);
@@ -30,6 +31,7 @@ Application::Application() {
     _views->addView("Performance", new FPSView());
     _views->addView("Profiler", new ProfilerView());
     _views->addView("SolverSteps", new SolverStepsView());
+	_views->addView("Stats", new StatsView());
 
 	rebuild();
 
@@ -50,6 +52,7 @@ Application::Application() {
 	else {
 		LOG_INFO("Cuda Available");
 		SET_PROPERTY_B(CUDA_ENABLED, true);
+		SET_PROPERTY(SIMULATION_TYPE, Properties::SimulatorType::CUDA_3D, Properties::SimulatorType);
 	}
 #endif
 }
@@ -62,32 +65,54 @@ Application::~Application() {
 }
 
 void Application::update() {
+	Profiler* profiler = Profiler::Get();
+
     while (!_window->shouldClose()) {
-    	_window->processEvents();
-    	Time::Get()->update();
+    	profiler->start("Frame-time");
 
-    	_display->update(_simulator->getRenderData());
+    	PROFILE("Process Events",
+    		_window->processEvents();
+    		Time::Get()->update();
+    	)
 
-    	if ((!PROPERTY_B(PAUSED) || PROPERTY_I(SIMULATION_STEPS) > 0) && PROPERTY_B(SIMULATION_INITIALIZED)) {
-    		_simulator->update();
+    	PROFILE("Display Update",
+    		_display->update(_simulator->getRenderData());
+    	)
 
-    		if (PROPERTY_I(SIMULATION_STEPS) > 0)
-    			ADD_PROPERTY_I(SIMULATION_STEPS, -1);
-    	}
+    	PROFILE("Simulation",
+    		if ((!PROPERTY_B(PAUSED) || PROPERTY_I(SIMULATION_STEPS) > 0) && PROPERTY_B(SIMULATION_INITIALIZED)) {
+    			_simulator->update();
 
-        _display->render(_simulator->getRenderData());
-        _views->update(_simulator->getRenderData());
-    	_window->swapBuffers();
+    			if (PROPERTY_I(SIMULATION_STEPS) > 0)
+    				ADD_PROPERTY_I(SIMULATION_STEPS, -1);
+    		}
+    	)
 
-        input_handler();
+    	PROFILE("Display Render",
+			_display->render(_simulator->getRenderData());
+    	)
 
-    	Time::Get()->limitFPS();
-    	Input::Get()->update();
+    	PROFILE("Views Update",
+			_views->update(_simulator->getRenderData());
+    	)
+
+    	PROFILE("Window Swap Buffers",
+    		_window->swapBuffers();
+		)
+
+    	PROFILE("Loop End",
+			input_handler();
+
+    		Time::Get()->limitFPS();
+    		Input::Get()->update();
+    	)
 
     	if (PROPERTY_B(SIMULATION_REBUILD))
     		rebuild();
     	if (PROPERTY_B(SIMULATION_RESET))
 			reset();
+
+    	profiler->stop("Frame-time");
     }
 }
 
@@ -184,6 +209,8 @@ void Application::reset() {
 			const int HEIGHT = PROPERTY_I(HEIGHT_2D);
 
 			_simulator = new OpenGLSimulator2D(WIDTH, HEIGHT);
+			if (WIDTH * HEIGHT > PROPERTY_I(WARN_N_CELLS))
+				LOG_WARN("CPU Simulation with high amount of cells")
 			break;
 		}
 		case Properties::OPENGL_3D:
@@ -202,6 +229,8 @@ void Application::reset() {
 			const int DEPTH	 = PROPERTY_I(DEPTH_3D);
 
 			_simulator = new CPUSimulator3D(WIDTH, HEIGHT, DEPTH);
+			if (WIDTH * HEIGHT * DEPTH > PROPERTY_I(WARN_N_CELLS))
+				LOG_WARN("CPU Simulation with high amount of cells")
 			break;
 		}
 #ifdef HAS_CUDA
@@ -246,8 +275,6 @@ void Application::input_handler() {
     	SET_PROPERTY_B(SIMULATION_RESET, true);
     if (Input::Get()->isKeyPressed(Window::Key::P) || Input::Get()->isKeyPressed(Window::Key::Space))
     	SET_PROPERTY_B(PAUSED, !PROPERTY_B(PAUSED));
-    if (Input::Get()->isKeyPressed(Window::Key::G))
-    	SET_PROPERTY_B(GRAVITY_ENABLED, !PROPERTY_B(GRAVITY_ENABLED));
 	if (Input::Get()->isKeyDown(Window::Key::LeftControl) && Input::Get()->isKeyPressed(Window::Key::S))
 		ADD_PROPERTY_I(SIMULATION_STEPS, 1);
 	if (Input::Get()->isKeyPressed(Window::Key::F12) && _display) {

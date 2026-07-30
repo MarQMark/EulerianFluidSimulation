@@ -5,6 +5,7 @@
 #ifndef SPHLASH_EDITOR_H
 #define SPHLASH_EDITOR_H
 
+#include "simulation/data/StorageBuffer.h"
 #include "simulation/data/VecField3D.h"
 #include "simulation/scene/nodes/ForceFieldNode.h"
 #include "simulation/scene/Scene.h"
@@ -41,11 +42,17 @@ public:
     // --- Query Node ---
     void addQuery();
 
+    // --- Deletion Area ---
+    void addDeletionArea();
+
     // --- Window Resizes ---
     void updateRenderingSize(int width, int height) const;
-private:
-    void initFluid(ScalField3D& rho) const;
+
     void initBoundaries(ScalField3D& boundary) const;
+
+
+private:
+    void initFluid(ScalField3D& rho, StorageBuffer* gpuRho = nullptr) const;
 
     Scene* _scene;
     SceneNode* _selectedNode = nullptr;

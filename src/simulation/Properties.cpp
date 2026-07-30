@@ -17,8 +17,8 @@ Properties::~Properties() {
         delete p;
 }
 
-Properties::Category & Properties::add_category(const std::string &name) {
-    auto* cat = new Category(name);
+Properties::Category & Properties::add_category(const std::string &name, const bool expanded) {
+    auto* cat = new Category(name, expanded);
     _categories.push_back(cat);
     return *cat;
 }

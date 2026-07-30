@@ -107,41 +107,20 @@ void* OpenGLSimulator3D::getRenderData() {
 }
 
 void OpenGLSimulator3D::update() {
-	_grid->upload();
-
 	Profiler* profiler = Profiler::Get();
-	profiler->start("0 Vel Decay");
-	if (!PROPERTY_B(DISABLE_VEL_DECAY))			vel_decay();
-	profiler->stop();
 
-	profiler->start("1 Vel Extrapolate");
-	if (!PROPERTY_B(DISABLE_VEL_EXTRAPOLATE))	vel_extrapolate();
-	profiler->stop();
+	PROFILE("Upload",
+		if (!PROPERTY_B(DISABLE_UDLOAD)) _grid->upload();
+	)
 
-	profiler->start("2 Rho Sharpen");
-	if (!PROPERTY_B(DISABLE_RHO_SHARPEN))		rho_sharpen();
-	profiler->stop();
+	ISimulator::update();
 
-	profiler->start("3 Rho Advect");
-	if (!PROPERTY_B(DISABLE_RHO_ADVECT))		rho_advect();
-	profiler->stop();
-
-	profiler->start("4 Vel Advect");
-	if (!PROPERTY_B(DISABLE_VEL_ADVECT))		vel_advect();
-	profiler->stop();
-
-	profiler->start("5 Add Force");
-	if (!PROPERTY_B(DISABLE_ADD_FORCE))			add_force();
-	profiler->stop();
-
-	profiler->start("6 Project");
-	if (!PROPERTY_B(DISABLE_PROJECT))			project();
-	profiler->stop();
-
-	_grid->download();
+	PROFILE("Download",
+		if (!PROPERTY_B(DISABLE_UDLOAD)) _grid->download();
+	)
 }
 
-void OpenGLSimulator3D::vel_decay() const {
+void OpenGLSimulator3D::vel_decay() {
 	const unsigned int w = _grid->width();
 	const unsigned int h = _grid->height();
 	const unsigned int d = _grid->depth();
@@ -335,17 +314,18 @@ void OpenGLSimulator3D::vel_advect() {
 	exec_shader(_vel_adv_pass_2, gx, gy, gz);
 }
 
-void OpenGLSimulator3D::diffuse() {}
-
 void OpenGLSimulator3D::project() {
 	const unsigned int w = _grid->width();
 	const unsigned int h = _grid->height();
 	const unsigned int d = _grid->depth();
-	const unsigned int gx = (w - 2 + 7) / 8;
-	const unsigned int gy = (h - 2 + 7) / 8;
-	const unsigned int gz = (d - 2 + 7) / 8;
+	const unsigned int gxCore = (w - 2 + 7) / 8;
+	const unsigned int gyCore = (h - 2 + 7) / 8;
+	const unsigned int gzCore = (d - 2 + 7) / 8;
+	const unsigned int gxFull = (w - 1 + 7) / 8;
+	const unsigned int gyFull = (h - 1 + 7) / 8;
+	const unsigned int gzFull = (d - 1 + 7) / 8;
 
-	exec_shader(_proj_enf_bound, gx, gy, gz);
+	exec_shader(_proj_enf_bound, gxFull, gyFull, gzFull);
 
 	_grid->gpuDivergence().clear();
 	_grid->gpuPressure().clear();
@@ -358,7 +338,7 @@ void OpenGLSimulator3D::project() {
 	_proj_calc_div->setFloat("uLambdaP", PROPERTY_F(LAMBDA_PLUS));
 	_proj_calc_div->setFloat("uLambdaM", PROPERTY_F(LAMBDA_MINUS));
 	_proj_calc_div->setFloat("uEta", PROPERTY_F(ETA));
-	_proj_calc_div->dispatch(gx, gy, gz);
+	_proj_calc_div->dispatch(gxCore, gyCore, gzCore);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 	const float err = _solver->solve(_grid);
@@ -369,9 +349,9 @@ void OpenGLSimulator3D::project() {
 	}
 
 
-	exec_shader(_proj_sub_pg, gx, gy, gz);
+	exec_shader(_proj_sub_pg, gxCore, gyCore, gzCore);
 
-	exec_shader(_proj_enf_bound, gx, gy, gz);
+	exec_shader(_proj_enf_bound, gxFull, gyFull, gzFull);
 }
 
 void OpenGLSimulator3D::exec_shader(const Shader *shader, const unsigned int gx, const unsigned int gy, const unsigned int gz) const {

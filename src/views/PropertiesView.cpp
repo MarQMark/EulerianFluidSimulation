@@ -38,7 +38,11 @@ void PropertiesView::render_categories() {
     for (const auto& cat : Properties::Get()->getCategories()) {
         if (cat->empty())
             continue;
-        if (ImGui::CollapsingHeader(cat->name.c_str())) {
+
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None;
+        if (cat->expanded)
+            flags = ImGuiTreeNodeFlags_DefaultOpen;
+        if (ImGui::CollapsingHeader(cat->name.c_str(), flags)) {
             for (const auto& sub : cat->sub_categories) {
                 if (sub->empty())
                     continue;

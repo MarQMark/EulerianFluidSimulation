@@ -8,13 +8,21 @@
 #include "ImGuiFileDialog.h"
 #include "core/Editor.h"
 #include "core/Input.h"
+#include "simulation/data/IGrid.h"
+#include "simulation/display/SimulationDisplay3D.h"
+#include "util/Time.h"
 
 SceneView::SceneView(Editor* editor, Renderer3D* renderer)
-    : _editor(editor), _renderer(renderer)
-{ }
+    : _editor(editor), _renderer(renderer) {
+    refresh_scene_list();
+}
 
 void SceneView::render(void* renderData) {
     if (!_visible)
+        return;
+
+    auto* rData = static_cast<SimulationDisplay3D::RenderData3D*>(renderData);
+    if (!rData || !rData->grid)
         return;
 
     ImGui::Begin("Scene");
@@ -82,6 +90,7 @@ void SceneView::render(void* renderData) {
                     }
 
                     _editor->removeSceneNode(sceneNodes[i]);
+                    _editor->initBoundaries(rData->grid->boundary());
                 }
             }
             ImGui::PopID();
@@ -115,6 +124,7 @@ void SceneView::render(void* renderData) {
     if (ImGuiFileDialog::Instance()->Display("LoadModel")) {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             _editor->addBoundary(ImGuiFileDialog::Instance()->GetFilePathName());
+            _editor->initBoundaries(rData->grid->boundary());
         }
 
         ImGuiFileDialog::Instance()->Close();
@@ -136,6 +146,11 @@ void SceneView::render(void* renderData) {
         _editor->addQuery();
     }
 
+    // --- Deletion Area ---
+    if (ImGui::Button("Add Deletion Area", ImVec2(totalWidth, 0))) {
+        _editor->addDeletionArea();
+    }
+
     ImGui::SeparatorText("");
 
     if (ImGui::Button("Save Scene", ImVec2(totalWidth, 0))) {
@@ -148,6 +163,8 @@ void SceneView::render(void* renderData) {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
             _editor->getScene()->saveScene(filePathName);
+
+            refresh_scene_list();
         }
 
         ImGuiFileDialog::Instance()->Close();
@@ -173,5 +190,39 @@ void SceneView::render(void* renderData) {
         _editor->getScene()->resetScene();
     }
 
+    ImGui::Separator();
+
+    static int _selected = 0;
+    if (ImGui::BeginListBox("##listbox", ImVec2(-FLT_MIN, -FLT_MIN)))
+    {
+        for (int i = 0; i < _scene_list.size(); i++)
+        {
+            if (ImGui::Selectable(_scene_list[i].c_str(), i == _selected)) {
+                _selected = i;
+            }
+
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                _editor->getScene()->loadScene("assets//scenes//" + _scene_list[i] + ".json");
+            }
+        }
+
+        ImGui::EndListBox();
+    }
+
     ImGui::End();
+}
+
+void SceneView::refresh_scene_list() {
+    _scene_list.clear();
+
+    namespace fs = std::filesystem;
+    const fs::path dir = "assets//scenes//";
+    if (!fs::exists(dir) || !fs::is_directory(dir))
+        return;
+
+    for (const auto& entry : fs::directory_iterator(dir)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".json") {
+            _scene_list.push_back(entry.path().stem().string());
+        }
+    }
 }

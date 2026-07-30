@@ -55,9 +55,17 @@ void QueryDataView::render(void* renderData) {
 
     auto& history = queryNodes[_selectedNode]->getHistory();
 
+    // Max Position
+    if (ImGui::CollapsingHeader("Max Position")) {
+        plotVectorMetric("##maxPosition", "Position", history, [] (const Metrics& m) { return m.maxPosition; });
+    }
+    // Min Position
+    if (ImGui::CollapsingHeader("Min Position")) {
+        plotVectorMetric("##minPosition", "Position", history, [] (const Metrics& m) { return m.minPosition; });
+    }
     // Average Position
-    if (ImGui::CollapsingHeader("Position")) {
-        plotVectorMetric("##Position", "Position", history, [] (const Metrics& m) { return m.position; });
+    if (ImGui::CollapsingHeader("Avg Position")) {
+        plotVectorMetric("##avgPosition", "Position", history, [] (const Metrics& m) { return m.avgPosition; });
     }
 
     // Average Velocity

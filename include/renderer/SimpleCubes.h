@@ -15,7 +15,7 @@ public:
     SimpleCubes(Mesh* mesh);
     ~SimpleCubes();
 
-    void update(const ScalField3D& field, AABB domain);
+    void update(const ScalField3D& field, AABB domain, const StorageBuffer* gpuField = nullptr);
     void resizeBuffers(int x, int y, int z);
 
 private:

@@ -46,7 +46,7 @@ MarchingCubes::~MarchingCubes() {
     delete _triangleTable;
 }
 
-void MarchingCubes::updateMesh(const ScalField3D& field, AABB domain) {
+void MarchingCubes::updateMesh(const ScalField3D& field, AABB domain, const StorageBuffer* gpuField) {
     if (field.width() != _lastSize.x || field.height() != _lastSize.y || field.depth() != _lastSize.z)
         resizeBuffers(field.width(), field.height(), field.depth());
 
@@ -71,8 +71,14 @@ void MarchingCubes::updateMesh(const ScalField3D& field, AABB domain) {
     _vertexBuffer->bind(4);
     _indexCountBuffer->bind(5);
     _indexBuffer->bind(6);
-    _fieldBuffer->bind(7);
-    _fieldBuffer->upload(field.data());
+
+    if (gpuField) {
+        gpuField->bind(7);
+    }
+    else {
+        _fieldBuffer->bind(7);
+        _fieldBuffer->upload(field.data());
+    }
 
     const int gx = (field.width() + 7) / 8;
     const int gy = (field.height() + 7) / 8;
