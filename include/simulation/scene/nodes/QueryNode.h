@@ -13,6 +13,7 @@ struct Metrics {
     glm::vec3 avgPosition              = { 0.0, 0.0, 0.0 };
     glm::vec3 velocity              = { 0.0, 0.0, 0.0 };
     float pressure                  = 0;
+    float gravity                  = 0;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Metrics& m) {
@@ -21,7 +22,7 @@ inline std::ostream& operator<<(std::ostream& os, const Metrics& m) {
         << m.minPosition.x << "," << m.minPosition.y << "," << m.minPosition.z << ","
         << m.avgPosition.x << "," << m.avgPosition.y << "," << m.avgPosition.z << ","
         << m.velocity.x << "," << m.velocity.y << "," << m.velocity.z << ","
-        << m.pressure;
+        << m.pressure <<  "," << m.gravity;
 
     return os;
 }

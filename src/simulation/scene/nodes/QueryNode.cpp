@@ -70,7 +70,7 @@ void QueryNode::update(float deltaTime) {
         minPos = glm::vec3(0.f);
     }
 
-    history.emplace_back(Metrics{maxPos, minPos, avgPos, vel, pres});
+    history.emplace_back(Metrics{maxPos, minPos, avgPos, vel, pres, PROPERTY_F(GRAVITY_FORCE_PHYSICAL)});
 }
 
 void QueryNode::reset() {
@@ -89,10 +89,20 @@ void QueryNode::exportData(const std::string& path) {
             "min_pos_x,min_pos_y,min_pos_z,"
             "avg_pos_x,avg_pos_y,avg_pos_z,"
             "vel_x,vel_y,vel_z,"
-            "pressure\n";
+            "pressure,gravity,";
+    file << "time_step,cell_size,"
+            "grid_width,grid_height,grid_depth\n";
 
-    for (int i = 0 ; i < history.size(); i++)
-        file << i << "," << history[i] << "\n";
+    for (int i = 0 ; i < history.size(); i++) {
+        file << i << "," << history[i];
+        if (i == 0) {
+            file << ","
+                 << PROPERTY_F(TIME_STEP) << ","
+                 << PROPERTY_F(CELL_SIZE) << ","
+                 << PROPERTY_I(WIDTH_3D) << "," << PROPERTY_I(HEIGHT_3D) << "," << PROPERTY_I(DEPTH_3D);
+        }
+        file << "\n";
+    }
 }
 
 NodeProperties QueryNode::buildProperties() {

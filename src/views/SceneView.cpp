@@ -192,10 +192,8 @@ void SceneView::render(void* renderData) {
 
     ImGui::Separator();
 
-    if (ImGui::BeginListBox("##listbox", ImVec2(-FLT_MIN, -FLT_MIN)))
-    {
-        for (int i = 0; i < _scene_list.size(); i++)
-        {
+    if (ImGui::BeginListBox("##listbox", ImVec2(-FLT_MIN, -FLT_MIN))) {
+        for (int i = 0; i < _scene_list.size(); i++) {
             if (ImGui::Selectable(_scene_list[i].c_str(), i == _selected_scene)) {
                 _selected_scene = i;
             }
