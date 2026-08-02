@@ -72,9 +72,9 @@ glm::mat4 SimSpaceNode::getTransform() const {
 
 void SimSpaceNode::updateTransform() {
     const glm::vec3 dim(
-PROPERTY_I(WIDTH_3D),
-PROPERTY_I(HEIGHT_3D),
-PROPERTY_I(DEPTH_3D));
+        PROPERTY_I(WIDTH_3D),
+        PROPERTY_I(HEIGHT_3D),
+        PROPERTY_I(DEPTH_3D));
 
     position = glm::clamp(glm::round(position),glm::vec3(0.0f),dim);
     scale = glm::clamp(glm::round(scale),glm::vec3(1.0f),dim - position);

@@ -80,6 +80,8 @@ void Application::update() {
     	)
 
     	PROFILE("Simulation",
+    		SET_PROPERTY_F(GRAVITY_FORCE, PROPERTY_F(GRAVITY_FORCE_PHYSICAL) / PROPERTY_F(CELL_SIZE));
+
     		if ((!PROPERTY_B(PAUSED) || PROPERTY_I(SIMULATION_STEPS) > 0) && PROPERTY_B(SIMULATION_INITIALIZED)) {
     			_simulator->update();
 
@@ -118,6 +120,7 @@ void Application::update() {
 
 void Application::rebuild() {
 	SET_PROPERTY_B(SIMULATION_REBUILD, false);
+	SET_PROPERTY_I(SIMULATION_FRAMES, 0);
 
     if (_simulator) delete _simulator;
     if (_display) {
@@ -199,6 +202,7 @@ void Application::rebuild() {
 
 void Application::reset() {
 	SET_PROPERTY_B(SIMULATION_RESET, false);
+	SET_PROPERTY_I(SIMULATION_FRAMES, 0);
 
 	if (_simulator) delete _simulator;
 

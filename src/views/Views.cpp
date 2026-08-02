@@ -222,8 +222,16 @@ void Views::render_menubar() {
             default:
                 simTitle = "invalid";
         }
+        const std::string simFrames = std::to_string(PROPERTY_I(SIMULATION_FRAMES));
+        const float framesWidth = ImGui::CalcTextSize(simFrames.c_str()).x;
+
         const float textWidth = ImGui::CalcTextSize(simTitle.c_str()).x;
         const float availWidth = ImGui::GetWindowWidth();
+
+        ImGui::SetCursorPosX(availWidth - (framesWidth + 10) - (textWidth + 15));
+        ImGui::TextUnformatted(simFrames.c_str());
+        ImGui::Separator();
+
         ImGui::SetCursorPosX(availWidth - (textWidth + 10));
         if (warn) ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
         ImGui::TextUnformatted(simTitle.c_str());

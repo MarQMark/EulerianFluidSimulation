@@ -64,6 +64,7 @@ public:
     PROP_TOKEN(LIQUID_THRESHOLD)
     PROP_TOKEN(RHO_D)
 
+    PROP_TOKEN(GRAVITY_FORCE_PHYSICAL)
     PROP_TOKEN(GRAVITY_FORCE)
     PROP_TOKEN(GRAVITY_ENABLED)
     PROP_TOKEN(MAX_FORCEFIELD_CELLS)
@@ -76,7 +77,7 @@ public:
 
     PROP_TOKEN(DT)
     PROP_TOKEN(VEL_DECAY)
-    PROP_TOKEN(VISCOSITY)
+    PROP_TOKEN(CELL_SIZE)
 
     PROP_TOKEN(WIDTH_2D)
     PROP_TOKEN(HEIGHT_2D)
@@ -107,6 +108,7 @@ public:
     PROP_TOKEN(DISABLE_UDLOAD);
 
     PROP_TOKEN(WARN_N_CELLS);
+    PROP_TOKEN(SIMULATION_FRAMES);
 
 private:
     static Properties* s_instance;
@@ -125,19 +127,20 @@ private:
         ADD(simulation_rho, RHO_D, "D", "", 3.f)
 
         auto& simulation_forces = add_sub_category(simulation, "Forces");
-        ADD(simulation_forces, GRAVITY_FORCE, "Gravity Force", "", 10.f)
+        ADD(simulation_forces, GRAVITY_FORCE_PHYSICAL, "Gravity", "Actual Gravity force in Newton", 10.f)
+        ADD(simulation_forces, GRAVITY_FORCE, "Gravity Force", "Applied force depends of cell size", 10.f)
         ADD(simulation_forces, GRAVITY_ENABLED, "Gravity Enabled", "", true)
         ADD_3D(simulation_forces, MAX_FORCEFIELD_CELLS, "Max ForceField cells", "Maximum cells a ForceField might occupy", 1000)
 
         auto& simulation_solver = add_sub_category(simulation, "Solver");
-        ADD(simulation_solver, SOLVER_TYPE, "Solver", "Which algorithm is used to solve system of equations", SolverType::JACOBI)
+        ADD(simulation_solver, SOLVER_TYPE, "Solver", "Which algorithm is used to solve system of equations", SolverType::SELF_CG)
         ADD(simulation_solver, SOLVER_CHECK_INTERVAL, "Check Interval", "Amount of steps CG takes before checking for convergence", 100)
         ADD(simulation_solver, MAX_STEPS, "Max Steps", "Maximum amount of iterations solver does", 2000)
         ADD(simulation_solver, SOLVER_THRESHOLD, "Threshold", "Threshold at which solver considers system solved", 1e-5f)
 
-        ADD(simulation, DT, "DT", "Delta time", 0.0167f)
+        ADD(simulation, CELL_SIZE, "Cell Size", "Size of one cell in meters", 1.f)
+        ADD(simulation, DT, "DT", "Delta time in seconds", 0.0167f)
         ADD(simulation, VEL_DECAY, "Vel Decay", "Velocity Decay", 0.8f)
-        ADD(simulation, VISCOSITY, "Viscosity", "", 0.f)
 
         auto& grid = add_category("Grid", true);
         ADD_2D(grid, WIDTH_2D, "Width", "Number of cells in width", 72)
@@ -182,6 +185,8 @@ private:
         ADD_HIDDEN(AVLB_SOLVERS, new std::vector<SolverType>())
 
         ADD_HIDDEN(WARN_N_CELLS, 200000)
+
+        ADD_HIDDEN(SIMULATION_FRAMES, 0)
     }
     ~Properties();
 

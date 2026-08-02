@@ -52,6 +52,12 @@ void Properties::Property<int>::draw(){
 }
 template<>
 void Properties::Property<float>::draw(){
+if (name == "Gravity Force") {
+        ImGui::Text("  %s: %f", name.c_str(), value);
+        Util::AddTooltip(description);
+        return;
+    }
+
     Util::AddTextField(name, value, description);
 }
 template<>

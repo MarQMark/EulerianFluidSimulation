@@ -17,6 +17,15 @@ void FloatProperty::draw() {
         set(v);
 }
 
+void IntProperty::draw() {
+    ImGui::Text("%s:", name.c_str());
+    std::string id = "##" + name;
+
+    int v = get();
+    if (ImGui::DragInt(id.c_str(), &v, speed, min, max, "%d", ImGuiSliderFlags_AlwaysClamp))
+        set(v);
+}
+
 void BoolProperty::draw() {
     ImGui::Text("%s:", name.c_str());
     std::string id = "##" + name;

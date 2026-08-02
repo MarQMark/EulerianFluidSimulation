@@ -10,8 +10,6 @@ Profiler* Profiler::s_instance = nullptr;
 int Profiler::s_id = 0;
 
 void Profiler::start(const std::string &name) {
-    if (PROPERTY_B(PAUSED))
-        return;
 
     Profile* profile = get_profile(_profiles,  name);
 
@@ -22,6 +20,8 @@ void Profiler::start(const std::string &name) {
         else
             _profiles.push_back(profile);
     }
+
+    profile->setPaused(PROPERTY_B(PAUSED));
 
     profile->start();
     _profiling.push(profile);
@@ -90,6 +90,9 @@ void Profiler::Profile::start() {
 }
 
 void Profiler::Profile::stop(const int idx) {
+    if (_paused)
+        return;
+
     const auto elapsed = std::chrono::high_resolution_clock::now() - _start;
 
     if (idx != _idx) {
@@ -175,6 +178,10 @@ void Profiler::Profile::updateSum() const {
         _profiles[i]->updateSum();
     }
     sum->_idx = _profiles[0]->_idx;
+}
+
+void Profiler::Profile::setPaused(const bool paused) {
+    _paused = paused;
 }
 
 Profiler::~Profiler() {

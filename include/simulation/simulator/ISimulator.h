@@ -33,6 +33,8 @@ public:
         PROFILE("6 Project",
             if (!PROPERTY_B(DISABLE_PROJECT)) project();
         )
+
+        ADD_PROPERTY_I(SIMULATION_FRAMES, 1);
     }
 
     virtual void* getRenderData() = 0;

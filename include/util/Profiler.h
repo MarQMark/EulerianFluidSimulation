@@ -53,6 +53,8 @@ public:
         void addProfile(Profile* profile);
         void updateSum() const;
 
+        void setPaused(bool paused);
+
     private:
         std::string _name{};
         float* _data{};
@@ -60,6 +62,8 @@ public:
         int _id;
         unsigned int _idx = PROFILER_SAMPLES;
         std::chrono::high_resolution_clock::time_point _start;
+
+        bool _paused = false;
 
         std::vector<Profile*> _profiles{};
     };

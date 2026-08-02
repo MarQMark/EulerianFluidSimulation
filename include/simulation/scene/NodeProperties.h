@@ -41,6 +41,27 @@ struct FloatProperty : NodeProperty {
     void draw() override;
 };
 
+struct IntProperty : NodeProperty {
+    IntProperty(
+        const std::string& name,
+        std::function<int()> get,
+        std::function<void (int)> set,
+        int min = INT_MIN, int max = INT_MAX, float speed = 1.0f
+    )
+        : name(name), get(std::move(get)), set(std::move(set)), min(min), max(max), speed(speed)
+    {}
+
+    std::string                     name;
+    std::function<int()>          get;
+    std::function<void (int)>     set;
+
+    int min = INT_MIN;
+    int max = INT_MAX;
+    float speed = 0.1f;
+
+    void draw() override;
+};
+
 struct BoolProperty : NodeProperty {
     BoolProperty(const std::string& name, std::function<bool()> get, std::function<void (bool)> set)
         : name(name), get(std::move(get)), set(std::move(set))
