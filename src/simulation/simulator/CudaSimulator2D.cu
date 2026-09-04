@@ -1058,12 +1058,21 @@ __global__ void cuda_add_force(const CudaGrid2D::CudaData *grid, const float dt,
         return;
 
     const unsigned int i = cuda_idx_2D(x, y, grid->width);
-	//if (grid->boundary[i] > 0.5f || grid->rho[i] < 0.5f)
-	if (grid->boundary[i] > 0.5f)
-		return;
+	//if (grid->rho[i] < 0.5f) return;
 
-	grid->vel[i] += grid->forces[i] * dt;
-	grid->vel[i].y -= gravity * dt;
+	const unsigned int ix = cuda_idx_2D(x - 1, y, grid->width);
+	const unsigned int iy = cuda_idx_2D(x, y - 1, grid->width);
+	if (grid->boundary[i] != 1.f || grid->boundary[ix] != 1.f)
+		grid->vel[i].x += grid->forces[i].x * dt;
+	else
+		grid->vel[i].x = 0.f;
+
+	if (grid->boundary[i] != 1.f || grid->boundary[iy]  != 1.f) {
+		grid->vel[i].y += grid->forces[i].y * dt;
+		grid->vel[i].y -= gravity * dt;
+	} else {
+		grid->vel[i].y = 0.f;
+	}
 }
 
 __global__ void cuda_proj_calc_div(const CudaGrid2D::CudaData *grid, const float lambdaP, const float lambdaM, const float eta) {
@@ -1100,36 +1109,33 @@ __global__ void cuda_proj_sub_pg(const CudaGrid2D::CudaData *grid) {
         return;
 
     const unsigned int i = cuda_idx_2D(x, y, w);
-    if(grid->boundary[i] == 1)
-    	return;
+	const unsigned int ix = cuda_idx_2D(x - 1, y, grid->width);
+	const unsigned int iy = cuda_idx_2D(x, y - 1, grid->width);
 
-    auto dPressure = glm::vec2(0);
-    if (x > 1)
-        dPressure.x = grid->pressure[i] - grid->pressure[cuda_idx_2D(x - 1, y, w)];
-    if (y > 1)
-        dPressure.y = grid->pressure[i] - grid->pressure[cuda_idx_2D(x, y - 1, w)];
+	if (grid->boundary[i] != 1.f && grid->boundary[ix] != 1.f)
+		grid->vel[i].x -= (grid->pressure[i] - grid->pressure[ix]);
+	else
+		grid->vel[i].x = 0.f;
 
-    grid->vel[i] -= dPressure;
+	if (grid->boundary[i] != 1.f && grid->boundary[iy] != 1.f)
+		grid->vel[i].y -= (grid->pressure[i] - grid->pressure[iy]);
+	else
+		grid->vel[i].y = 0.f;
 }
 
 __global__ void cuda_proj_enf_bound(const CudaGrid2D::CudaData *grid) {
-	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
-	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y + 1;
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
 	const unsigned int w = grid->width;
 
-	if (x >= grid->width - 1 || y >= grid->height - 1)
+	if (x >= grid->width || y >= grid->height)
 		return;
 
 	const unsigned int i = cuda_idx_2D(x, y, w);
 	const unsigned int ix = cuda_idx_2D(x - 1, y, w);
-	if (grid->boundary[i] == 1.f && grid->vel[i].x > 0)
-		grid->vel[i].x = 0.f;
-	if (grid->boundary[ix] == 1.f && grid->vel[i].x < 0)
-		grid->vel[i].x = 0.f;
-
 	const unsigned int iy = cuda_idx_2D(x, y - 1, w);
-	if (grid->boundary[i] == 1.f && grid->vel[i].y > 0)
-		grid->vel[i].y = 0.f;
-	if (grid->boundary[iy] == 1.f && grid->vel[i].y < 0)
+	if (grid->boundary[i] == 1.f || (x > 0 && grid->boundary[ix] == 1.f))
+		grid->vel[i].x = 0.f;
+	if (grid->boundary[i] == 1.f || (y > 0 && grid->boundary[iy] == 1.f))
 		grid->vel[i].y = 0.f;
 }

@@ -7,16 +7,16 @@
 
 // #################################### Helper Methods ################################################
 __device__ void cuda_sample_neighbor_2D(const int nx, const int ny, float& sum, int& nCount, const float* p, const CudaGrid2D::CudaData *grid) {
-    if (nx < 0 || nx >= grid->width || ny < 0 || ny >= grid->height)
-        return;
-    if (nx == 0 || nx == grid->width-1 || ny == 0 || ny == grid->height-1)
-        return;
+    //if (nx < 0 || nx >= grid->width || ny < 0 || ny >= grid->height)
+    //    return;
+    //if (nx == 0 || nx == grid->width-1 || ny == 0 || ny == grid->height-1)
+    //    return;
 
     const unsigned int ni = cuda_idx_2D(nx, ny, grid->width);
     if (grid->boundary[ni] > 0.5f)
         return;
-
     nCount++;
+
     if (grid->rho[ni] > 0.5){
         sum += p[ni];
     }
@@ -30,8 +30,8 @@ __device__ void cuda_sample_neighbor_3D(const int nx, const int ny, const int nz
     const unsigned int ni = cuda_idx_3D(nx, ny, nz, grid->width, grid->height);
     if (grid->boundary[ni] > 0.5f)
         return;
-
     nCount++;
+
     if (grid->rho[ni] > 0.5){
         sum += p[ni];
     }
@@ -125,7 +125,8 @@ __global__ static void cuda_cg_mat_mul_2D(
     cuda_sample_neighbor_2D(gx, gy - 1, sum, nCount, x, grid);
     cuda_sample_neighbor_2D(gx, gy + 1, sum, nCount, x, grid);
 
-    result[i] = sum - (float)nCount * x[i];
+    if (nCount == 0) { result[i] = x[i]; return; }   // pin this cell: L behaves like identity here
+    result[i] = sum - ((float)nCount + 1e-2f) * x[i];
 }
 
 // a += alpha * b
@@ -225,10 +226,12 @@ float CGSolverCuda2D::solve(IGrid2D *_grid) {
     const auto* d = grid->cudaDataCPU();
     const int   steps        = PROPERTY_I(MAX_STEPS);
     const float errThreshold = PROPERTY_F(SOLVER_THRESHOLD);
+    const auto solveErrors         = PROPERTY(SOLVE_ERRORS, std::vector<float>*);
+    solveErrors->clear();
 
     constexpr dim3 block2D(16, 16);
     const dim3 grid2D((_width  + 15) / 16, (_height + 15) / 16);
-    const int  blocks1D = (_size + CG_BLOCK - 1) / CG_BLOCK;
+    const unsigned int blocks1D = (_size + CG_BLOCK - 1) / CG_BLOCK;
 
     cuda_cg_copy<<<blocks1D, CG_BLOCK>>>(d->pressure, d->divergence, _size);  // p = div
     cuda_cg_copy<<<blocks1D, CG_BLOCK>>>(_d_r,        d->divergence, _size);  // r = div
@@ -266,6 +269,7 @@ float CGSolverCuda2D::solve(IGrid2D *_grid) {
         const float oldSqLen = sqLen;
         dot(_d_r, _d_r, _d_dot1);
         sqLen = read_scalar(_d_dot1);
+        solveErrors->push_back(sqLen);
         if (sqLen < errThreshold) {
             break;
         }
@@ -410,15 +414,17 @@ float CGSolverCuda3D::solve(IGrid3D *_grid) {
     const auto* d = grid->cudaDataCPU();
     const int   steps        = PROPERTY_I(MAX_STEPS);
     const float errThreshold = PROPERTY_F(SOLVER_THRESHOLD);
+    const auto solveErrors         = PROPERTY(SOLVE_ERRORS, std::vector<float>*);
+    solveErrors->clear();
 
     constexpr dim3 block3D(8, 8, 8);
     const dim3 grid3D(
         (_width  + block3D.x - 1) / block3D.x,
         (_height + block3D.y - 1) / block3D.y,
         (_depth  + block3D.z - 1) / block3D.z);
-    const int  blocks1D = (_size + CG_BLOCK - 1) / CG_BLOCK;
+    const unsigned int blocks1D = (_size + CG_BLOCK - 1) / CG_BLOCK;
 
-    cuda_cg_copy<<<blocks1D, CG_BLOCK>>>(d->pressure, d->divergence, _size);  // p = div
+    //cuda_cg_copy<<<blocks1D, CG_BLOCK>>>(d->pressure, d->divergence, _size);  // p = div
     cuda_cg_copy<<<blocks1D, CG_BLOCK>>>(_d_r,        d->divergence, _size);  // r = div
 
     cuda_cg_mat_mul_3D<<<grid3D, block3D>>>(grid->cudaData(), _d_t, d->pressure);  // t = L * p
@@ -450,13 +456,14 @@ float CGSolverCuda3D::solve(IGrid3D *_grid) {
         } else {
             // Periodic exact recompute to prevent floating-point drift
             cuda_cg_mat_mul_3D<<<grid3D, block3D>>>(grid->cudaData(), _d_t, d->pressure);
-            cuda_cg_copy   <<<blocks1D, CG_BLOCK >>>(_d_r, d->divergence, _size);
-            cuda_cg_sub    <<<blocks1D, CG_BLOCK >>>(_d_r, _d_t, _size);
+            cuda_cg_copy   <<<blocks1D, CG_BLOCK>>>(_d_r, d->divergence, _size);
+            cuda_cg_sub    <<<blocks1D, CG_BLOCK>>>(_d_r, _d_t, _size);
         }
 
         const float oldSqLen = sqLen;
         dot(_d_r, _d_r, _d_dot1);
         sqLen = read_scalar(_d_dot1);
+        solveErrors->push_back(sqLen);
         if (sqLen < errThreshold) {
             break;
         }

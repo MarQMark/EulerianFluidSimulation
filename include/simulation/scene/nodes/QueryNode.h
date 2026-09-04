@@ -59,6 +59,7 @@ private:
     int _delay_frames = 20;
     float _change_value = 0.05f;
     int _iterations = 200;
+    bool _only_fluid = true;
 };
 
 #endif //SPHLASH_QUERYNODE_H

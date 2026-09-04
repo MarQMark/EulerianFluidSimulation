@@ -218,6 +218,12 @@ NodeProperties CameraNode::buildProperties() {
         [this] (bool enabled) { setMode(enabled ? Mode::ORTHOGRAPHIC : Mode::PERSPECTIVE); }
     ));
 
+    properties.addProperty(std::make_unique<FloatProperty>(
+        "Ortho Scale",
+        [this] () { return orthoScale; },
+        [this] (float orthoScale) { this->orthoScale = orthoScale; }
+    ));
+
     return properties;
 }
 

@@ -16,6 +16,7 @@ class IGrid3D;
 class SimulationDisplay3D final : public ISimulationDisplay {
 public:
     struct RenderData3D {
+        const int dim = 3;
         IGrid3D* grid;
     };
 

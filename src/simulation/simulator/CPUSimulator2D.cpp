@@ -404,20 +404,23 @@ void CPUSimulator2D::rho_sharpen() {
 void CPUSimulator2D::add_force() {
 	auto& forces = _grid->forces();
 	auto& vel = _grid->vel();
-	auto& rho = _grid->rho();
 	auto& boundary = _grid->boundary();
 
 	LOOP_2D_GRID(x, y, 1) {
-		//if (rho(x, y) < PROPERTY_F(LIQUID_THRESHOLD))
-		//	continue;
+		// Apply x-force only to non-boundary horizontal faces
+		if (boundary(x, y) != BOUNDARY || boundary(x - 1, y) != BOUNDARY)
+			vel(x, y).x += forces(x, y).x * PROPERTY_F(DT);
+		else
+			vel(x, y).x = 0.f;
 
-		if (boundary(x, y) == BOUNDARY)
-			continue;
-
-		vel(x, y) += forces(x, y) * PROPERTY_F(DT);
-
-		if (PROPERTY_B(GRAVITY_ENABLED))
-			vel(x, y).y -= PROPERTY_F(GRAVITY_FORCE) * PROPERTY_F(DT);
+		// Apply y-force/gravity only to non-boundary vertical faces
+		if (boundary(x, y) != BOUNDARY || boundary(x, y - 1) != BOUNDARY) {
+			vel(x, y).y += forces(x, y).y * PROPERTY_F(DT);
+			if (PROPERTY_B(GRAVITY_ENABLED))
+				vel(x, y).y -= PROPERTY_F(GRAVITY_FORCE) * PROPERTY_F(DT);
+		} else {
+			vel(x, y).y = 0.f;
+		}
 	}
 }
 
@@ -485,19 +488,17 @@ void CPUSimulator2D::project() {
     	return;
     }
 
-    // Calculate the new velocity field as v - grad(p)
-    LOOP_2D_GRID(x, y, 1){
-    	if (boundary(x, y) == 1)
-    		continue;
+	LOOP_2D_GRID(x, y, 1){
+		if (boundary(x, y) != BOUNDARY && boundary(x - 1, y) != BOUNDARY)
+			vel(x, y).x -= (pressure(x, y) - pressure(x - 1, y));
+		else
+			vel(x, y).x = 0.f;
 
-    	auto dPressure = glm::vec2(0);
-    	if (x > 1)
-    		dPressure.x = pressure(x, y) - pressure(x - 1, y);
-    	if (y > 1)
-    		dPressure.y = pressure(x, y) - pressure(x, y - 1);
-
-    	vel(x, y) -= dPressure;
-    }
+		if (boundary(x, y) != BOUNDARY && boundary(x, y - 1) != BOUNDARY)
+			vel(x, y).y -= (pressure(x, y) - pressure(x, y - 1));
+		else
+			vel(x, y).y = 0.f;
+	}
 
 	if (PROPERTY_B(RE_CALC_DIV)) {
 		LOOP_2D_GRID(x, y, 1){
@@ -607,15 +608,10 @@ void CPUSimulator2D::enforce_wall_boundaries() const {
 	auto& vel   = _grid->vel();
 	auto& boundary = _grid->boundary();
 
-	LOOP_2D_GRID(x, y, 0){
-		if (boundary(x, y) == 1.f && vel(x, y).x > 0)
+	LOOP_2D_GRID(x, y, 0) {
+		if (boundary(x, y) == BOUNDARY || (x > 0 && boundary(x - 1, y) == BOUNDARY))
 			vel(x, y).x = 0.f;
-		if (boundary(x - 1, y) == 1.f && vel(x, y).x < 0)
-			vel(x, y).x = 0.f;
-
-		if (boundary(x, y) == 1.f && vel(x, y).y > 0)
-			vel(x, y).y = 0.f;
-		if (boundary(x, y - 1) == 1.f && vel(x, y).y < 0)
+		if (boundary(x, y) == BOUNDARY || (y > 0 && boundary(x, y - 1) == BOUNDARY))
 			vel(x, y).y = 0.f;
 	}
 }

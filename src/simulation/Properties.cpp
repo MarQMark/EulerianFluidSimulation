@@ -5,6 +5,7 @@
 #include <ranges>
 
 #include "imgui.h"
+#include "nlohmann/json.hpp"
 #include "util/GuiHelper.h"
 
 Properties* Properties::s_instance = nullptr;
@@ -15,6 +16,46 @@ Properties::~Properties() {
 
     for (const auto p: _properties)
         delete p;
+}
+
+nlohmann::json Properties::toJson() const {
+    nlohmann::json j;
+    for (auto* base : _properties) {
+        if (base && !base->name.empty()) {
+            if (auto* p = dynamic_cast<Property<int>*>(base))
+                j[p->name] = p->value;
+            else if (auto* p = dynamic_cast<Property<unsigned int>*>(base))
+                j[p->name] = p->value;
+            else if (auto* p = dynamic_cast<Property<float>*>(base))
+                j[p->name] = p->value;
+            else if (auto* p = dynamic_cast<Property<bool>*>(base))
+                j[p->name] = p->value;
+        }
+    }
+    return j;
+}
+
+void Properties::fromJson(nlohmann::json json) const {
+    for (auto* base : _properties) {
+        if (!base || base->name.empty())
+            continue;
+
+        if (!json.contains(base->name))
+            continue;
+
+        const auto& value = json.at(base->name);
+
+        if (auto* p = dynamic_cast<Property<int>*>(base))
+            p->value = value.get<int>();
+        else if (auto* p = dynamic_cast<Property<unsigned int>*>(base))
+            p->value = value.get<unsigned int>();
+        else if (auto* p = dynamic_cast<Property<float>*>(base))
+            p->value = value.get<float>();
+        else if (auto* p = dynamic_cast<Property<bool>*>(base))
+            p->value = value.get<bool>();
+        else if (auto* p = dynamic_cast<Property<std::string>*>(base))
+            p->value = value.get<std::string>();
+    }
 }
 
 Properties::Category & Properties::add_category(const std::string &name, const bool expanded) {
@@ -98,6 +139,9 @@ void Properties::Property<Properties::SolverType>::draw(){
                 break;
             case JACOBI:
                 solverNames.push_back("Jacobi");
+                break;
+            case MULTIGRID:
+                solverNames.push_back("Multigrid");
                 break;
             default:;
         }

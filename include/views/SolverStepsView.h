@@ -9,7 +9,7 @@ public:
 
 private:
     static constexpr unsigned int MAX_STEPS = 2000;
-    float _steps[MAX_STEPS];
+    float _steps[MAX_STEPS] = {};
     unsigned int _steps_offset = 0;
 };
 

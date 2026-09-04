@@ -25,29 +25,21 @@ uniform uint uDepth;
 uint idx(uint x, uint y, uint z) { return z * uWidth * uHeight + y * uWidth + x; }
 
 void main() {
-    uint x = int(gl_GlobalInvocationID.x) + 1;
-    uint y = int(gl_GlobalInvocationID.y) + 1;
-    uint z = int(gl_GlobalInvocationID.z) + 1;
+    uint x = int(gl_GlobalInvocationID.x);
+    uint y = int(gl_GlobalInvocationID.y);
+    uint z = int(gl_GlobalInvocationID.z);
     if (x >= uWidth || y >= uHeight || z >= uDepth) return;
 
     const uint i = idx(x, y, z);
-
     const uint ix = idx(x - 1, y, z);
-    if (boundary[i] == 1.f && vel[i].x > 0)
-        vel[i].x = 0.f;
-    if (boundary[ix] == 1.f && vel[i].x < 0)
-        vel[i].x = 0.f;
-    
     const uint iy = idx(x, y - 1, z);
-    if (boundary[i] == 1.f && vel[i].y > 0)
-        vel[i].y = 0.f;
-    if (boundary[iy] == 1.f && vel[i].y < 0)
-        vel[i].y = 0.f;
-
     const uint iz = idx(x, y, z - 1);
-    if (boundary[i] == 1.f && vel[i].z > 0)
-        vel[i].z = 0.f;
-    if (boundary[iz] == 1.f && vel[i].z < 0)
+
+    if (boundary[i] == 1.f || (x > 0 && boundary[ix] == 1.f))
+        vel[i].x = 0.f;
+    if (boundary[i] == 1.f || (y > 0 && boundary[iy] == 1.f))
+        vel[i].y = 0.f;
+    if (boundary[i] == 1.f || (z > 0 && boundary[iz] == 1.f))
         vel[i].z = 0.f;
 }
 

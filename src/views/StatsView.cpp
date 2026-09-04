@@ -22,6 +22,9 @@ void StatsView::render(void* renderData) {
 
     if (PROPERTY(SIMULATION_TYPE, Properties::SimulatorType) <= Properties::SimulatorType::END_2D_SIMULATIONS) {
         const auto* data = static_cast<SimulationDisplay2D::RenderData2D*>(renderData);
+        if (data->dim != 2) // Check if renderData is actually RenderData3D
+            return;
+
         auto* grid = dynamic_cast<IGrid2D*>(data->grid);
         if (!grid)
             return;
@@ -40,6 +43,9 @@ void StatsView::render(void* renderData) {
     }
     else {
         const auto* data = static_cast<SimulationDisplay3D::RenderData3D*>(renderData);
+        if (data->dim != 3) // Check if renderData is actually RenderData2D
+            return;
+
         auto* grid = dynamic_cast<IGrid3D*>(data->grid);
         if (!grid)
             return;

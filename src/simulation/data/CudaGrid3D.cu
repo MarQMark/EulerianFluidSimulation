@@ -30,6 +30,9 @@ CudaGrid3D::CudaGrid3D(const unsigned int width, const unsigned int height, cons
     gpu_alloc(&_cuda_data.pressure,     _size * sizeof(float));
     gpu_alloc(&_cuda_data.forces,       _size * sizeof(glm::vec3));
     gpu_alloc(&_cuda_data.boundary,     _size * sizeof(float));
+    gpu_alloc(&validA,                  _size * sizeof(glm::vec3));
+    gpu_alloc(&validB,                  _size * sizeof(glm::vec3));
+    gpu_alloc(&maxVelSq,                sizeof(float));
 
     cudaMemset(_cuda_data.vel,          0, _size * sizeof(glm::vec3));
     cudaMemset(_cuda_data.tmp_vel,      0, _size * sizeof(glm::vec3));
@@ -46,6 +49,9 @@ CudaGrid3D::CudaGrid3D(const unsigned int width, const unsigned int height, cons
     cudaMemset(_cuda_data.pressure,     0, _size * sizeof(float));
     cudaMemset(_cuda_data.forces,       0, _size * sizeof(glm::vec3));
     cudaMemset(_cuda_data.boundary,     0, _size * sizeof(float));
+    cudaMemset(&validA,                 0, _size * sizeof(glm::vec3));
+    cudaMemset(&validB,                 0, _size * sizeof(glm::vec3));
+    cudaMemset(&maxVelSq,               0, sizeof(float));
 
     _cuda_data.width = width;
     _cuda_data.height = height;
@@ -114,6 +120,10 @@ CudaGrid3D::~CudaGrid3D() {
     cudaFree(_cuda_data.pressure);
     cudaFree(_cuda_data.forces);
     cudaFree(_cuda_data.boundary);
+
+    cudaFree(validA);
+    cudaFree(validB);
+    cudaFree(maxVelSq);
 
     cudaFree(_gpu_cuda_data);
 
@@ -270,7 +280,7 @@ void CudaGrid3D::clearA() const {
 }
 
 void CudaGrid3D::clearProj() const {
-    cudaMemset(_cuda_data.pressure,	  0,_size * sizeof(float));
+    //cudaMemset(_cuda_data.pressure,	  0,_size * sizeof(float));
     cudaMemset(_cuda_data.divergence, 0,_size * sizeof(float));
 }
 

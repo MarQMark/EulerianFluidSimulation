@@ -153,7 +153,7 @@ void OpenGLSimulator3D::vel_extrapolate() {
 	_vel_extrapolate->setUInt("uHeight", h);
 	_vel_extrapolate->setUInt("uDepth", d);
 	_grid->gpuBoundary().bind(4);
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < PROPERTY_I(VEL_EXTRAPOLATE_ITER); i++) {
 		// Pass 1
 		_grid->gpuVel().bind(0);
 		_grid->gpuNewGamma().bind(1);

@@ -34,12 +34,24 @@ void main() {
     if (x >= uWidth - 1 || y >= uHeight - 1 || z >= uDepth - 1) return;
 
     const uint i = idx(x, y, z);
-    //if (boundary[i] > 0.5f || rho[i] < 0.5f)
-    if (boundary[i] > 0.5f)
-        return;
+    const uint ix = idx(x - 1, y, z);
+    const uint iy = idx(x, y - 1, z);
+    const uint iz = idx(x, y, z - 1);
 
-    vel[i] += forces[i] * uDt;
-    vel[i].y -= uGravity * uDt;
+    if (boundary[i] != 1.f || boundary[ix] != 1.f)
+        vel[i].x += forces[i].x * uDt;
+    else
+        vel[i].x = 0.f;
+
+    if (boundary[i] != 1.f || boundary[iy] != 1.f)
+        vel[i].y += (forces[i].y - uGravity) * uDt;
+    else
+        vel[i].y = 0.f;
+
+    if (boundary[i] != 1.f || boundary[iz] != 1.f)
+        vel[i].z += forces[i].z * uDt;
+    else
+        vel[i].z = 0.f;
 }
 
 // add_force.comp

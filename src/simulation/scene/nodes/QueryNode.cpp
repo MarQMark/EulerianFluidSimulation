@@ -25,6 +25,7 @@ QueryNode::QueryNode(const nlohmann::json json) : SimSpaceNode(json) {
     _delay_frames = json.value("delayFrames", _delay_frames);
     _change_value = json.value("changeValue", _change_value);
     _iterations = json.value("iterations",_iterations);
+    _only_fluid = json.value("onlyFluid",_only_fluid);
 }
 
 void QueryNode::update(float deltaTime) {
@@ -57,7 +58,7 @@ void QueryNode::update(float deltaTime) {
     for (int z = std::max(0, (int)position.z); z < std::min(d - 1, (int)(position.z + scale.z)); z++) {
     for (int y = std::max(0, (int)position.y); y < std::min(h - 1, (int)(position.y + scale.y)); y++) {
     for (int x = std::max(0, (int)position.x); x < std::min(w - 1, (int)(position.x + scale.x)); x++) {
-        if (grid->rho()(x, y, z) < 0.5f)
+        if (_only_fluid && grid->rho()(x, y, z) < 0.5f)
             continue;
 
         maxPos = glm::max(maxPos, glm::vec3(x, y, z));
@@ -140,7 +141,13 @@ void QueryNode::exportData(const std::string& path) {
             "vel_x,vel_y,vel_z,"
             "pressure,gravity,";
     file << "dt,cell_size,"
-            "grid_width,grid_height,grid_depth\n";
+            "grid_width,grid_height,grid_depth";
+
+    for (const auto* p : Properties::Get()->getProperties()) {
+        if (p && !p->name.empty())
+            file << "," << p->name;
+    }
+    file << "\n";
 
     for (int i = 0 ; i < _history.size(); i++) {
         file << i << "," << _history[i];
@@ -149,6 +156,22 @@ void QueryNode::exportData(const std::string& path) {
                  << PROPERTY_F(DT) << ","
                  << PROPERTY_F(CELL_SIZE) << ","
                  << PROPERTY_I(WIDTH_3D) << "," << PROPERTY_I(HEIGHT_3D) << "," << PROPERTY_I(DEPTH_3D);
+
+            for (auto* baseP : Properties::Get()->getProperties()) {
+                if (!baseP || baseP->name.empty())
+                    continue;
+
+                if (auto* p = dynamic_cast<Properties::Property<int>*>(baseP))
+                    file << "," << std::to_string(p->value);
+                else if (auto* p = dynamic_cast<Properties::Property<unsigned int>*>(baseP))
+                    file << "," <<  std::to_string(p->value);
+                else if (auto* p = dynamic_cast<Properties::Property<float>*>(baseP))
+                    file << "," <<  std::to_string(p->value);
+                else if (auto* p = dynamic_cast<Properties::Property<bool>*>(baseP))
+                    file << "," <<  std::to_string(p->value);
+                else
+                    file << ",nan";
+            }
         }
         file << "\n";
     }
@@ -213,6 +236,11 @@ NodeProperties QueryNode::buildProperties() {
         [this] (int s) { _iterations = s; },
         1, INT_MAX, 0.01f
     ));
+    properties.addProperty(std::make_unique<BoolProperty>(
+        "Only query Fluid cells",
+        [this] () { return _only_fluid; },
+        [this] (const bool on) { _only_fluid = on;}
+    ));
 
     return properties;
 }
@@ -229,6 +257,7 @@ nlohmann::json QueryNode::toJson() const {
     j["delayFrames"] = _delay_frames;
     j["changeValue"] = _change_value;
     j["iterations"] = _iterations;
+    j["onlyFluid"] = _only_fluid;
     return j;
 }
 

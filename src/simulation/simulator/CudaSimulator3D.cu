@@ -18,8 +18,8 @@ __device__ glm::vec3 cuda_trace_along_field(const CudaGrid3D::CudaData* grid, gl
 __device__ void cuda_scatter_rho(const CudaGrid3D::CudaData* grid, glm::vec3 pos, float value);
 
 __global__ void cuda_vel_decay(const CudaGrid3D::CudaData* grid, float decay);
-__global__ void cuda_vel_extrap_init(const CudaGrid3D::CudaData* grid, float* valid);
-__global__ void cuda_vel_extrapolate(const CudaGrid3D::CudaData* grid, const glm::vec3* srcVel, const float* srcValid, glm::vec3* dstVel, float* dstValid);
+__global__ void cuda_vel_extrap_init(const CudaGrid3D::CudaData* grid, glm::vec3* valid);
+__global__ void cuda_vel_extrapolate(const CudaGrid3D::CudaData* grid, const glm::vec3* srcVel, const glm::vec3* srcValid, glm::vec3* dstVel, glm::vec3* dstValid);
 __global__ void cuda_rho_sharpen_calc(const CudaGrid3D::CudaData* grid, float dt);
 __global__ void cuda_rho_sharpen_apply(const CudaGrid3D::CudaData* grid);
 __global__ void cuda_rho_sharpen_scatter(const CudaGrid3D::CudaData* grid, float D, int substeps);
@@ -41,7 +41,7 @@ __global__ void cuda_rho_adv_11_cpy(const CudaGrid3D::CudaData *grid);
 __global__ void cuda_rho_adv_12_x(const CudaGrid3D::CudaData *grid, int offset);
 __global__ void cuda_rho_adv_12_y(const CudaGrid3D::CudaData *grid, int offset);
 __global__ void cuda_rho_adv_12_z(const CudaGrid3D::CudaData *grid, int offset);
-__global__ void cuda_add_force(const CudaGrid3D::CudaData *grid, float dt, float gravity);
+__global__ void cuda_add_force(const CudaGrid3D::CudaData *grid, float dt, float gravity, bool incAir);
 __global__ void cuda_vel_adv_pass_1(const CudaGrid3D::CudaData *grid, float dt, int subSteps);
 __global__ void cuda_vel_adv_pass_2(const CudaGrid3D::CudaData *grid);
 __global__ void cuda_proj_calc_div(const CudaGrid3D::CudaData *grid, float lambdaP, float lambdaM, float eta);
@@ -115,24 +115,13 @@ void CudaSimulator3D::vel_extrapolate() {
         (_grid->depth()  - 2 + blockSize.z - 1) / blockSize.z);
 
     const auto* d = _grid->cudaDataCPU();
+    cuda_vel_extrap_init<<<gridSize, blockSize>>>(_grid->cudaData(), _grid->validA);
 
-    // Reuse new_gamma and beta as ping-pong —
-    // both are free between rho_advect and the next frame.
-    float* validA = d->new_gamma;
-    float* validB = d->beta;
-    cuda_vel_extrap_init<<<gridSize, blockSize>>>(_grid->cudaData(), validA);
-
-    for (int i = 0; i < 3; i++) {
-        cuda_vel_extrapolate<<<gridSize, blockSize>>>(_grid->cudaData(), d->vel,     validA, d->tmp_vel, validB);
-        cuda_vel_extrapolate<<<gridSize, blockSize>>>(_grid->cudaData(), d->tmp_vel, validB, d->vel,     validA);
+    for (int i = 0; i < PROPERTY_I(VEL_EXTRAPOLATE_ITER); i++) {
+        cuda_vel_extrapolate<<<gridSize, blockSize>>>(_grid->cudaData(), d->vel,      _grid->validA, d->tmp_vel, _grid->validB);
+        cuda_vel_extrapolate<<<gridSize, blockSize>>>(_grid->cudaData(), d->tmp_vel,  _grid->validB, d->vel,     _grid->validA);
     }
 }
-
-
-#define BOUNDARY 1.f
-#define LOOP_3D_GRID(x, y, z, offset)   for (int z = offset; z < _grid->depth()  - offset; z++) \
-for (int y = offset; y < _grid->height() - offset; y++) \
-for (int x = offset; x < _grid->width()  - offset; x++)
 
 void CudaSimulator3D::rho_advect() {
 	constexpr dim3 blockSize(4, 4, 4);
@@ -244,7 +233,9 @@ void CudaSimulator3D::add_force() {
 	cuda_add_force<<<gridSize, blockSize>>>(
 		_grid->cudaData(),
 		PROPERTY_F(DT),
-		PROPERTY_B(GRAVITY_ENABLED) ? PROPERTY_F(GRAVITY_FORCE) : 0.f);
+		PROPERTY_B(GRAVITY_ENABLED) ? PROPERTY_F(GRAVITY_FORCE) : 0.f,
+		!PROPERTY_B(DISABLE_VEL_DECAY)
+	);
 }
 
 void CudaSimulator3D::vel_advect() {
@@ -599,17 +590,28 @@ __global__ void cuda_vel_decay(const CudaGrid3D::CudaData* grid, const float dec
     grid->vel[i] *= decay;
 
 }
-__global__ void cuda_vel_extrap_init(const CudaGrid3D::CudaData* grid, float* valid) {
+__global__ void cuda_vel_extrap_init(const CudaGrid3D::CudaData* grid, glm::vec3* valid) {
 	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
 	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y + 1;
 	const unsigned int z = blockIdx.z * blockDim.z + threadIdx.z + 1;
 	if (x >= grid->width - 1 || y >= grid->height - 1 || z >= grid->depth - 1)
 		return;
 
+	auto isFluid = [&](unsigned int cx, unsigned int cy, unsigned int cz) {
+		const unsigned int ci = cuda_idx_3D(cx, cy, cz, grid->width, grid->height);
+		return grid->rho[ci] >= 0.5f && grid->boundary[ci] < 0.5f;
+	};
+
 	const unsigned int i = cuda_idx_3D(x, y, z, grid->width, grid->height);
-	valid[i] = (grid->rho[i] >= 0.5f && grid->boundary[i] < 0.5f) ? 1.f : 0.f;
+	const bool self = isFluid(x, y, z);
+
+	valid[i] = glm::vec3(
+		(self || isFluid(x - 1, y, z)) ? 1.f : 0.f,
+		(self || isFluid(x, y - 1, z)) ? 1.f : 0.f,
+		(self || isFluid(x, y, z - 1)) ? 1.f : 0.f
+	);
 }
-__global__ void cuda_vel_extrapolate(const CudaGrid3D::CudaData* grid, const glm::vec3* srcVel, const float* srcValid, glm::vec3* dstVel, float* dstValid) {
+__global__ void cuda_vel_extrapolate(const CudaGrid3D::CudaData* grid, const glm::vec3* srcVel, const glm::vec3* srcValid, glm::vec3* dstVel, glm::vec3* dstValid) {
 	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
 	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y + 1;
 	const unsigned int z = blockIdx.z * blockDim.z + threadIdx.z + 1;
@@ -618,34 +620,34 @@ __global__ void cuda_vel_extrapolate(const CudaGrid3D::CudaData* grid, const glm
 
 	const unsigned int i = cuda_idx_3D(x, y, z, grid->width, grid->height);
 	if (grid->boundary[i] > 0.5f) {
-		dstVel[i] = srcVel[i];
-		dstValid[i] = 0.f;
+		dstVel[i]   = srcVel[i];
+		dstValid[i] = glm::vec3(0.f);
 		return;
 	}
-	if (srcValid[i] > 0.5f) {
-		dstVel[i] = srcVel[i];
-		dstValid[i] = 1.f;
-		return;
-	}
+
+	glm::vec3 result   = srcVel[i];
+	glm::vec3 validOut = srcValid[i];
 
 	glm::vec3 sum(0.f);
-	float n = 0;
-	auto sample = [&](const unsigned int nx, const unsigned int ny, const unsigned int nz) {
+	glm::vec3 n(0.f);
+	auto sample = [&](unsigned int nx, unsigned int ny, unsigned int nz) {
 		const unsigned int ni = cuda_idx_3D(nx, ny, nz, grid->width, grid->height);
-		if (srcValid[ni] > 0.5f) {
-			sum += srcVel[ni];
-			n++;
-		}
+		const glm::vec3& nv = srcValid[ni];
+		const glm::vec3& nvel = srcVel[ni];
+		if (nv.x > 0.5f) { sum.x += nvel.x; n.x++; }
+		if (nv.y > 0.5f) { sum.y += nvel.y; n.y++; }
+		if (nv.z > 0.5f) { sum.z += nvel.z; n.z++; }
 	};
-	sample(x-1, y, z);
-	sample(x+1, y, z);
-	sample(x, y-1, z);
-	sample(x, y+1, z);
-	sample(x, y,   z-1);
-	sample(x, y,   z+1);
+	sample(x - 1, y, z); sample(x + 1, y, z);
+	sample(x, y - 1, z); sample(x, y + 1, z);
+	sample(x, y, z - 1); sample(x, y, z + 1);
 
-	dstVel[i]   = (n > 0) ? sum / n : srcVel[i];
-	dstValid[i] = (n > 0) ? 1.f : 0.f;
+	if (validOut.x < 0.5f && n.x > 0.f) { result.x = sum.x / n.x; validOut.x = 1.f; }
+	if (validOut.y < 0.5f && n.y > 0.f) { result.y = sum.y / n.y; validOut.y = 1.f; }
+	if (validOut.z < 0.5f && n.z > 0.f) { result.z = sum.z / n.z; validOut.z = 1.f; }
+
+	dstVel[i]   = result;
+	dstValid[i] = validOut;
 }
 __global__ void cuda_rho_sharpen_calc(const CudaGrid3D::CudaData* grid, const float dt) {
 	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
@@ -1174,7 +1176,7 @@ __global__ void cuda_rho_adv_12_z(const CudaGrid3D::CudaData *grid, const int of
 	grid->gamma[idx_j] = avg;
 	grid->gamma[idx_i] = avg;
 }
-__global__ void cuda_add_force(const CudaGrid3D::CudaData *grid, const float dt, const float gravity) {
+__global__ void cuda_add_force(const CudaGrid3D::CudaData *grid, const float dt, const float gravity, const bool incAir) {
 	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
 	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y + 1;
 	const unsigned int z = blockIdx.z * blockDim.z + threadIdx.z + 1;
@@ -1182,12 +1184,27 @@ __global__ void cuda_add_force(const CudaGrid3D::CudaData *grid, const float dt,
 		return;
 
 	const unsigned int i = cuda_idx_3D(x, y, z, grid->width, grid->height);
-	//if (grid->boundary[i] > 0.5f || grid->rho[i] < 0.5f)
-	if (grid->boundary[i] > 0.5f)
+	if (grid->rho[i] < 0.5f && !incAir)
 		return;
 
-	grid->vel[i] += grid->forces[i] * dt;
-	grid->vel[i].y -= gravity * dt;
+	const unsigned int ix = cuda_idx_3D(x - 1, y, z, grid->width, grid->height);
+	const unsigned int iy = cuda_idx_3D(x, y - 1, z, grid->width, grid->height);
+	const unsigned int iz = cuda_idx_3D(x, y, z - 1, grid->width, grid->height);
+	if (grid->boundary[i] != 1.f || grid->boundary[ix] != 1.f)
+		grid->vel[i].x += grid->forces[i].x * dt;
+	else
+		grid->vel[i].x = 0.f;
+
+	if (grid->boundary[i] != 1.f || grid->boundary[iy] != 1.f)
+		grid->vel[i].y += (grid->forces[i].y - gravity) * dt;
+	else
+		grid->vel[i].y = 0.f;
+
+	if (grid->boundary[i] != 1.f || grid->boundary[iz] != 1.f)
+		grid->vel[i].z += grid->forces[i].z * dt;
+	else
+		grid->vel[i].z = 0.f;
+
 }
 __global__ void cuda_vel_adv_pass_1(const CudaGrid3D::CudaData *grid, const float dt, const int subSteps) {
 	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
@@ -1258,52 +1275,46 @@ __global__ void cuda_proj_sub_pg(const CudaGrid3D::CudaData *grid) {
 	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
 	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y + 1;
 	const unsigned int z = blockIdx.z * blockDim.z + threadIdx.z + 1;
-	const unsigned int w = grid->width;
-	const unsigned int h = grid->height;
 
 	if (x >= grid->width - 1 || y >= grid->height - 1 || z >= grid->depth - 1)
 		return;
 
 	const unsigned int i = cuda_idx_3D(x, y, z, grid->width, grid->height);
-	if(grid->boundary[i] == 1)
-		return;
+	const unsigned int ix = cuda_idx_3D(x - 1, y, z, grid->width, grid->height);
+	const unsigned int iy = cuda_idx_3D(x, y - 1, z, grid->width, grid->height);
+	const unsigned int iz = cuda_idx_3D(x, y, z - 1, grid->width, grid->height);
 
-	auto dPressure = glm::vec3(0);
-	if (x > 1)
-		dPressure.x = grid->pressure[i] - grid->pressure[cuda_idx_3D(x - 1, y, z, w, h)];
-	if (y > 1)
-		dPressure.y = grid->pressure[i] - grid->pressure[cuda_idx_3D(x, y - 1, z, w, h)];
-	if (z > 1)
-		dPressure.z = grid->pressure[i] - grid->pressure[cuda_idx_3D(x, y, z - 1, w, h)];
+	if (grid->boundary[i] != 1.f && grid->boundary[ix] != 1.f)
+		grid->vel[i].x -= (grid->pressure[i] - grid->pressure[ix]);
+	else
+		grid->vel[i].x = 0.f;
 
-	grid->vel[i] -= dPressure;
+	if (grid->boundary[i] != 1.f && grid->boundary[iy] != 1.f)
+		grid->vel[i].y -= (grid->pressure[i] - grid->pressure[iy]);
+	else
+		grid->vel[i].y = 0.f;
+
+	if (grid->boundary[i] != 1.f && grid->boundary[iz] != 1.f)
+		grid->vel[i].z -= (grid->pressure[i] - grid->pressure[iz]);
+	else
+		grid->vel[i].z = 0.f;
 }
 __global__ void cuda_proj_enf_bound(const CudaGrid3D::CudaData *grid) {
-	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x + 1;
-	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y + 1;
-	const unsigned int z = blockIdx.z * blockDim.z + threadIdx.z + 1;
-	const unsigned int w = grid->width;
-	const unsigned int h = grid->height;
+	const unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const unsigned int z = blockIdx.z * blockDim.z + threadIdx.z;
 
 	if (x >= grid->width || y >= grid->height || z >= grid->depth)
 		return;
 
 	const unsigned int i = cuda_idx_3D(x, y, z, grid->width, grid->height);
-	const unsigned int ix = cuda_idx_3D(x - 1, y, z, w, h);
-	if (grid->boundary[i] == 1.f && grid->vel[i].x > 0)
+	const unsigned int ix = cuda_idx_3D(x - 1, y, z, grid->width, grid->height);
+	const unsigned int iy = cuda_idx_3D(x, y - 1, z, grid->width, grid->height);
+	const unsigned int iz = cuda_idx_3D(x, y, z - 1, grid->width, grid->height);
+	if (grid->boundary[i] == 1.f || (x > 0 && grid->boundary[ix] == 1.f))
 		grid->vel[i].x = 0.f;
-	if (grid->boundary[ix] == 1.f && grid->vel[i].x < 0)
-		grid->vel[i].x = 0.f;
-
-	const unsigned int iy = cuda_idx_3D(x, y - 1, z, w, h);
-	if (grid->boundary[i] == 1.f && grid->vel[i].y > 0)
+	if (grid->boundary[i] == 1.f || (y > 0 && grid->boundary[iy] == 1.f))
 		grid->vel[i].y = 0.f;
-	if (grid->boundary[iy] == 1.f && grid->vel[i].y < 0)
-		grid->vel[i].y = 0.f;
-
-	const unsigned int iz = cuda_idx_3D(x, y, z - 1, w, h);
-	if (grid->boundary[i] == 1.f && grid->vel[i].z > 0)
-		grid->vel[i].z = 0.f;
-	if (grid->boundary[iz] == 1.f && grid->vel[i].z < 0)
+	if (grid->boundary[i] == 1.f || (z > 0 && grid->boundary[iz] == 1.f))
 		grid->vel[i].z = 0.f;
 }

@@ -26,6 +26,8 @@ private:
     int _selected_scene = 0;
     std::vector<std::string> _scene_list{};
     void refresh_scene_list();
+
+    bool _sl_properties = true;
 };
 
 #endif //EULERIANFLUIDSIMULATION_SCENEVIEW_H

@@ -48,6 +48,14 @@ NodeProperties SimulationDomainNode::buildProperties() {
         }
     ));
 
+    properties.addProperty(std::make_unique<ButtonProperty>(
+        "Set Scale to Grid-Size",
+        [this] {
+            const auto cs = PROPERTY_F(CELL_SIZE);
+            setScale(glm::vec3(PROPERTY_I(WIDTH_3D) * cs, PROPERTY_I(HEIGHT_3D) * cs, PROPERTY_I(DEPTH_3D) * cs));
+        }
+    ));
+
     properties.addProperty(std::make_unique<FloatProperty>(
         "Initial Fill (%)",
         [this] () { return _settings.percentageFilled * 100; },

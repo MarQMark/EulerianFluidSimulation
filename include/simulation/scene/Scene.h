@@ -41,8 +41,8 @@ public:
     std::vector<SceneNode*> getSceneNodes() const;
     std::vector<QueryNode*> getQueryNodes() const;
 
-    void saveScene(const std::string& path) const;
-    void loadScene(const std::string& path);
+    void saveScene(const std::string& path, bool saveProperties) const;
+    void loadScene(const std::string& path, bool loadProperties);
     void resetScene();
 
 private:

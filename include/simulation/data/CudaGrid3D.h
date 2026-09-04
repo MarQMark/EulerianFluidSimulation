@@ -64,6 +64,10 @@ public:
     struct CudaData* cudaData() const;
     struct CudaData* cudaDataCPU();
 
+    glm::vec3* validA{};
+    glm::vec3* validB{};
+    float* maxVelSq;
+
 private:
 
     struct CudaData _cuda_data;

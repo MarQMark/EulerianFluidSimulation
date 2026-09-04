@@ -10,6 +10,7 @@
 #include "core/Config.h"
 #include <algorithm>
 
+#include "simulation/Properties.h"
 #include "simulation/scene/nodes/DeletionNode.h"
 #include "simulation/scene/nodes/FluidNode.h"
 #include "simulation/scene/nodes/QueryNode.h"
@@ -130,7 +131,7 @@ std::vector<QueryNode*> Scene::getQueryNodes() const {
     return queryNodes;
 }
 
-void Scene::saveScene(const std::string& path) const {
+void Scene::saveScene(const std::string& path, const bool saveProperties) const {
     Config config;
 
     // Scene Nodes
@@ -142,15 +143,24 @@ void Scene::saveScene(const std::string& path) const {
         nodes.push_back(sceneNodes[i]->toJson());
     }
 
+    if (saveProperties)
+        config.set<nlohmann::json>("properties", Properties::Get()->toJson());
+
     config.set<nlohmann::json>("nodes", nodes);
     config.save(path);
 }
 
-void Scene::loadScene(const std::string& path) {
+void Scene::loadScene(const std::string& path, const bool loadProperties) {
+    SET_PROPERTY_B(SIMULATION_RESET, true);
+    SET_PROPERTY_B(SIMULATION_INITIALIZED, false);
+
     Config config;
 
     if (config.load(path)) {
         resetScene();
+
+        if (loadProperties)
+            Properties::Get()->fromJson(config.get<nlohmann::json>("properties", {}));
 
         // Load scene nodes
         for (auto &node : config.get<nlohmann::json>("nodes", {})) {

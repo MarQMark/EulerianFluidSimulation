@@ -8,6 +8,8 @@
 #include <utility>
 #include <vector>
 
+#include "nlohmann/json_fwd.hpp"
+#include "nlohmann/detail/meta/std_fs.hpp"
 #include "util/Logger.h"
 
 #define PROPERTY(name, type) Properties::Get()->getPropertyValue<type>(Properties::name)
@@ -76,6 +78,7 @@ public:
     PROP_TOKEN(SOLVER_THRESHOLD)
 
     PROP_TOKEN(DT)
+    PROP_TOKEN(VEL_EXTRAPOLATE_ITER)
     PROP_TOKEN(VEL_DECAY)
     PROP_TOKEN(CELL_SIZE)
 
@@ -97,6 +100,7 @@ public:
     PROP_TOKEN(MAX_VALUE)
     PROP_TOKEN(TOTAL_RHO)
     PROP_TOKEN(SOLVE_STEPS)
+    PROP_TOKEN(SOLVE_ERRORS)
 
     PROP_TOKEN(DISABLE_VEL_DECAY);
     PROP_TOKEN(DISABLE_VEL_EXTRAPOLATE);
@@ -140,6 +144,7 @@ private:
 
         ADD(simulation, CELL_SIZE, "Cell Size", "Size of one cell in meters", 1.f)
         ADD(simulation, DT, "DT", "Delta time in seconds", 0.0167f)
+        ADD(simulation, VEL_EXTRAPOLATE_ITER, "Vel Extrapolate Iter", "Number of iterations velocity is extrapolated", 3)
         ADD(simulation, VEL_DECAY, "Vel Decay", "Velocity Decay", 0.8f)
 
         auto& grid = add_category("Grid", true);
@@ -176,6 +181,7 @@ private:
         ADD_HIDDEN(MAX_VALUE, 0)
         ADD_HIDDEN(TOTAL_RHO, 0.f)
         ADD_HIDDEN(SOLVE_STEPS, 0)
+        ADD_HIDDEN(SOLVE_ERRORS, new std::vector<float>());
 
         ADD_HIDDEN(SIMULATION_TYPE, SimulatorType::CPU_3D)
         ADD_HIDDEN(SIMULATION_REBUILD, false)
@@ -189,6 +195,10 @@ private:
         ADD_HIDDEN(SIMULATION_FRAMES, 0)
     }
     ~Properties();
+
+public:
+    nlohmann::json toJson() const;
+    void fromJson(nlohmann::json json) const;
 
 #undef ADD
 #undef ADD_D
@@ -213,7 +223,6 @@ public:
         const int dimension;
     };
 
-private:
     template<typename T>
     class Property final : public IProperty{
     public:
@@ -227,6 +236,7 @@ private:
         void draw() override;
     };
 
+private:
     class ICategory {
     public:
         virtual ~ICategory() {
@@ -312,6 +322,9 @@ private:
     void add_property(unsigned int token, IProperty* p);
 
 public:
+    std::vector<IProperty*>& getProperties() {
+        return _properties;
+    }
     std::vector<Category*>& getCategories() {
         return _categories;
     }
@@ -441,7 +454,8 @@ public:
         EIGEN_CG,
         EIGEN_BiCGSTAB,
         SELF_CG,
-        JACOBI
+        JACOBI,
+        MULTIGRID
     };
 };
 

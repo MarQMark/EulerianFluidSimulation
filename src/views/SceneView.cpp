@@ -162,7 +162,7 @@ void SceneView::render(void* renderData) {
     if (ImGuiFileDialog::Instance()->Display("SaveScene")) {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-            _editor->getScene()->saveScene(filePathName);
+            _editor->getScene()->saveScene(filePathName, _sl_properties);
 
             refresh_scene_list();
         }
@@ -179,7 +179,8 @@ void SceneView::render(void* renderData) {
     if (ImGuiFileDialog::Instance()->Display("LoadScene")) {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-            _editor->getScene()->loadScene(filePathName);
+            _editor->setSelected(nullptr);
+            _editor->getScene()->loadScene(filePathName, _sl_properties);
         }
 
         ImGuiFileDialog::Instance()->Close();
@@ -192,20 +193,23 @@ void SceneView::render(void* renderData) {
 
     ImGui::Separator();
 
-    if (ImGui::BeginListBox("##listbox", ImVec2(-FLT_MIN, -FLT_MIN))) {
+    float listSize = ImGui::GetContentRegionAvail().y - 25;
+    if (ImGui::BeginListBox("##listbox", ImVec2(-FLT_MIN, listSize))) {
         for (int i = 0; i < _scene_list.size(); i++) {
             if (ImGui::Selectable(_scene_list[i].c_str(), i == _selected_scene)) {
                 _selected_scene = i;
             }
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                _editor->getScene()->loadScene("assets//scenes//" + _scene_list[i] + ".json");
+                _editor->setSelected(nullptr);
+                _editor->getScene()->loadScene("assets//scenes//" + _scene_list[i] + ".json", _sl_properties);
             }
         }
 
         ImGui::EndListBox();
     }
 
+    ImGui::Checkbox("Save/Load Properties", &_sl_properties);
     ImGui::End();
 }
 
