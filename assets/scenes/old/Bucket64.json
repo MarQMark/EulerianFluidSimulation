@@ -1,0 +1,119 @@
+{
+    "nodes": [
+        {
+            "color": [
+                0.20000000298023224,
+                0.6000000238418579,
+                1.0
+            ],
+            "name": "Simulation Domain",
+            "position": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "resolution": [
+                130,
+                130,
+                34
+            ],
+            "scale": [
+                4.0,
+                4.0,
+                1.0
+            ],
+            "tags": [
+                "simulation_Domain"
+            ],
+            "type": "SimulationDomainNode",
+            "visible": true
+        },
+        {
+            "boundary": true,
+            "name": "Bucket",
+            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/assets/models/Bucket.obj",
+            "position": [
+                -1.5030121803283691,
+                -0.07000000029802322,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+            ],
+            "scale": [
+                2.059999942779541,
+                2.009999990463257,
+                2.059999942779541
+            ],
+            "tags": [],
+            "type": "ModelNode",
+            "visible": true
+        },
+        {
+            "color": [
+                1.0,
+                0.0,
+                0.0
+            ],
+            "name": "Fluid Spawn",
+            "position": [
+                1.0,
+                64.0,
+                1.0
+            ],
+            "scale": [
+                32.0,
+                64.0,
+                32.0
+            ],
+            "tags": [],
+            "type": "BoundingBoxFluidSpawnNode",
+            "visible": true
+        },
+        {
+            "color": [
+                0.699999988079071,
+                0.0,
+                0.0
+            ],
+            "name": "DeletionNode",
+            "position": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                101.0,
+                13.0,
+                34.0
+            ],
+            "tags": [],
+            "type": "DeletionNode",
+            "visible": true
+        },
+        {
+            "color": [
+                0.0,
+                0.0,
+                0.699999988079071
+            ],
+            "name": "QueryNode",
+            "position": [
+                1.0,
+                48.0,
+                1.0
+            ],
+            "scale": [
+                129.0,
+                1.0,
+                32.0
+            ],
+            "tags": [],
+            "type": "QueryNode",
+            "visible": true
+        }
+    ]
+}

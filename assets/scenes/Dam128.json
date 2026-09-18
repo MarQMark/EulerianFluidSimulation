@@ -1,0 +1,141 @@
+{
+    "nodes": [
+        {
+            "color": [
+                0.20000000298023224,
+                0.6000000238418579,
+                1.0
+            ],
+            "name": "Simulation Domain",
+            "position": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "resolution": [
+                642,
+                130,
+                130
+            ],
+            "scale": [
+                5.015625,
+                1.015625,
+                1.015625
+            ],
+            "tags": [
+                "simulation_Domain"
+            ],
+            "type": "SimulationDomainNode",
+            "visible": true
+        },
+        {
+            "color": [
+                1.0,
+                0.0,
+                0.0
+            ],
+            "name": "Fluid Spawn",
+            "position": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "scale": [
+                128.0,
+                128.0,
+                128.0
+            ],
+            "tags": [],
+            "type": "BoundingBoxFluidSpawnNode",
+            "visible": true
+        },
+        {
+            "avgFrames": 5,
+            "changeValue": 0.05000000074505806,
+            "color": [
+                0.0,
+                0.0,
+                0.699999988079071
+            ],
+            "delayFrames": 20,
+            "enabled": true,
+            "iterations": 200,
+            "mode": 0,
+            "name": "QueryHeight",
+            "onlyFluid": true,
+            "position": [
+                48.0,
+                1.0,
+                48.0
+            ],
+            "scale": [
+                32.0,
+                128.0,
+                32.0
+            ],
+            "tags": [],
+            "type": "QueryNode",
+            "visible": true
+        },
+        {
+            "avgFrames": 5,
+            "changeValue": 0.05000000074505806,
+            "color": [
+                0.0,
+                0.0,
+                0.699999988079071
+            ],
+            "delayFrames": 20,
+            "enabled": true,
+            "iterations": 200,
+            "mode": 0,
+            "name": "QueryPos",
+            "onlyFluid": true,
+            "position": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "scale": [
+                641.0,
+                32.0,
+                128.0
+            ],
+            "tags": [],
+            "type": "QueryNode",
+            "visible": true
+        }
+    ],
+    "properties": {
+        "Brush Size": 50.0,
+        "Cell Size": 0.0078125,
+        "Check Interval": 100,
+        "D": 32.0,
+        "DT": 0.009999999776482582,
+        "Disable Add Force": false,
+        "Disable Density Advection": false,
+        "Disable Density Sharpen": false,
+        "Disable Projection": false,
+        "Disable Up/Download": false,
+        "Disable Velocity Advection": false,
+        "Disable Velocity Decay": true,
+        "Disable Velocity Extrapolation": false,
+        "Draw vel arrows": false,
+        "Eta": 100.0,
+        "Gravity": 9.8100004196167,
+        "Gravity Enabled": true,
+        "Gravity Force": 1255.6800537109375,
+        "Height": 72,
+        "Lambda+": 10.0,
+        "Lambda-": 50.0,
+        "Liquid Threshold": 0.5,
+        "Max ForceField cells": 1000,
+        "Max Steps": 2000,
+        "Paused": true,
+        "Re-Calc Div": false,
+        "Threshold": 9.999999747378752e-06,
+        "Vel Decay": 0.800000011920929,
+        "Vel Extrapolate Iter": 32,
+        "Width": 72
+    }
+}

@@ -1,0 +1,189 @@
+{
+    "nodes": [
+        {
+            "color": [
+                0.20000000298023224,
+                0.6000000238418579,
+                1.0
+            ],
+            "name": "Simulation Domain",
+            "position": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "resolution": [
+                130,
+                132,
+                34
+            ],
+            "scale": [
+                2.03125,
+                2.0625,
+                0.53125
+            ],
+            "tags": [
+                "simulation_Domain"
+            ],
+            "type": "SimulationDomainNode",
+            "visible": false
+        },
+        {
+            "boundary": true,
+            "name": "Bucket",
+            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/cmake-build-release/assets/models/Bucket.obj",
+            "position": [
+                -0.75,
+                0.0,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "tags": [],
+            "type": "ModelNode",
+            "visible": false
+        },
+        {
+            "color": [
+                1.0,
+                0.0,
+                0.0
+            ],
+            "name": "Fluid Spawn",
+            "position": [
+                1.0,
+                66.0,
+                1.0
+            ],
+            "scale": [
+                32.0,
+                64.0,
+                32.0
+            ],
+            "tags": [],
+            "type": "BoundingBoxFluidSpawnNode",
+            "visible": false
+        },
+        {
+            "avgFrames": 5,
+            "changeValue": 0.05000000074505806,
+            "color": [
+                0.0,
+                0.0,
+                0.699999988079071
+            ],
+            "delayFrames": 20,
+            "enabled": true,
+            "iterations": 200,
+            "mode": 0,
+            "name": "QueryPos",
+            "onlyFluid": true,
+            "position": [
+                0.0,
+                50.0,
+                0.0
+            ],
+            "scale": [
+                130.0,
+                1.0,
+                34.0
+            ],
+            "tags": [],
+            "type": "QueryNode",
+            "visible": false
+        },
+        {
+            "avgFrames": 5,
+            "changeValue": 0.05000000074505806,
+            "color": [
+                0.0,
+                0.0,
+                0.699999988079071
+            ],
+            "delayFrames": 20,
+            "enabled": true,
+            "iterations": 200,
+            "mode": 0,
+            "name": "QueryVel",
+            "onlyFluid": true,
+            "position": [
+                33.0,
+                68.0,
+                15.0
+            ],
+            "scale": [
+                2.0,
+                4.0,
+                4.0
+            ],
+            "tags": [],
+            "type": "QueryNode",
+            "visible": false
+        },
+        {
+            "boundary": true,
+            "name": "BucketCrosssection",
+            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/cmake-build-release/assets/models/BucketCrosssection.obj",
+            "position": [
+                -0.75,
+                0.0,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "tags": [],
+            "type": "ModelNode",
+            "visible": true
+        }
+    ],
+    "properties": {
+        "Brush Size": 50.0,
+        "Cell Size": 0.015625,
+        "Check Interval": 100,
+        "D": 3.0,
+        "DT": 9.999999747378752e-05,
+        "Disable Add Force": false,
+        "Disable Density Advection": false,
+        "Disable Density Sharpen": false,
+        "Disable Projection": false,
+        "Disable Up/Download": false,
+        "Disable Velocity Advection": false,
+        "Disable Velocity Decay": false,
+        "Disable Velocity Extrapolation": false,
+        "Draw vel arrows": false,
+        "Eta": 100.0,
+        "Gravity": 9.8100004196167,
+        "Gravity Enabled": true,
+        "Gravity Force": 627.8400268554688,
+        "Height": 72,
+        "Lambda+": 10.0,
+        "Lambda-": 50.0,
+        "Liquid Threshold": 0.5,
+        "Max ForceField cells": 1000,
+        "Max Steps": 2000,
+        "Paused": true,
+        "Re-Calc Div": false,
+        "Threshold": 9.999999747378752e-06,
+        "Vel Decay": 0.8999999761581421,
+        "Vel Extrapolate Iter": 16,
+        "Width": 72
+    }
+}

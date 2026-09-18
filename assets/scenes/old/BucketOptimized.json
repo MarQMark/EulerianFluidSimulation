@@ -1,0 +1,146 @@
+{
+    "nodes": [
+        {
+            "color": [
+                0.20000000298023224,
+                0.6000000238418579,
+                1.0
+            ],
+            "name": "Simulation Domain",
+            "position": [
+                0.0,
+                0.809357762336731,
+                0.0
+            ],
+            "resolution": [
+                128,
+                77,
+                64
+            ],
+            "scale": [
+                4.0,
+                2.4000000953674316,
+                2.0
+            ],
+            "tags": [
+                "simulation_Domain"
+            ],
+            "type": "SimulationDomainNode",
+            "visible": true
+        },
+        {
+            "boundary": true,
+            "name": "tube",
+            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/assets/models/tube.obj",
+            "position": [
+                0.9890000224113464,
+                -0.07400000095367432,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "tags": [],
+            "type": "ModelNode",
+            "visible": false
+        },
+        {
+            "boundary": true,
+            "name": "tube_plug",
+            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/assets/models/tube_plug.obj",
+            "position": [
+                0.9890000224113464,
+                -0.07400000095367432,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0,
+                1.0
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "tags": [],
+            "type": "ModelNode",
+            "visible": true
+        },
+        {
+            "boundary": false,
+            "name": "Fluid Spawn",
+            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/cmake-build-debug/assets/models/tube_infill.obj",
+            "position": [
+                0.9890000224113464,
+                -0.07400000095367432,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                0.9800000190734863,
+                0.949999988079071,
+                0.9800000190734863
+            ],
+            "tags": [],
+            "type": "ModelFluidSpawnNode",
+            "visible": false
+        },
+        {
+            "color": [
+                0.0,
+                0.0,
+                0.699999988079071
+            ],
+            "name": "QueryNode",
+            "position": [
+                0.0,
+                6.0,
+                0.0
+            ],
+            "scale": [
+                128.0,
+                1.0,
+                64.0
+            ],
+            "tags": [],
+            "type": "QueryNode",
+            "visible": true
+        },
+        {
+            "color": [
+                0.699999988079071,
+                0.0,
+                0.0
+            ],
+            "name": "DeletionNode",
+            "position": [
+                0.0,
+                1.0,
+                0.0
+            ],
+            "scale": [
+                128.0,
+                1.0,
+                64.0
+            ],
+            "tags": [],
+            "type": "DeletionNode",
+            "visible": true
+        }
+    ]
+}

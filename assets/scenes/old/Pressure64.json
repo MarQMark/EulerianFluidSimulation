@@ -1,0 +1,74 @@
+{
+    "nodes": [
+        {
+            "color": [
+                0.20000000298023224,
+                0.6000000238418579,
+                1.0
+            ],
+            "name": "Simulation Domain",
+            "position": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "resolution": [
+                66,
+                130,
+                66
+            ],
+            "scale": [
+                2.0,
+                4.0,
+                2.0
+            ],
+            "tags": [
+                "simulation_Domain"
+            ],
+            "type": "SimulationDomainNode",
+            "visible": true
+        },
+        {
+            "color": [
+                1.0,
+                0.0,
+                0.0
+            ],
+            "name": "Fluid Spawn",
+            "position": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "scale": [
+                64.0,
+                64.0,
+                64.0
+            ],
+            "tags": [],
+            "type": "BoundingBoxFluidSpawnNode",
+            "visible": true
+        },
+        {
+            "color": [
+                0.0,
+                0.0,
+                0.699999988079071
+            ],
+            "name": "QueryNode",
+            "position": [
+                17.0,
+                2.0,
+                17.0
+            ],
+            "scale": [
+                32.0,
+                1.0,
+                32.0
+            ],
+            "tags": [],
+            "type": "QueryNode",
+            "visible": true
+        }
+    ]
+}
