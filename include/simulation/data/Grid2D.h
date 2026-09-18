@@ -12,8 +12,6 @@
 class Grid2D final : public IGrid2D{
 private:
     struct _DisAdvCell {
-        //_DisAdvCell(const unsigned int _i, const unsigned int _j, const float _val)
-        //    : i(_i), j(_j), val(_val) {}
         unsigned int i = 0;
         unsigned int j = 0;
         float val = 0.f;

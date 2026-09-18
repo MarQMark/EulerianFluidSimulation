@@ -13,12 +13,11 @@ public:
     OpenGLSimulator3D(unsigned int width, unsigned int height, unsigned int depth);
     ~OpenGLSimulator3D() override;
 
+    void update() override;
+
     void* getRenderData() override;
 
 private:
-
-    void update() override;
-
     void vel_decay() override;
     void vel_extrapolate() override;
     void rho_advect() override;

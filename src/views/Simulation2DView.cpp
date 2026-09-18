@@ -87,32 +87,27 @@ void Simulation2DView::render(void* renderData) {
             const bool left = ImGui::IsMouseDown(ImGuiMouseButton_Left);
 
             ImVec2 mouse = ImGui::GetIO().MousePos;
-            ImVec2 delta = ImGui::GetIO().MouseDelta; // per-frame drag delta (pixels)
+            ImVec2 delta = ImGui::GetIO().MouseDelta;
 
-            // Convert circle center to texture space
             float u = (mouse.x - x_min) / (x_max - x_min);
             float v = (mouse.y - y_min) / (y_max - y_min);
 
-            // Clamp (optional, for safety)
             u = std::clamp(u, 0.0f, 1.0f);
             v = std::clamp(v, 0.0f, 1.0f);
 
             int cx = (int)(u * (_width  - 1));
             int cy = (int)(v * (_height - 1));
 
-            // Convert radius to texture space
             float radius_tex_x = PROPERTY_F(BRUSH_SIZE) * (_width  / (x_max - x_min));
             float radius_tex_y = PROPERTY_F(BRUSH_SIZE) * (_height / (y_max - y_min));
 
-            float r2 = radius_tex_x * radius_tex_x; // use x scale (aspect already preserved)
+            float r2 = radius_tex_x * radius_tex_x;
 
-            // Scale mouse delta into texture space
             glm::vec2 force(
                 delta.x * (_width  / (x_max - x_min)),
                 delta.y * (_height / (y_max - y_min))
             );
 
-            // Iterate bounding box of the circle
             int xmin = std::max(0, (int)(cx - radius_tex_x));
             int xmax = std::min((int)_width  - 1, (int)(cx + radius_tex_x));
             int ymin = std::max(0, (int)(cy - radius_tex_y));

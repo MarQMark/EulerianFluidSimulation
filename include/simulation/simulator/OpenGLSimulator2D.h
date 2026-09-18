@@ -12,13 +12,11 @@ public:
     OpenGLSimulator2D(unsigned width, unsigned height);
     ~OpenGLSimulator2D() override;
 
-    void* getRenderData() override;
-
-
-private:
-
     void update() override;
 
+    void* getRenderData() override;
+
+private:
     void vel_decay() override;
     void vel_extrapolate() override;
     void rho_advect() override;

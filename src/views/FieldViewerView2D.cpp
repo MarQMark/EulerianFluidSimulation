@@ -88,10 +88,8 @@ void FieldViewerView2D::render(void* renderData) {
                  ImVec2(0, 1),
                  ImVec2(1, 0));
 
-    // ------------------------------------------------------------------
-    // Hover detection
-    // ------------------------------------------------------------------
 
+    // Hover detection
     const float draw_w = x_max - x_min;
     const float draw_h = y_max - y_min;
 
@@ -107,7 +105,7 @@ void FieldViewerView2D::render(void* renderData) {
         const float rel_y = (mouse.y - y_min) / draw_h;
 
         int cell_x = (int)(rel_x * grid_w);
-        int cell_y = (int)((1.0f - rel_y) * grid_h); // image is vertically flipped
+        int cell_y = (int)((1.0f - rel_y) * grid_h);
 
         cell_x = std::clamp(cell_x, 0, grid_w - 1);
         cell_y = std::clamp(cell_y, 0, grid_h - 1);

@@ -14,20 +14,17 @@ public:
     CudaSimulator2D(unsigned width, unsigned height);
     ~CudaSimulator2D() override;
 
-    void* getRenderData() override;
-
-
-private:
-
     void update() override;
 
+    void* getRenderData() override;
+
+private:
     void vel_decay() override;
     void vel_extrapolate() override;
     void rho_advect() override;
     void rho_sharpen() override;
     void add_force() override;
     void vel_advect() override;
-
     void project() override;
 
     CudaGrid2D* _grid{};

@@ -9,8 +9,7 @@ uniform int uCount;
 
 shared float scratch[256];
 
-void main()
-{
+void main() {
     uint gid = gl_GlobalInvocationID.x;
     uint lid = gl_LocalInvocationID.x;
     uint group = gl_WorkGroupID.x;
@@ -24,8 +23,7 @@ void main()
 
     barrier();
 
-    for (uint stride = 128; stride > 0; stride >>= 1)
-    {
+    for (uint stride = 128; stride > 0; stride >>= 1) {
         if (lid < stride)
             scratch[lid] += scratch[lid + stride];
 

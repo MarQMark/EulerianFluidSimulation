@@ -11,7 +11,6 @@ public:
     CPUSimulator3D(unsigned int width, unsigned int height, unsigned int depth);
     ~CPUSimulator3D() override;
 
-
     void update() override;
 
     void* getRenderData() override;

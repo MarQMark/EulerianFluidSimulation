@@ -41,34 +41,33 @@ vec2 domainClamp(vec2 p) {
 }
 
 float BilinearInterpolation(const vec2 pos, int low_x, int low_y, int comp) {
-    float x_low_inter, x_high_inter;
+    const vec2 off = (comp == 0) ? vec2(-1.0f, -0.5f) : vec2(-0.5f, -1.0f);
 
-    // Interpolate between y values at the lower x positions
-    x_low_inter = (((low_y + 0.5 * (1 - comp)) - pos[1])
-    * vel[idx(low_x, low_y)][comp])
-    + ((pos[1] - (low_y - 0.5 - 0.5 * comp))
-    * vel[idx(low_x, low_y + 1)][comp]);
-    // Interpolate between y values at the higher x positions
-    x_high_inter = (((low_y + 0.5 * (1 - comp)) - pos[1])
-    * vel[idx(low_x + 1, low_y)][comp])
-    + ((pos[1] - (low_y - 0.5 - 0.5 * comp))
-    * vel[idx(low_x + 1, low_y + 1)][comp]);
+    const float x0 = low_x + off.x;
+    const float y0 = low_y + off.y;
 
-    // Interpolate between the averaged values at the low and high x positions
-    return ((low_x + 0.5 * comp - pos[0]) * x_low_inter)
-    + ((pos[0] - (low_x - 0.5 - 0.5 * (1 - comp))) * x_high_inter);
+    const float tx = pos.x - x0;
+    const float ty = pos.y - y0;
+
+    const float v00 = vel[idx(low_x,     low_y    )][comp];
+    const float v01 = vel[idx(low_x,     low_y + 1)][comp];
+    const float v10 = vel[idx(low_x + 1, low_y    )][comp];
+    const float v11 = vel[idx(low_x + 1, low_y + 1)][comp];
+
+    const float vLow  = v00 * (1.0f - ty) + v01 * ty;
+    const float vHigh = v10 * (1.0f - ty) + v11 * ty;
+
+    return vLow * (1.0f - tx) + vHigh * tx;
 }
 
 #define EPSILON 1.0e-10
 vec2 sampleVel(vec2 pos) {
     float Vx, Vy;
 
-    // Interpolate the x component
     int low_x = int(floor(pos[0] + 1) + EPSILON);
     int low_y = int(pos[1] + 0.5 + EPSILON);
     Vx = BilinearInterpolation(pos, low_x, low_y, 0);
 
-    // Interpolate the y component
     low_x = int(pos[0] + 0.5);
     low_y = int(floor(pos[1] + 1) + EPSILON);
     Vy = BilinearInterpolation(pos, low_x, low_y, 1);
@@ -79,17 +78,16 @@ vec2 sampleVel(vec2 pos) {
 vec2 traceParticle(vec2 start) {
     if (inWall(start)) return start;
 
-    float subDt = -uDt / float(uSubsteps);   // backward
+    float subDt = -uDt / float(uSubsteps);
     vec2  pos   = start;
 
     for (int s = 0; s < uSubsteps; s++) {
-        vec2 k1   = sampleVel(pos - vec2(0.5));
+        vec2 k1   = sampleVel(pos - 0.5);
         vec2 mid  = domainClamp(pos + k1 * (subDt * 0.5));
-        vec2 k2   = sampleVel(mid - vec2(0.5));
+        vec2 k2   = sampleVel(mid - 0.5);
         vec2 next = pos + k2 * subDt;
 
         if (inWall(next)) {
-            // Binary search: find last safe position before the wall
             vec2 safe = pos;
             vec2 unsafe = next;
             vec2 h = safe;

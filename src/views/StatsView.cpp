@@ -68,14 +68,11 @@ void StatsView::render(void* renderData) {
 
     ImGui::Begin("Stats");
 
-    // ── Record ───────────────────────────────────────────────────────────────
     _times[_times_offset] = current;
     _times_offset = (_times_offset + 1) % MAX_TIMES;
 
-    // ── Header ───────────────────────────────────────────────────────────────
     Util::SectionHeader("PARTICLE DENSITY");
 
-    // ── Plot (teal lines, darkened frame background) ──────────────────────────
     ImGui::PushStyleColor(ImGuiCol_PlotLines,        ImVec4{0.19f, 0.80f, 0.60f, 1.00f});
     ImGui::PushStyleColor(ImGuiCol_PlotLinesHovered, ImVec4{0.40f, 0.95f, 0.74f, 1.00f});
     ImGui::PushStyleColor(ImGuiCol_FrameBg,          ImVec4{0.07f, 0.09f, 0.14f, 1.00f});
@@ -86,20 +83,18 @@ void StatsView::render(void* renderData) {
 
     ImGui::Spacing();
 
-    // ── Stat rows ─────────────────────────────────────────────────────────────
     Util::StatRow("In Fluid",    current,    total, ImVec4{0.22f, 0.78f, 0.50f, 1.00f}); // kOK   green
     Util::StatRow("Compressed",  compressed, total, ImVec4{0.31f, 0.56f, 1.00f, 1.00f}); // kACC  blue
     Util::StatRow("Floating",    floating,   total, ImVec4{0.97f, 0.74f, 0.24f, 1.00f}); // kWARN yellow
 
-    // ── Total row (separator + full-brightness text) ──────────────────────────
     ImGui::Spacing();
     ImGui::Separator();
     ImGui::Spacing();
     {
         float pct = sum / total;
         ImVec4 totColor = (pct > 0.995f)
-                        ? ImVec4{0.22f, 0.78f, 0.50f, 1.00f}   // all accounted for
-                        : ImVec4{0.97f, 0.74f, 0.24f, 1.00f};  // some missing
+                        ? ImVec4{0.22f, 0.78f, 0.50f, 1.00f}
+                        : ImVec4{0.97f, 0.74f, 0.24f, 1.00f};
 
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{0.60f, 0.62f, 0.68f, 1.00f});
         ImGui::Text("%-12s", "Total");

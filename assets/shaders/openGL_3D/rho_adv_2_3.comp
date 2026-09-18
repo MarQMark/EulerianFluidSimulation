@@ -107,7 +107,7 @@ vec3 sampleVel(vec3 pos) {
 vec3 traceParticle(vec3 start) {
     if (inWall(start)) return start;
 
-    float subDt = -uDt / float(uSubsteps);   // backward
+    float subDt = -uDt / float(uSubsteps);
     vec3  pos   = start;
 
     for (int s = 0; s < uSubsteps; s++) {
@@ -117,7 +117,6 @@ vec3 traceParticle(vec3 start) {
         vec3 next = pos + k2 * subDt;
 
         if (inWall(next)) {
-            // Binary search: find last safe position before the wall
             vec3 safe = pos;
             vec3 unsafe = next;
             vec3 h = safe;

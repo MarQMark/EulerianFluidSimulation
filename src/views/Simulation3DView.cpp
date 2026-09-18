@@ -34,7 +34,6 @@ void Simulation3DView::render(void* renderData) {
     if (viewportSize.x != size.x || viewportSize.y != size.y) {
         viewportSize = { size.x, size.y };
 
-        // Update systems
         ImVec2 size = { viewportSize.x, viewportSize.y };
         renderer->setSize(size.x, size.y);
         editor->updateRenderingSize(size.x, size.y);
@@ -44,7 +43,6 @@ void Simulation3DView::render(void* renderData) {
         return;
     }
 
-    // --- Gizmo ---
     ImVec2 viewportPos = ImGui::GetItemRectMin();
     ImVec2 viewportSize = ImGui::GetItemRectSize();
 

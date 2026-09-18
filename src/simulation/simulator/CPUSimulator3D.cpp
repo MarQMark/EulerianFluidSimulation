@@ -566,40 +566,33 @@ void CPUSimulator3D::project() {
 }
 
 glm::vec3 CPUSimulator3D::trace_along_field(const glm::vec3 start, const float D, const int substeps) const {
-	const float maxDist  = D;                  // D * dx, dx = 1 in our grid
-	const float stepSize = maxDist / substeps; // size of each Euler step
+	const float maxDist  = D;
+	const float stepSize = maxDist / substeps;
 	auto& rho   = _grid->rho();
 	auto& boundary = _grid->boundary();
 
 	glm::vec3 pos = start;
 
 	for (int s = 0; s < substeps; s++) {
-		// Sample rho at current position.
-		// If we are already at or past the interface, stop immediately.
 		if (rho.interpolate(pos) >= 0.5f)
 			break;
 
-		// Compute gradient of rho at current position using central differences
-		// at the surrounding integer cell. The gradient points toward
-		// higher density — i.e., toward the liquid interior.
 		const int ix = std::clamp((int)pos.x, 1, (int)rho.width()  - 2);
 		const int iy = std::clamp((int)pos.y, 1, (int)rho.height() - 2);
 		const int iz = std::clamp((int)pos.z, 1, (int)rho.depth()  - 2);
 
 		glm::vec3 grad(
-			rho(ix+1, iy,   iz)   - rho(ix-1, iy,   iz),   // ∂ρ/∂x (central diff)
-			rho(ix,   iy+1, iz)   - rho(ix,   iy-1, iz),   // ∂ρ/∂y (central diff)
-			rho(ix,   iy,   iz+1) - rho(ix,   iy  , iz-1)  // ∂ρ/∂z (central diff)
+			rho(ix+1, iy,   iz)   - rho(ix-1, iy,   iz),
+			rho(ix,   iy+1, iz)   - rho(ix,   iy-1, iz),
+			rho(ix,   iy,   iz+1) - rho(ix,   iy  , iz-1)
 		);
 
 		const float len = glm::length(grad);
-		if (len < 1e-6f) break;  // no gradient — rho is flat, nowhere to go
+		if (len < 1e-6f) break;
 
-		// Normalise so each step is exactly stepSize cells long
 		glm::vec3 dir  = grad / len;
 		glm::vec3 next = pos + dir * stepSize;
 
-		// Clamp to valid domain
 		next.x = std::clamp(next.x, 1.f, (float)rho.width()  - 2.f);
 		next.y = std::clamp(next.y, 1.f, (float)rho.height() - 2.f);
 		next.z = std::clamp(next.z, 1.f, (float)rho.depth()  - 2.f);

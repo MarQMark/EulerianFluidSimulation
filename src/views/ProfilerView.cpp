@@ -1,8 +1,5 @@
 #include "views/ProfilerView.h"
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  ProfilerView.cpp
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -18,11 +15,6 @@
 #include "util/GuiHelper.h"
 #include "util/Profiler.h"
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// §1  LOCAL PALETTE
-//     Visually distinct hues, all legible on a near-black background.
-//     Order matches typical simulation pipelines (sharpen, advect, …)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 namespace {
 
 static const ImVec4 kStageColors[] = {
@@ -37,7 +29,6 @@ static const ImVec4 kStageColors[] = {
 };
 static constexpr int kNumColors = (int)(sizeof(kStageColors) / sizeof(kStageColors[0]));
 
-// Shared neutral tones
 static const ImVec4 kACC  {0.31f, 0.56f, 1.00f, 1.0f};
 static const ImVec4 kDIM  {0.44f, 0.46f, 0.54f, 1.0f};
 static const ImVec4 kPEAK {0.28f, 0.30f, 0.38f, 1.0f};
@@ -54,7 +45,7 @@ static ImU32 COLOR_A(const int idx, const float a) {
     return U32A(kStageColors[idx % 8], a);
 }
 
-} // anonymous namespace
+}
 
 void ProfilerView::draw_plot(const std::vector<Profiler::Profile*>& profiles, const float scaleMax, const ImVec2 size)
 {
@@ -62,11 +53,9 @@ void ProfilerView::draw_plot(const std::vector<Profiler::Profile*>& profiles, co
     ImVec2 p0      = ImGui::GetCursorScreenPos();
     ImVec2 p1      = {p0.x + size.x, p0.y + size.y};
 
-    // ── Background ────────────────────────────────────────────────────────────
     dl->AddRectFilled(p0, p1, IM_COL32(9, 9, 12, 255), 6.0f);
     dl->PushClipRect(p0, p1, true);
 
-    // ── Horizontal grid lines at 25%, 50%, 75% ───────────────────────────────
     static const float kGrid[] = {0.25f, 0.50f, 0.75f};
     for (float f : kGrid) {
         float y = p0.y + size.y * f;
@@ -79,10 +68,8 @@ void ProfilerView::draw_plot(const std::vector<Profiler::Profile*>& profiles, co
 
     dl->PopClipRect();
 
-    // ── Frame border ──────────────────────────────────────────────────────────
     dl->AddRect(p0, p1, IM_COL32(36, 38, 52, 255), 6.0f, 0, 1.0f);
 
-    // ── Y-axis labels ─────────────────────────────────────────────────────────
     char buf[24];
     std::snprintf(buf, sizeof(buf), "%.2f ms", scaleMax);
     dl->AddText({p0.x + 5.0f, p0.y + 4.0f},
@@ -92,7 +79,6 @@ void ProfilerView::draw_plot(const std::vector<Profiler::Profile*>& profiles, co
     dl->AddText({p0.x + 5.0f, p0.y + size.y * 0.5f - 7.0f},
                 IM_COL32(40, 42, 58, 255), buf);
 
-    // Advance ImGui cursor past the canvas
     ImGui::Dummy(size);
 }
 
@@ -125,16 +111,13 @@ void ProfilerView::draw_line(Profiler::Profile *profile, const float scaleMax, I
 
         ImU32 lineCol = COLOR(profile->id());
 
-        // Faint area fill under the line
         std::vector<ImVec2> fill = pts;
         fill.push_back({p1.x, p1.y});
         fill.push_back({p0.x, p1.y});
         //dl->AddConvexPolyFilled(fill.data(), (int)fill.size(), U32A(kStageColors[i], 0.07f));
 
-        // Line itself (1.5 px, anti-aliased by ImGui by default)
         dl->AddPolyline(pts.data(), PROFILER_SAMPLES, lineCol, ImDrawFlags_None, 1.5f);
 
-        // Filled ring at current (rightmost) sample
         dl->AddCircleFilled(pts.back(), 3.5f, lineCol);
         dl->AddCircleFilled(pts.back(), 1.5f, IM_COL32(9, 9, 12, 255));
     }
@@ -278,7 +261,6 @@ void ProfilerView::render(void* renderData) {
     }
     scaleMax = std::max(scaleMax * 1.2f, 1.0f);
 
-    // ── Multi-line graph ──────────────────────────────────────────────────────
     float plotW = ImGui::GetContentRegionAvail().x;
     //drawMultiLinePlot(_stages, scaleMax, {plotW, 100.0f});
     draw_plot(profiles, scaleMax, {plotW, 100.0f});
@@ -299,7 +281,6 @@ void ProfilerView::render(void* renderData) {
     ImGui::TableSetupColumn("##peak",  ImGuiTableColumnFlags_WidthFixed, 72.0f);
     ImGui::TableSetupColumn("##pct",   ImGuiTableColumnFlags_WidthFixed, 46.0f);
 
-    // ── One row per stage ─────────────────────────────────────────────────────
     for (const auto profile : profiles) {
         draw_table_entry(profile, avg, total);
     }

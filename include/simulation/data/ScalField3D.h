@@ -28,7 +28,6 @@ public:
         if (this == &field2)
             return *this;
 
-        //_field = field2._field;
         memcpy(_field.data(), field2._field.data(), field2.size() * sizeof(float));
         _width = field2._width;
         _height = field2._height;
@@ -36,7 +35,6 @@ public:
     }
 
     ScalField3D& operator=(const float val) {
-        //_field = field2._field;
         for(auto& v : _field)
             v = val;
         return *this;

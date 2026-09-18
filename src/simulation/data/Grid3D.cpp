@@ -18,8 +18,6 @@ Grid3D::Grid3D(const unsigned int nWidth, const unsigned int nHeight, const unsi
 
     _gamma = new ScalField3D(nWidth, nHeight, nDepth);
     _beta = new ScalField3D(nWidth, nHeight, nDepth);
-    // How cares about RAM, just download more if it's not enough
-    //_A = new std::vector<DisAdvCell>();//(nWidth * nHeight * nWidth * nHeight);
     _A = new std::unordered_map<unsigned int, DisAdvCell>;
 
     _divergence = new ScalField3D(nWidth, nHeight, nDepth);
@@ -66,20 +64,13 @@ Grid3D::~Grid3D() {
 }
 
 glm::vec3 Grid3D::traceParticle(const glm::vec3 start, const float dt, const int substeps) const {
-// Core tracer — used by both rho_advect and vel_advect.
-// start:    cell-index position (rho lives at cell centers, so pass glm::vec2(x, y))
-// dt:       signed timestep (negative = backward trace, positive = forward)
-// substeps: 1 = single Euler step (original), 4-8 = accurate with wall stopping
     auto& vel   = *_vel;
     const auto& walls = *_boundary;
     const float W     = _width;
     const float H     = _height;
     const float D     = _depth;
 
-    // Is continuous position p inside a wall or out of domain?
-    // Checks the cell that contains p (floor) plus clamps to domain.
     auto inWall = [&](glm::vec3 p) -> bool {
-        // Out of domain counts as wall — never leave the valid area
         if (p.x < 1.f || p.x > W - 2.f || p.y < 1.f || p.y > H - 2.f || p.z < 1.f || p.z > D - 2.f)
             return true;
         int ix = std::clamp((int)p.x, 0, (int)W - 1);
@@ -88,57 +79,42 @@ glm::vec3 Grid3D::traceParticle(const glm::vec3 start, const float dt, const int
         return walls(ix, iy, iz) > 0.5f;
     };
 
-    // Clamp to valid domain range (inside border cells)
     auto clamp = [&](glm::vec3 p) -> glm::vec3 {
         return { std::clamp(p.x, 1.f, W - 2.f),
                  std::clamp(p.y, 1.f, H - 2.f),
                  std::clamp(p.z, 1.f, D - 2.f) };
     };
 
-    // Sample velocity at a cell-center position.
-    // vel is face-centered so we offset by -0.5 to convert.
     auto sampleVel = [&](glm::vec3 p) -> glm::vec3 {
         return vel.interpolate(p - glm::vec3(0.5f));
     };
 
-    // If start is already in a wall (shouldn't happen, but be safe)
-    // return start unchanged.
     if (inWall(start)) return start;
 
     const float subDt = dt / (float)substeps;
     glm::vec3 pos = start;
 
     for (int s = 0; s < substeps; s++) {
-        // ---- RK2 (midpoint method) ----
-        // k1: velocity at current position
         glm::vec3 k1   = sampleVel(pos);
-        // Midpoint: half a substep ahead
         glm::vec3 mid  = clamp(pos + k1 * (subDt * 0.5f));
-        // k2: velocity at midpoint (better estimate of average velocity)
         glm::vec3 k2   = sampleVel(mid);
-        // Full substep using the midpoint velocity
         glm::vec3 next = pos + k2 * subDt;
 
-        // ---- Wall detection ----
         if (inWall(next)) {
-            // Binary search: find the last safe position before the wall.
-            // After 8 iterations the interval is 1/256 of the substep size.
-            glm::vec3 safe   = pos;   // known to be outside wall
-            glm::vec3 unsafe = next;  // known to be inside wall
+            glm::vec3 safe   = pos;
+            glm::vec3 unsafe = next;
 
             for (int b = 0; b < 8; b++) {
                 glm::vec3 halfway = (safe + unsafe) * 0.5f;
                 if (inWall(halfway))
-                    unsafe = halfway;  // still inside, move unsafe closer
+                    unsafe = halfway;
                 else
-                    safe = halfway;    // now outside, move safe closer
+                    safe = halfway;
             }
 
-            // Stop here — do not continue substeps past a wall
             return safe;
         }
 
-        // No wall hit — accept the substep
         pos = next;
     }
 

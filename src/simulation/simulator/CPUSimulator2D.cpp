@@ -524,38 +524,31 @@ void CPUSimulator2D::project() {
 }
 
 glm::vec2 CPUSimulator2D::trace_along_field(const glm::vec2 start, const float D, const int substeps) const {
-	const float maxDist  = D;                  // D * dx, dx = 1 in our grid
-	const float stepSize = maxDist / substeps; // size of each Euler step
+	const float maxDist  = D;
+	const float stepSize = maxDist / substeps;
 	auto& rho   = _grid->rho();
 	auto& boundary = _grid->boundary();
 
 	glm::vec2 pos = start;
 
 	for (int s = 0; s < substeps; s++) {
-		// Sample rho at current position.
-		// If we are already at or past the interface, stop immediately.
 		if (rho.interpolate(pos) >= 0.5f)
 			break;
 
-		// Compute gradient of rho at current position using central differences
-		// at the surrounding integer cell. The gradient points toward
-		// higher density — i.e., toward the liquid interior.
 		const int ix = std::clamp((int)pos.x, 1, (int)rho.width()  - 2);
 		const int iy = std::clamp((int)pos.y, 1, (int)rho.height() - 2);
 
 		glm::vec2 grad(
-			rho(ix+1, iy  ) - rho(ix-1, iy  ),   // ∂ρ/∂x (central diff)
-			rho(ix,   iy+1) - rho(ix,   iy-1)    // ∂ρ/∂y (central diff)
+			rho(ix+1, iy  ) - rho(ix-1, iy  ),
+			rho(ix,   iy+1) - rho(ix,   iy-1)
 		);
 
 		const float len = glm::length(grad);
-		if (len < 1e-6f) break;  // no gradient — rho is flat, nowhere to go
+		if (len < 1e-6f) break;
 
-		// Normalise so each step is exactly stepSize cells long
 		glm::vec2 dir  = grad / len;
 		glm::vec2 next = pos + dir * stepSize;
 
-		// Clamp to valid domain
 		next.x = std::clamp(next.x, 1.f, (float)rho.width()  - 2.f);
 		next.y = std::clamp(next.y, 1.f, (float)rho.height() - 2.f);
 
@@ -577,7 +570,6 @@ void CPUSimulator2D::scatter_values(const glm::vec2 pos, const float value) cons
 	const int x1 = std::clamp((int)pos.x + 1, 0, (int)rho.width()  - 1);
 	const int y1 = std::clamp((int)pos.y + 1, 0, (int)rho.height() - 1);
 
-	// Bilinear weights
 	const float fx = pos.x - (float)(int)pos.x;
 	const float fy = pos.y - (float)(int)pos.y;
 
@@ -586,16 +578,14 @@ void CPUSimulator2D::scatter_values(const glm::vec2 pos, const float value) cons
 	float w01 = (1.f-fx) *      fy;
 	float w11 =      fx  *      fy;
 
-	// Zero weights for solid cells — mass must not enter walls
 	if (boundary(x0, y0) > 0.5f) w00 = 0.f;
 	if (boundary(x1, y0) > 0.5f) w10 = 0.f;
 	if (boundary(x0, y1) > 0.5f) w01 = 0.f;
 	if (boundary(x1, y1) > 0.5f) w11 = 0.f;
 
-	// Renormalise so total weight stays 1 — deposited mass is conserved
 	const float total = w00 + w10 + w01 + w11;
 	if (total < 1e-6f)
-		return;  // surrounded by walls — mass is lost (unavoidable)
+		return;
 
 	const float inv = 1.f / total;
 	rho(x0, y0) += value * w00 * inv;

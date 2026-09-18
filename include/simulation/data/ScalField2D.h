@@ -28,14 +28,12 @@ public:
         if (this == &field2)
             return *this;
 
-        //_field = field2._field;
         memcpy(_field.data(), field2._field.data(), field2.size() * sizeof(float));
         _width = field2._width;
         _height = field2._height;
         return *this;
     }
     ScalField2D& operator=(const float val) {
-        //_field = field2._field;
         for(auto& v : _field)
             v = val;
         return *this;
@@ -85,8 +83,6 @@ public:
     }
 
     float dot(const ScalField2D& field2) {
-        //assert(_field.size() == field2.size());
-
         float dot = 0;
         for (int i = 0; i < field2.size(); i++)
             dot += _field[i] * field2._field[i];
