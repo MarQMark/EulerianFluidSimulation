@@ -306,6 +306,7 @@ void OpenGLSimulator3D::add_force() {
 	_add_force->setUInt("uDepth", d);
 	_add_force->setFloat("uDt", PROPERTY_F(DT));
 	_add_force->setFloat("uGravity", PROPERTY_B(GRAVITY_ENABLED) ? PROPERTY_F(GRAVITY_FORCE) : 0.f);
+	_add_force->setBool("uIncAir", !PROPERTY_B(DISABLE_VEL_DECAY));
 	_add_force->dispatch(gx, gy, gz);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }

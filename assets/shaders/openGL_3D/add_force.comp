@@ -26,6 +26,7 @@ uint idx(uint x, uint y, uint z) { return z * uWidth * uHeight + y * uWidth + x;
 
 uniform float uDt;
 uniform float uGravity;
+uniform bool  uIncAir;
 
 void main() {
     uint x = int(gl_GlobalInvocationID.x) + 1;
@@ -34,6 +35,9 @@ void main() {
     if (x >= uWidth - 1 || y >= uHeight - 1 || z >= uDepth - 1) return;
 
     const uint i = idx(x, y, z);
+    if (rho[i] < 0.5f && !uIncAir)
+        return;
+
     const uint ix = idx(x - 1, y, z);
     const uint iy = idx(x, y - 1, z);
     const uint iz = idx(x, y, z - 1);
