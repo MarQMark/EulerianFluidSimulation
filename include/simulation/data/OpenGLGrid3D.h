@@ -36,6 +36,9 @@ public:
     StorageBuffer& gpuForces() const;
     StorageBuffer& gpuBoundary() const;
 
+    StorageBuffer& gpuValidA() const;
+    StorageBuffer& gpuValidB() const;
+
     void bindAll() const;
     void clearA() const;
 
@@ -55,6 +58,9 @@ private:
     StorageBuffer* _gpu_pressure{};
     StorageBuffer* _gpu_forces{};
     StorageBuffer* _gpu_boundary{};
+
+    StorageBuffer* _gpu_valid_a{};
+    StorageBuffer* _gpu_valid_b{};
 
     VecField3D* _vel{};
     ScalField3D* _rho{};

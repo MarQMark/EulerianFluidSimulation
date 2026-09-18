@@ -2,9 +2,9 @@
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 layout(std430, binding = 0) readonly  buffer BufSrcVel   { vec4  srcVel[];   };
-layout(std430, binding = 1) readonly  buffer BufSrcValid { float srcValid[]; };
+layout(std430, binding = 1) readonly  buffer BufSrcValid { vec4  srcValid[]; };
 layout(std430, binding = 2)           buffer BufDstVel   { vec4  dstVel[];   };
-layout(std430, binding = 3)           buffer BufDstValid { float dstValid[]; };
+layout(std430, binding = 3)           buffer BufDstValid { vec4  dstValid[]; };
 layout(std430, binding = 4) readonly  buffer BufBoundary { float boundary[]; };
 
 uniform uint uWidth;
@@ -12,12 +12,13 @@ uniform uint uHeight;
 uniform uint uDepth;
 uint idx(uint x, uint y, uint z) { return z * uWidth * uHeight + y * uWidth + x; }
 
-void samp(const uint nx, const uint ny, const uint nz, inout vec3 sum, inout float n) {
+void samp(const uint nx, const uint ny, const uint nz, inout vec3 sum, inout vec3 n) {
     const uint ni = idx(nx, ny, nz);
-    if (srcValid[ni] > 0.5f) {
-        sum += srcVel[ni].xyz;
-        n++;
-    }
+    const vec3 nv = srcValid[ni].xyz;
+    const vec3 nvel = srcVel[ni].xyz;
+    if (nv.x > 0.5f) { sum.x += nvel.x; n.x++; }
+    if (nv.y > 0.5f) { sum.y += nvel.y; n.y++; }
+    if (nv.z > 0.5f) { sum.z += nvel.z; n.z++; }
 }
 
 void main() {
@@ -26,37 +27,30 @@ void main() {
     uint z = int(gl_GlobalInvocationID.z) + 1;
     if (x >= uWidth - 1 || y >= uHeight - 1 || z >= uDepth - 1) return;
 
-    const  uint i = idx(x, y, z);
+    const uint i = idx(x, y, z);
 
     if (boundary[i] > 0.5) {
         dstVel[i] = srcVel[i];
-        dstValid[i] = 0.;
+        dstValid[i] = vec4(0.);
         return;
     }
-    if (srcValid[i] > 0.5) {
-        dstVel[i] = srcVel[i];
-        dstValid[i] = 1.;
-        return;
-    }
+
+    vec3 result   = srcVel[i].xyz;
+    vec3 validOut = srcValid[i].xyz;
 
     vec3 sum = vec3(0.);
-    float n = 0;
+    vec3 n = vec3(0.);
 
-    samp(x-1, y, z, sum, n);
-    samp(x+1, y, z, sum, n);
-    samp(x, y-1, z, sum, n);
-    samp(x, y+1, z, sum, n);
-    samp(x, y, z-1, sum, n);
-    samp(x, y, z+1, sum, n);
+    samp(x - 1, y, z, sum, n); samp(x + 1, y, z, sum, n);
+    samp(x, y - 1, z, sum, n); samp(x, y + 1, z, sum, n);
+    samp(x, y, z - 1, sum, n); samp(x, y, z + 1, sum, n);
 
-    if(n > 0){
-        dstVel[i].xyz = sum / n;
-        dstValid[i] = 1.;
-    }
-    else{
-        dstVel[i] = srcVel[i];
-        dstValid[i] = 0.;
-    }
+    if (validOut.x < 0.5f && n.x > 0.f) { result.x = sum.x / n.x; validOut.x = 1.f; }
+    if (validOut.y < 0.5f && n.y > 0.f) { result.y = sum.y / n.y; validOut.y = 1.f; }
+    if (validOut.z < 0.5f && n.z > 0.f) { result.z = sum.z / n.z; validOut.z = 1.f; }
+
+    dstVel[i]   = vec4(result, 0);
+    dstValid[i] = vec4(validOut, 0);
 }
 
 // rho_extrapolate.comp

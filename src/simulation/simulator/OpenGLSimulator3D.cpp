@@ -146,7 +146,15 @@ void OpenGLSimulator3D::vel_extrapolate() {
 	const unsigned int gy = (h - 2 + 7) / 8;
 	const unsigned int gz = (d - 2 + 7) / 8;
 
-	exec_shader(_vel_extrap_init, gx, gy, gz);
+	_vel_extrap_init->bind();
+	_grid->gpuRho().bind(0);
+	_grid->gpuValidA().bind(1);
+	_grid->gpuBoundary().bind(2);
+	_vel_extrap_init->setUInt("uWidth", _grid->width());
+	_vel_extrap_init->setUInt("uHeight", _grid->height());
+	_vel_extrap_init->setUInt("uDepth", _grid->depth());
+	_vel_extrap_init->dispatch(gx, gy, gz);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 	_vel_extrapolate->bind();
 	_vel_extrapolate->setUInt("uWidth", w);
@@ -156,17 +164,17 @@ void OpenGLSimulator3D::vel_extrapolate() {
 	for (int i = 0; i < PROPERTY_I(VEL_EXTRAPOLATE_ITER); i++) {
 		// Pass 1
 		_grid->gpuVel().bind(0);
-		_grid->gpuNewGamma().bind(1);
+		_grid->gpuValidA().bind(1);
 		_grid->gpuTmpVel().bind(2);
-		_grid->gpuBeta().bind(3);
+		_grid->gpuValidB().bind(3);
 		_vel_extrapolate->dispatch(gx, gy, gz);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 		// Pass 2
 		_grid->gpuTmpVel().bind(0);
-		_grid->gpuBeta().bind(1);
+		_grid->gpuValidB().bind(1);
 		_grid->gpuVel().bind(2);
-		_grid->gpuNewGamma().bind(3);
+		_grid->gpuValidA().bind(3);
 		_vel_extrapolate->dispatch(gx, gy, gz);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 	}

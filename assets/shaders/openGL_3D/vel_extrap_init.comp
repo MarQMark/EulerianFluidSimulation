@@ -3,26 +3,19 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 struct AdvCell { uint j; float val; };
 
-layout(std430, binding = 0)            buffer BufVel        { vec4    vel[];        };
-layout(std430, binding = 1)            buffer BufVelTmp     { vec4    tmpVel[];     };
-layout(std430, binding = 2)            buffer BufRho        { float   rho[];        };
-layout(std430, binding = 3)            buffer BufRhoTmp     { float   tmpRho[];     };
-layout(std430, binding = 4)            buffer BufGamma      { float   gamma[];      };
-layout(std430, binding = 5)            buffer BufNewGamma   { float   newGamma[];   };
-layout(std430, binding = 6)            buffer BufBeta       { float   beta[];       };
-layout(std430, binding = 7)            buffer BufABwd       { AdvCell ABwd[];       };
-layout(std430, binding = 8)            buffer BufAFwd       { AdvCell AFwd[];       };
-layout(std430, binding = 9)            buffer BufCountsBwd  { uint    countsBwd[];  };
-layout(std430, binding = 10)           buffer BufCountsFwd  { uint    countsFwd[];  };
-layout(std430, binding = 11) writeonly buffer BufDivergence { float   divergence[]; };
-layout(std430, binding = 12) readonly  buffer BufPressure   { float   pressure[];   };
-layout(std430, binding = 13) readonly  buffer BufForces     { vec4    forces[];     };
-layout(std430, binding = 14) readonly  buffer BufBoundary   { float   boundary[];   };
+layout(std430, binding = 0) readonly  buffer BufRho        { float   rho[];        };
+layout(std430, binding = 1) writeonly buffer BufValid      { vec4    valid[];      };
+layout(std430, binding = 2) readonly  buffer BufBoundary   { float   boundary[];   };
 
 uniform uint uWidth;
 uniform uint uHeight;
 uniform uint uDepth;
 uint idx(uint x, uint y, uint z) { return z * uWidth * uHeight + y * uWidth + x; }
+
+bool is_fluid(uint cx, uint cy, uint cz){
+    uint ci = idx(cx, cy, cz);
+    return rho[ci] >= 0.5 && boundary[ci] < 0.5;
+}
 
 void main() {
     uint x = int(gl_GlobalInvocationID.x) + 1;
@@ -31,7 +24,14 @@ void main() {
     if (x >= uWidth - 1 || y >= uHeight - 1 || z >= uDepth - 1) return;
 
     const uint i = idx(x, y, z);
-    newGamma[i] = (rho[i] >= 0.5f && boundary[i] < 0.5f) ? 1.f : 0.f;
+    const bool self = is_fluid(x, y, z);
+
+    valid[i] = vec4(
+        (self || is_fluid(x - 1u, y, z)) ? 1.f : 0.f,
+        (self || is_fluid(x, y - 1u, z)) ? 1.f : 0.f,
+        (self || is_fluid(x, y, z - 1u)) ? 1.f : 0.f,
+        0.
+    );
 }
 
 // rho_extrap_init.comp

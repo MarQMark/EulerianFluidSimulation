@@ -34,6 +34,9 @@ OpenGLGrid3D::OpenGLGrid3D(const unsigned int width, const unsigned int height, 
     _gpu_forces     = new StorageBuffer(_size * sizeof(glm::vec4));
     _gpu_boundary   = new StorageBuffer(_size * sizeof(float));
 
+    _gpu_valid_a    = new StorageBuffer(_size * sizeof(glm::vec4));
+    _gpu_valid_b    = new StorageBuffer(_size * sizeof(glm::vec4));
+
     _vel = new VecField3D(width, height, depth);
     _rho = new ScalField3D(width, height, depth);
     _forces = new VecField3D(width, height, depth);
@@ -83,6 +86,8 @@ OpenGLGrid3D::~OpenGLGrid3D() {
     delete _gpu_pressure;
     delete _gpu_forces;
     delete _gpu_boundary;
+    delete _gpu_valid_a;
+    delete _gpu_valid_b;
 
     delete _vel;
     delete _rho;
@@ -142,6 +147,8 @@ StorageBuffer & OpenGLGrid3D::gpuDivergence() const { return *_gpu_divergence; }
 StorageBuffer & OpenGLGrid3D::gpuPressure() const { return *_gpu_pressure; }
 StorageBuffer & OpenGLGrid3D::gpuForces() const { return *_gpu_forces; }
 StorageBuffer & OpenGLGrid3D::gpuBoundary() const { return *_gpu_boundary;}
+StorageBuffer & OpenGLGrid3D::gpuValidA() const { return *_gpu_valid_a;}
+StorageBuffer & OpenGLGrid3D::gpuValidB() const { return *_gpu_valid_b;}
 
 void OpenGLGrid3D::bindAll() const {
     _gpu_vel       ->bind(0);

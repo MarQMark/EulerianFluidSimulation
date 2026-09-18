@@ -66,7 +66,6 @@ public:
 
     glm::vec3* validA{};
     glm::vec3* validB{};
-    float* maxVelSq;
 
 private:
 
