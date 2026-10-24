@@ -224,6 +224,26 @@ NodeProperties CameraNode::buildProperties() {
         [this] (float orthoScale) { this->orthoScale = orthoScale; }
     ));
 
+    properties.addSection("Miscellaneous");
+#define ADD_F_PROP(name, var)   properties.addProperty(std::make_unique<FloatProperty>(     \
+                                    name,                                                  \
+                                    [this] () { return var; },                              \
+                                    [this] (float var) { this->var = var; }                 \
+                                ));
+
+    ADD_F_PROP("Yaw", yaw);
+    ADD_F_PROP("Pitch", pitch);
+    ADD_F_PROP("Aspect", aspect);
+
+    ADD_F_PROP("Movement Speed", movementSpeed);
+    ADD_F_PROP("Mouse Sensitivity", mouseSensitivity);
+    ADD_F_PROP("Keyboard Sensitivity", keyboardSensitivity);
+    ADD_F_PROP("Ortho Sensitivity", orthoSensitivity);
+    ADD_F_PROP("Ortho Scroll Sensitivity", orthoScrollSensitivity);
+    ADD_F_PROP("Perspective Scroll Sensitivity", perspectiveScrollSensitivity);
+    ADD_F_PROP("Speed Multiplier", speedMultiplier);
+#undef ADD_F_PROP
+
     return properties;
 }
 
