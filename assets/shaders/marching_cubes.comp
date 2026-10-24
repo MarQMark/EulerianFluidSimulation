@@ -5,6 +5,7 @@ struct Vertex {
     vec3 position;
     vec3 normal;
     vec2 uv;
+    vec4 color;
 };
 
 layout(std430, binding = 0) readonly buffer BufEdgeToVerticeTable { int edgeToVertices[12][2]; };
@@ -17,6 +18,7 @@ layout(std430, binding = 5) buffer BufIndexCount { int count; } indexCount;
 layout(std430, binding = 6) buffer BufIndex { int indices[]; };
 
 layout(std430, binding = 7) readonly buffer BufRho { float rho[]; } field;
+layout(std430, binding = 8) readonly buffer BufVel { vec4 vel[]; };
 
 uniform int   uWidth;
 uniform int   uHeight;
@@ -30,6 +32,11 @@ uniform float uIsoLevel = 0.5f;
 uniform int   uMaxVertices;
 uniform int   uMaxIndices;
 
+uniform vec3  uGradientColorMin;
+uniform vec3  uGradientColorMax;
+uniform float uGradientMin;
+uniform float uGradientMax;
+
 const ivec3 offsets[8] = {
     { 0, 0, 0 },
     { 1, 0, 0 },
@@ -42,6 +49,12 @@ const ivec3 offsets[8] = {
 };
 
 int idx(int x, int y, int z) { return z * uWidth * uHeight + y * uWidth + x; }
+
+vec4 getColor(int index){
+    float speed = length(vel[index].xyz);
+    float t = (speed - uGradientMin) / (uGradientMax - uGradientMin + 1e-6f);
+    return vec4(mix(uGradientColorMin, uGradientColorMax, t), 1.0);
+}
 
 vec3 interp(vec3 p1, vec3 p2, float v1, float v2, float isoLevel) {
     if (abs(v1 - v2) < 0.0001f)
@@ -189,6 +202,7 @@ void main() {
             int edgeIndex = triangleTable[cubeIndex][i + j];
             vertices[baseVertexIndex + j].position = edgeVertices[edgeIndex];
             vertices[baseVertexIndex + j].normal = faceNormal;
+            vertices[baseVertexIndex + j].color = getColor(id);
         }
 
         indices[indicesIndex + 0] = baseVertexIndex + 0;

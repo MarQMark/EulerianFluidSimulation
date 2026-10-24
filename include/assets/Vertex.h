@@ -17,11 +17,13 @@ struct Vertex {
     glm::vec2 texCoord = glm::vec2(0.0f, 0.0f);
     float _pad2[2]{};
 
+    glm::vec4 color = glm::vec4(0.0f);
+
     Vertex() = default;
-    Vertex(const glm::vec3& pos, const glm::vec3&norm, const glm::vec2& uv)
-        : position(pos), normal(norm), texCoord(uv) {};
+    Vertex(const glm::vec3& pos, const glm::vec3&norm, const glm::vec2& uv, const glm::vec4& col)
+        : position(pos), normal(norm), texCoord(uv), color(col) {};
 };
 
-static_assert(sizeof(Vertex) == 48);
+static_assert(sizeof(Vertex) == 64);
 
 #endif //SPHLASH_VERTEX_H

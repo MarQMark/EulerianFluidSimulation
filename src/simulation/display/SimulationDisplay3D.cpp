@@ -50,7 +50,8 @@ void SimulationDisplay3D::update(void* simulationData) {
 }
 
 void SimulationDisplay3D::render(void* renderData) {
-    const auto* data = static_cast<RenderData3D *>(renderData);
+    auto* data = static_cast<RenderData3D *>(renderData);
+    data->renderer = _renderer;
     _scene->getFluid()->setRenderData(data);
     _renderer->render(_scene);
 }

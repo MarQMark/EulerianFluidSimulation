@@ -12,6 +12,7 @@
 #include "views/FPSView.h"
 #include "views/ProfilerView.h"
 #include "views/PropertiesView.h"
+#include "views/RecordingView.h"
 #include "views/SolverStepsView.h"
 #include "views/StatsView.h"
 
@@ -32,6 +33,7 @@ Application::Application() {
     _views->addView("Profiler", new ProfilerView());
     _views->addView("SolverSteps", new SolverStepsView());
 	_views->addView("Stats", new StatsView());
+	_views->addView("Recording", new RecordingView());
 
 	rebuild();
 

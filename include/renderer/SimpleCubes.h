@@ -6,8 +6,11 @@
 #define EULERIANFLUIDSIMULATION_SIMPLECUBES_H
 
 #include "assets/Model.h"
+#include "simulation/data/IGrid.h"
 #include "simulation/data/ScalField3D.h"
+#include "simulation/scene/nodes/SimulationDomainNode.h"
 
+struct RenderingSettings;
 class StorageBuffer;
 
 class SimpleCubes {
@@ -15,8 +18,9 @@ public:
     SimpleCubes(Mesh* mesh);
     ~SimpleCubes();
 
-    void update(const ScalField3D& field, AABB domain, const StorageBuffer* gpuField = nullptr);
+    void update(IGrid3D& grid, AABB domain, RenderingSettings settings, const StorageBuffer* gpuField);
     void resizeBuffers(int x, int y, int z);
+
 
 private:
     Mesh* _mesh;
@@ -31,6 +35,7 @@ private:
     glm::ivec3 _lastSize = { -1, -1, -1 };
     int _maxVertices = -1;
     int _maxIndices = -1;
+    StorageBuffer * _velBuffer;
 };
 
 #endif //EULERIANFLUIDSIMULATION_SIMPLECUBES_H

@@ -140,6 +140,20 @@ add_subdirectory("external/json")
 add_subdirectory("external/ImGuizmo")
 target_link_libraries(imguizmo PUBLIC imgui)
 
+find_package(PkgConfig REQUIRED)
+
+pkg_check_modules(AVFORMAT REQUIRED IMPORTED_TARGET libavformat)
+pkg_check_modules(AVCODEC REQUIRED IMPORTED_TARGET libavcodec)
+pkg_check_modules(AVUTIL REQUIRED IMPORTED_TARGET libavutil)
+pkg_check_modules(SWSCALE REQUIRED IMPORTED_TARGET libswscale)
+
+target_link_libraries(EulerianFluidSimulation PRIVATE
+        PkgConfig::AVFORMAT
+        PkgConfig::AVCODEC
+        PkgConfig::AVUTIL
+        PkgConfig::SWSCALE
+)
+
 if (UNIX)
     find_package(OpenGL REQUIRED)
     find_package(glfw3 REQUIRED)

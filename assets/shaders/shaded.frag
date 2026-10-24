@@ -3,6 +3,7 @@
 in vec3 Normal;
 in vec2 TexCoord;
 in vec3 FragPos;
+in vec4 Color;
 
 out vec4 FragColor;
 
@@ -30,9 +31,9 @@ void main() {
     float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
 
     // Mix resulting color
-    vec3 c = color * (ambientStrength + diffuse);
+    vec3 c = Color.xyz * (ambientStrength + 0.3 + diffuse);
     c += vec3(1.0) * spec * specularStrength;
-    c += color * fresnel * fresnelStrength;
+    c += Color.xyz * fresnel * fresnelStrength;
 
     FragColor = vec4(c, 1.0);
 }

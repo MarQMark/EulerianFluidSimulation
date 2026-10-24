@@ -8,6 +8,9 @@
 #include "assets/Shader.h"
 #include "assets/Vertex.h"
 #include "simulation/data/StorageBuffer.h"
+#include "simulation/data/VecField3D.h"
+#include "simulation/data/ScalField2D.h"
+#include "simulation/scene/nodes/FluidNode.h"
 
 MarchingCubes::MarchingCubes(Mesh* mesh) {
     _mesh = mesh;
@@ -32,6 +35,7 @@ MarchingCubes::MarchingCubes(Mesh* mesh) {
     _indexCountBuffer = new StorageBuffer(sizeof(int));
 
     _fieldBuffer = new StorageBuffer(sizeof(float));
+    _velBuffer = new StorageBuffer(sizeof(glm::vec4));
 
     // Assign new marching cubes buffers to mesh. Buffers are resized dynamically
     _vertexBuffer = new StorageBuffer(sizeof(Vertex));
@@ -44,11 +48,12 @@ MarchingCubes::~MarchingCubes() {
     delete _edgeTable;
     delete _edgeToVerticeTable;
     delete _triangleTable;
+    delete _velBuffer;
 }
 
-void MarchingCubes::updateMesh(const ScalField3D& field, AABB domain, const StorageBuffer* gpuField) {
-    if (field.width() != _lastSize.x || field.height() != _lastSize.y || field.depth() != _lastSize.z)
-        resizeBuffers(field.width(), field.height(), field.depth());
+void MarchingCubes::updateMesh(IGrid3D& grid, AABB domain, RenderingSettings settings, const StorageBuffer* gpuField) {
+    if (grid.width() != _lastSize.x || grid.height() != _lastSize.y || grid.depth() != _lastSize.z)
+        resizeBuffers(grid.width(), grid.height(), grid.depth());
 
     _vertexCountBuffer->clear();
     _indexCountBuffer->clear();
@@ -58,11 +63,30 @@ void MarchingCubes::updateMesh(const ScalField3D& field, AABB domain, const Stor
     _mcShader->setFloat("uIsoLevel", 0.5f);
     _mcShader->setInt("uMaxVertices", _maxVertices);
     _mcShader->setInt("uMaxIndices", _maxIndices);
-    _mcShader->setInt("uWidth", field.width());
-    _mcShader->setInt("uHeight", field.height());
-    _mcShader->setInt("uDepth", field.depth());
+    _mcShader->setInt("uWidth", grid.width());
+    _mcShader->setInt("uHeight", grid.height());
+    _mcShader->setInt("uDepth", grid.depth());
     _mcShader->setVec3("uDomainSize", domain.size);
     _mcShader->setVec3("uDomainCenter", domain.center);
+    if (settings.modeColor == GRADIENT) {
+        _mcShader->setVec3("uGradientColorMin", settings.minColor);
+        _mcShader->setVec3("uGradientColorMax", settings.maxColor);
+
+        auto* data = (glm::vec4*)malloc(grid.vel().size() * sizeof(glm::vec4));
+        for (int i = 0; i < grid.vel().size(); i++) {
+            data[i].x = grid.vel().data()[i].x;
+            data[i].y = grid.vel().data()[i].y;
+            data[i].z = grid.vel().data()[i].z;
+        }
+        _velBuffer->upload(data);
+        free(data);
+    }
+    else {
+        _mcShader->setVec3("uGradientColorMin", settings.color);
+        _mcShader->setVec3("uGradientColorMax", settings.color);
+    }
+    _mcShader->setFloat("uGradientMin", settings.min);
+    _mcShader->setFloat("uGradientMax", settings.max);
 
     _edgeToVerticeTable->bind(0);
     _edgeTable->bind(1);
@@ -71,18 +95,19 @@ void MarchingCubes::updateMesh(const ScalField3D& field, AABB domain, const Stor
     _vertexBuffer->bind(4);
     _indexCountBuffer->bind(5);
     _indexBuffer->bind(6);
+    _velBuffer->bind(8);
 
     if (gpuField) {
         gpuField->bind(7);
     }
     else {
         _fieldBuffer->bind(7);
-        _fieldBuffer->upload(field.data());
+        _fieldBuffer->upload(grid.rho().data());
     }
 
-    const int gx = (field.width() + 7) / 8;
-    const int gy = (field.height() + 7) / 8;
-    const int gz = (field.depth() + 7) / 8;
+    const int gx = (grid.width() + 7) / 8;
+    const int gy = (grid.height() + 7) / 8;
+    const int gz = (grid.depth() + 7) / 8;
     _mcShader->dispatch(gx, gy, gz);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT);
 
@@ -99,6 +124,7 @@ void MarchingCubes::resizeBuffers(const int x, const int y, const int z) {
     int maxCubes = x * y * z;
 
     _fieldBuffer->resize(maxCubes * sizeof(float));
+    _velBuffer->resize(maxCubes * sizeof(glm::vec4));
 
     int estimatedActiveCubes = maxCubes * 0.15f;
     _maxVertices = estimatedActiveCubes * 15 * 1.2f;

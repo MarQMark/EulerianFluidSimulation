@@ -16,11 +16,23 @@ enum RenderMode {
     CUBES
 };
 
+enum RenderColor {
+    SOLID,
+    GRADIENT
+};
+
 struct RenderingSettings {
     RenderMode mode = RenderMode::MARCHING_CUBES;
+    RenderColor modeColor = GRADIENT;
 
     glm::vec3 color = glm::vec3(0.0f, 0.0f, 0.6f);
+
+    glm::vec3 minColor = glm::vec3(0.07,0,0.45);
+    glm::vec3 maxColor = glm::vec3(1.f,0,0);
+    float min = 0;
+    float max = 1.f;
 };
+
 
 class FluidNode : public SceneNode {
 public:

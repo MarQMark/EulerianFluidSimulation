@@ -114,6 +114,11 @@ public:
     PROP_TOKEN(WARN_N_CELLS);
     PROP_TOKEN(SIMULATION_FRAMES);
 
+    PROP_TOKEN(VP_SCALE);
+    PROP_TOKEN(VP_LOCK);
+    PROP_TOKEN(VP_WIDTH);
+    PROP_TOKEN(VP_HEIGHT);
+
 private:
     static Properties* s_instance;
     Properties() {
@@ -156,6 +161,11 @@ private:
         ADD_2D(rendering, DRAW_MODE, "Draw Mode", "Which field is rendered in main window", DrawMode::FLUID)
         ADD_2D(rendering, DRAW_VEL_ARROWS, "Draw vel arrows", "Draw velocity arrows", false)
         ADD_2D(rendering, RE_CALC_DIV, "Re-Calc Div", "Recalculate Divergence after Projection", false)
+
+        ADD_3D(rendering, VP_SCALE, "Viewport Scale", "Render framebuffer scale amount", 1.f);
+        ADD_3D(rendering, VP_LOCK, "Viewport Lock", "Lock viewport base size", false);
+        ADD_3D(rendering, VP_WIDTH, "Viewport Width", "", 1280);
+        ADD_3D(rendering, VP_HEIGHT, "Viewport Height", "", 720);
 
         auto& controls = add_category("Controls");
         ADD(controls, PAUSED, "Paused", "If simulation is paused", false)

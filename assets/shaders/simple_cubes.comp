@@ -5,6 +5,7 @@ struct Vertex {
     vec3 position;
     vec3 normal;
     vec2 uv;
+    vec4 col;
 };
 
 layout(std430, binding = 0) readonly buffer BufRho { float rho[]; };
@@ -12,6 +13,7 @@ layout(std430, binding = 1) buffer BufVertexCount { int count; } vertexCount;
 layout(std430, binding = 2) buffer BufVertex { Vertex vertices[]; };
 layout(std430, binding = 3) buffer BufIndexCount { int count; } indexCount;
 layout(std430, binding = 4) buffer BufIndex { int indices[]; };
+layout(std430, binding = 5) readonly buffer BufVel { vec4 vel[]; };
 
 uniform int   uWidth;
 uniform int   uHeight;
@@ -20,7 +22,20 @@ uniform int   uDepth;
 uniform vec3  uDomainSize;
 uniform vec3  uDomainCenter;
 
+uniform vec3  uGradientColorMin;
+uniform vec3  uGradientColorMax;
+uniform float uGradientMin;
+uniform float uGradientMax;
+
+int sIdx;
+
 int idx(int x, int y, int z) { return z * uWidth * uHeight + y * uWidth + x; }
+
+void setColor(int index){
+    float speed = length(vel[sIdx].xyz);
+    float t = (speed - uGradientMin) / (uGradientMax - uGradientMin + 1e-6f);
+    vertices[index].col = vec4(mix(uGradientColorMin, uGradientColorMax, t), 1.0);
+}
 
 void topFace(vec3 pos, vec3 cellSize) {
     int baseVertexIndex = atomicAdd(vertexCount.count, 4);
@@ -32,6 +47,7 @@ void topFace(vec3 pos, vec3 cellSize) {
     vertices[baseVertexIndex + 2].normal = vec3(0.0, 1.0, 0.0);
     vertices[baseVertexIndex + 3].position = pos + vec3(0, cellSize.y,  cellSize.z);
     vertices[baseVertexIndex + 3].normal = vec3(0.0, 1.0, 0.0);
+    for(int i = 0; i < 4; i++) setColor(baseVertexIndex + i);
 
     int baseIndicesIndex = atomicAdd(indexCount.count, 6);
     indices[baseIndicesIndex + 0] = baseVertexIndex + 0;
@@ -52,6 +68,7 @@ void bottomFace(vec3 pos, vec3 cellSize) {
     vertices[baseVertexIndex + 2].normal = vec3(0.0, -1.0, 0.0);
     vertices[baseVertexIndex + 3].position = pos + vec3(0, 0.0,  cellSize.z);
     vertices[baseVertexIndex + 3].normal = vec3(0.0, -1.0, 0.0);
+    for(int i = 0; i < 4; i++) setColor(baseVertexIndex + i);
 
     int baseIndicesIndex = atomicAdd(indexCount.count, 6);
     indices[baseIndicesIndex + 0] = baseVertexIndex + 0;
@@ -72,6 +89,7 @@ void leftFace(vec3 pos, vec3 cellSize) {
     vertices[baseVertexIndex + 2].normal = vec3(-1.0, 0.0, 0.0);
     vertices[baseVertexIndex + 3].position = pos + vec3(0.0, cellSize.y, 0.0);
     vertices[baseVertexIndex + 3].normal = vec3(-1.0, 0.0, 0.0);
+    for(int i = 0; i < 4; i++) setColor(baseVertexIndex + i);
 
     int baseIndicesIndex = atomicAdd(indexCount.count, 6);
     indices[baseIndicesIndex + 0] = baseVertexIndex + 0;
@@ -92,6 +110,7 @@ void rightFace(vec3 pos, vec3 cellSize) {
     vertices[baseVertexIndex + 2].normal = vec3(1.0, 0.0, 0.0);
     vertices[baseVertexIndex + 3].position = pos + vec3(cellSize.x, cellSize.y, 0.0);
     vertices[baseVertexIndex + 3].normal = vec3(1.0, 0.0, 0.0);
+    for(int i = 0; i < 4; i++) setColor(baseVertexIndex + i);
 
     int baseIndicesIndex = atomicAdd(indexCount.count, 6);
     indices[baseIndicesIndex + 0] = baseVertexIndex + 0;
@@ -112,6 +131,7 @@ void backFace(vec3 pos, vec3 cellSize) {
     vertices[baseVertexIndex + 2].normal = vec3(0.0, 0.0, -1.0);
     vertices[baseVertexIndex + 3].position = pos + vec3(0.0, cellSize.y, 0.0);
     vertices[baseVertexIndex + 3].normal = vec3(0.0, 0.0, -1.0);
+    for(int i = 0; i < 4; i++) setColor(baseVertexIndex + i);
 
     int baseIndicesIndex = atomicAdd(indexCount.count, 6);
     indices[baseIndicesIndex + 0] = baseVertexIndex + 0;
@@ -132,6 +152,7 @@ void frontFace(vec3 pos, vec3 cellSize) {
     vertices[baseVertexIndex + 2].normal = vec3(0.0, 0.0, 1.0);
     vertices[baseVertexIndex + 3].position = pos + vec3(0.0, cellSize.y, cellSize.z);
     vertices[baseVertexIndex + 3].normal = vec3(0.0, 0.0, 1.0);
+    for(int i = 0; i < 4; i++) setColor(baseVertexIndex + i);
 
     int baseIndicesIndex = atomicAdd(indexCount.count, 6);
     indices[baseIndicesIndex + 0] = baseVertexIndex + 0;
@@ -151,6 +172,7 @@ void main() {
         return;
 
     const int id = idx(x, y, z);
+    sIdx = id;
 
     if (rho[id] <= 0.5)
         return;

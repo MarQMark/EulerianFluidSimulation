@@ -9,10 +9,12 @@
 
 #include "simulation/data/StorageBuffer.h"
 #include "simulation/data/AABB.h"
+#include "simulation/data/IGrid.h"
 #include "simulation/data/ScalField3D.h"
 
 class Shader;
 class Mesh;
+struct RenderingSettings;
 
 inline const int edgeToVertices[12][2] = {
     {0, 1}, {1, 2}, {2, 3}, {0, 3},
@@ -319,13 +321,14 @@ public:
     MarchingCubes(Mesh* mesh);
     ~MarchingCubes();
 
-    void updateMesh(const ScalField3D& field, AABB domain, const StorageBuffer* gpuField = nullptr);
+    void updateMesh(IGrid3D &grid, AABB domain, RenderingSettings settings, const StorageBuffer *gpuField = nullptr);
     void resizeBuffers(int x, int y, int z);
 
 private:
     Shader* _mcShader;
 
     StorageBuffer* _fieldBuffer{};
+    StorageBuffer* _velBuffer;
     StorageBuffer* _edgeToVerticeTable{};
     StorageBuffer* _edgeTable{};
     StorageBuffer* _triangleTable{};

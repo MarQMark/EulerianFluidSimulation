@@ -6,6 +6,7 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "renderer/Renderer3D.h"
 #include "simulation/Properties.h"
+#include "simulation/display/SimulationDisplay3D.h"
 #include "util/Time.h"
 
 Simulation3DView::Simulation3DView(Editor* editor, Renderer3D* renderer)
@@ -16,28 +17,76 @@ void Simulation3DView::render(void* renderData) {
     if (!_visible)
         return;
 
+    const auto* data = static_cast<SimulationDisplay3D::RenderData3D*>(renderData);
+    if (!renderData || data->dim != 3 || PROPERTY(SIMULATION_TYPE, Properties::SimulatorType) <= Properties::SimulatorType::END_2D_SIMULATIONS)
+        return;
+
     ImGui::Begin("Simulation 3D View");
 
     ImVec2 size = ImGui::GetContentRegionAvail();
 
-    ImGui::Image(
-        (void *)static_cast<intptr_t>(renderer->getTextureId()),
-        ImVec2(viewportSize.x, viewportSize.y),
-        ImVec2(0, 1),
-        ImVec2(1, 0)
-    );
+    const float renderScale = PROPERTY_F(VP_SCALE);
+    const bool renderLock = PROPERTY_B(VP_LOCK);
+
+    float bottomCursorPosY;
+    if (renderLock) {
+        constexpr float view_padding = 10;
+        float x_min, x_max, y_min, y_max;
+        const float win_x = ImGui::GetWindowPos().x;
+        const float win_y = ImGui::GetWindowPos().y + 10;
+        const float win_w = ImGui::GetWindowWidth();
+        const float win_h = ImGui::GetWindowHeight() - 10;
+        const float txtAspect = (float)PROPERTY_I(VP_WIDTH) / (float)PROPERTY_I(VP_HEIGHT);
+        const float winAspect = win_w / win_h;
+
+        if(winAspect > txtAspect){
+            y_min = win_y + view_padding;
+            y_max = win_y + win_h - view_padding;
+            x_min = win_x + (win_w - (y_max - y_min) * txtAspect) / 2.f;
+            x_max = win_x + (win_w + (y_max - y_min) * txtAspect) / 2.f;
+        }
+        else {
+            x_min = win_x + view_padding;
+            x_max = win_x + win_w - view_padding;
+            y_min = win_y + (win_h - (x_max - x_min) / txtAspect) / 2.f;
+            y_max = win_y + (win_h + (x_max - x_min) / txtAspect) / 2.f;
+        }
+
+        ImVec2 topCorner = ImGui::GetCursorPos();
+        //ImVec2 topCorner = ImGui::GetWindowPos();
+
+        ImGui::SetCursorScreenPos(ImVec2(x_min, y_min));
+        ImGui::Image(renderer->getTextureId(),
+                     ImVec2(x_max - x_min, y_max - y_min),
+                     ImVec2(0, 1),
+                     ImVec2(1, 0));
+
+        bottomCursorPosY = ImGui::GetCursorPosY() - 15;
+    }
+    else {
+        ImGui::Image(
+            (void *)static_cast<intptr_t>(renderer->getTextureId()),
+            ImVec2(viewportSize.x / renderScale , viewportSize.y / renderScale),
+            ImVec2(0, 1),
+            ImVec2(1, 0)
+        );
+
+        bottomCursorPosY = viewportSize.y / renderScale;
+    }
 
     if (auto camera = editor->getScene()->getCamera())
         camera->setHover(ImGui::IsWindowHovered());
 
     // Check if resized
-    if (viewportSize.x != size.x || viewportSize.y != size.y) {
-        viewportSize = { size.x, size.y };
+    if (renderLock) {
+        size = { PROPERTY_I(VP_WIDTH) * renderScale, PROPERTY_I(VP_HEIGHT) * renderScale };
+    }
+    if (viewportSize.x != (size.x * renderScale) || viewportSize.y != (size.y * renderScale)) {
+        viewportSize = { size.x * renderScale, size.y * renderScale };
 
-        ImVec2 size = { viewportSize.x, viewportSize.y };
-        renderer->setSize(size.x, size.y);
-        editor->updateRenderingSize(size.x, size.y);
-        editor->getScene()->getCamera()->setAspectRatio(size.x / size.y);
+        renderer->setSize(viewportSize.x, viewportSize.y);
+        editor->updateRenderingSize(viewportSize.x, viewportSize.y);
+        editor->getScene()->getCamera()->setAspectRatio(viewportSize.x / viewportSize.y);
 
         ImGui::End();
         return;
@@ -106,7 +155,7 @@ void Simulation3DView::render(void* renderData) {
     }
 
     if (PROPERTY_B(PAUSED) && (int)(Time::Get()->tt / 500) % 2 == 0) {
-        ImGui::SetCursorPos({ 20, viewportSize.y - 5 });
+        ImGui::SetCursorPos({ 20, bottomCursorPosY - 5 });
         ImGui::Text("PAUSED");
     }
 

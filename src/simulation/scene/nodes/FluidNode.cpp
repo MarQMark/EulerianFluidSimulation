@@ -55,16 +55,18 @@ void FluidNode::update(float deltaTime) {
 
     if (_settings.mode == MARCHING_CUBES) {
         _marchingCubes->updateMesh(
-            _renderData->grid->rho(),
+        *_renderData->grid,
             scene->getSimulationDomain()->getWorldBoundingBox(),
+            _settings,
             gpuRho
         );
     }
 
     if (_settings.mode == CUBES) {
         _simpleCubes->update(
-            _renderData->grid->rho(),
+            *_renderData->grid,
             scene->getSimulationDomain()->getWorldBoundingBox(),
+            _settings,
             gpuRho
         );
     }
@@ -87,18 +89,47 @@ NodeProperties FluidNode::buildProperties() {
     NodeProperties properties = SceneNode::buildProperties();
 
     properties.addSection("Rendering");
-    properties.addProperty(std::make_unique<ColorProperty>(
-        "Color",
-        [this] () { return _settings.color; },
-        [this] (const glm::vec3 c) { _settings.color = c; updateMaterials(); }
-    ));
-
     properties.addProperty(std::make_unique<EnumProperty<RenderMode>>(
         "Render Mode",
         [this] () { return _settings.mode; },
         [this] (const RenderMode c) { _settings.mode = c; },
         std::vector<std::pair<RenderMode, std::string>>{ { MARCHING_CUBES, "Marching Cubes" }, { CUBES, "Cubes" } }
     ));
+
+    properties.addProperty(std::make_unique<EnumProperty<RenderColor>>(
+        "Color Mode",
+        [this] () { return _settings.modeColor; },
+        [this] (const RenderColor c) { _settings.modeColor = c; },
+        std::vector<std::pair<RenderColor, std::string>>{ { SOLID, "Solid" }, { GRADIENT, "Gradient" } }
+    ));
+
+    properties.addProperty(std::make_unique<ColorProperty>(
+        "Gradient Color Min",
+        [this] () { return _settings.minColor; },
+        [this] (const glm::vec3 c) { _settings.minColor = c;}
+    ));
+    properties.addProperty(std::make_unique<ColorProperty>(
+        "Gradient Color Max",
+        [this] () { return _settings.maxColor; },
+        [this] (const glm::vec3 c) { _settings.maxColor = c;}
+    ));
+    properties.addProperty(std::make_unique<FloatProperty>(
+        "Gradient Min",
+        [this] () { return _settings.min; },
+        [this] (const float min) { _settings.min = min; }
+    ));
+    properties.addProperty(std::make_unique<FloatProperty>(
+        "Gradient Max",
+        [this] () { return _settings.max; },
+        [this] (const float max) { _settings.max = max; }
+    ));
+
+    properties.addProperty(std::make_unique<ColorProperty>(
+        "Solid Color",
+        [this] () { return _settings.color; },
+        [this] (const glm::vec3 c) { _settings.color = c; updateMaterials(); }
+    ));
+
 
     return properties;
 }

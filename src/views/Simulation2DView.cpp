@@ -24,6 +24,8 @@ void Simulation2DView::render(void* renderData) {
     if (!_visible)
         return;
     const auto* data = static_cast<SimulationDisplay2D::RenderData2D*>(renderData);
+    if (data->dim != 2 || PROPERTY(SIMULATION_TYPE, Properties::SimulatorType) > Properties::SimulatorType::END_2D_SIMULATIONS)
+        return;
     auto* grid = dynamic_cast<IGrid2D*>(data->grid);
     if (!grid)
         return;

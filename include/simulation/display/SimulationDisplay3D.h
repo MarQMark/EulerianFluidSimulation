@@ -18,6 +18,7 @@ public:
     struct RenderData3D {
         const int dim = 3;
         IGrid3D* grid;
+        Renderer3D* renderer;
     };
 
     SimulationDisplay3D(Window* window);
