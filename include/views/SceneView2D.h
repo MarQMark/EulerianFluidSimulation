@@ -21,6 +21,8 @@ private:
     void refresh_scene_list();
 
     bool _sl_properties = true;
+
+    int _threshold = 100;
 };
 
 #endif //EULERIANFLUIDSIMULATION_SCENEVIEW2D_H

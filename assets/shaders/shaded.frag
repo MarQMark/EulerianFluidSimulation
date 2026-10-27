@@ -31,9 +31,14 @@ void main() {
     float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
 
     // Mix resulting color
-    vec3 c = Color.xyz * (ambientStrength + 0.3 + diffuse);
+    vec3 col;
+    if(Color.x == 0 && Color.y == 0 && Color.z == 0)
+            col = color;
+    else
+            col = Color.xyz;
+    vec3 c = col * (ambientStrength + diffuse);
     c += vec3(1.0) * spec * specularStrength;
-    c += Color.xyz * fresnel * fresnelStrength;
+    c += col * fresnel * fresnelStrength;
 
     FragColor = vec4(c, 1.0);
 }

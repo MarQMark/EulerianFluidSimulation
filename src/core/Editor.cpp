@@ -26,7 +26,7 @@ void Editor::init(IGrid3D* grid) {
     initFluid(grid->rho(), gpuRho);
 
     // --- Init Boundaries ---
-    initBoundaries(grid->boundary());
+    initBoundaries(grid->boundary(), grid->rho());
 
     // --- Clear Force Field Data ---
     for (auto ff : _scene->getForceFields())
@@ -188,7 +188,7 @@ void Editor::initFluid(ScalField3D& rho, StorageBuffer* gpuRho) const {
     }
 }
 
-void Editor::initBoundaries(ScalField3D& boundary) const {
+void Editor::initBoundaries(ScalField3D& boundary, ScalField3D& rho) const {
     SimulationDomainNode* simulationDomainNode = _scene->getSimulationDomain();
 
     const int width = boundary.width();
@@ -253,6 +253,7 @@ void Editor::initBoundaries(ScalField3D& boundary) const {
         if (x == boundary.width()  - 1) boundary(x, y, z) = 1.f;
         if (y == boundary.height() - 1) boundary(x, y, z) = 1.f;
         if (z == boundary.depth()  - 1) boundary(x, y, z) = 1.f;
+        if (boundary(x, y, z) == 1) rho(x, y, z) = 0;
     }
 }
 

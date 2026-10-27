@@ -11,9 +11,58 @@
 #include "glm/gtc/quaternion.hpp"
 #include "util/Logger.h"
 
+#include <stdexcept>
+#include <string>
+
+#ifdef _WIN32
+    #define NOMINMAX
+    #include <windows.h>
+#elif defined(__APPLE__)
+    #include <mach-o/dyld.h>
+    #include <vector>
+#else
+    #include <unistd.h>
+#endif
+
+std::filesystem::path getExecutablePath() {
+#ifdef _WIN32
+    std::wstring buffer(MAX_PATH, L'\0');
+
+    while (true) {
+        DWORD length = GetModuleFileNameW(
+            nullptr, buffer.data(), static_cast<DWORD>(buffer.size())
+        );
+
+        if (length == 0)
+            throw std::runtime_error("GetModuleFileNameW failed");
+
+        if (length < buffer.size()) {
+            buffer.resize(length);
+            return std::filesystem::path(buffer);
+        }
+
+        buffer.resize(buffer.size() * 2);
+    }
+
+#elif defined(__APPLE__)
+    uint32_t size = 0;
+    _NSGetExecutablePath(nullptr, &size);
+
+    std::vector<char> buffer(size);
+
+    if (_NSGetExecutablePath(buffer.data(), &size) != 0)
+        throw std::runtime_error("Failed to get executable path");
+
+    return std::filesystem::canonical(std::filesystem::path(buffer.data()));
+
+#else
+    return std::filesystem::read_symlink("/proc/self/exe");
+#endif
+}
+
 Model::Model(const std::string& path, bool shaded) {
     name = std::filesystem::path(path).stem().string();
-    this->path = path;
+    this->path = std::filesystem::relative(path, getExecutablePath().parent_path());
 
     // Load model from disk
     tinyobj::attrib_t attrib;

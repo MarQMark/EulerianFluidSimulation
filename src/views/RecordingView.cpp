@@ -1,3 +1,4 @@
+#ifdef HAS_FFMPEG
 #include "views/RecordingView.h"
 
 #include "simulation/Properties.h"
@@ -27,6 +28,7 @@ namespace {
 static const ImVec4 kACC   {0.31f, 0.56f, 1.00f, 1.0f};
 static const ImVec4 kDIM   {0.44f, 0.46f, 0.54f, 1.0f};
 static const ImVec4 kRED   {0.92f, 0.36f, 0.36f, 1.0f};
+static const ImVec4 kWARN  {0.97f, 0.74f, 0.24f, 1.0f};
 static const ImVec4 kOK    {0.22f, 0.78f, 0.50f, 1.0f};
 static const ImVec4 kBORD  {0.20f, 0.21f, 0.27f, 1.0f};
 static const ImVec4 kFRAME {0.15f, 0.15f, 0.20f, 1.0f};
@@ -167,7 +169,7 @@ void RecordingView::render(void* renderData) {
         ImGui::SetCursorScreenPos({pos.x + 20.0f, pos.y});
         if (recording) {
             ImGui::PushStyleColor(ImGuiCol_Text, kRED);
-            ImGui::Text("REC  %s", fmtDuration(wallDuration).c_str());
+            ImGui::Text("REC  %s", fmtDuration(simulationTime).c_str());
             ImGui::PopStyleColor();
         } else if (lastFinishedDuration > 0.0) {
             ImGui::PushStyleColor(ImGuiCol_Text, kDIM);
@@ -179,6 +181,24 @@ void RecordingView::render(void* renderData) {
             ImGui::PopStyleColor();
         }
     }
+
+    if (recording && _maxDuration > 0.0) {
+        float pct    = static_cast<float>(
+                           std::clamp(simulationTime / _maxDuration, 0.0, 1.0));
+        ImVec4 fillC = (pct < 0.75f) ? kOK : (pct < 0.90f) ? kWARN : kRED;
+
+        ImVec2 bPos = ImGui::GetCursorScreenPos();
+        float  bW   = ImGui::GetContentRegionAvail().x;
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+
+        dl->AddRectFilled(bPos, {bPos.x + bW, bPos.y + 4.0f},
+                          IM_COL32(22, 22, 30, 255), 2.0f);
+        dl->AddRectFilled(bPos, {bPos.x + bW * pct, bPos.y + 4.0f},
+                          U32(fillC), 2.0f);
+        ImGui::Dummy({bW, 6.0f});
+    }
+
+    ImGui::Spacing();
 
     ImGui::Spacing();
 
@@ -196,6 +216,27 @@ void RecordingView::render(void* renderData) {
         if (ImGui::InputText("##outfile", pathBuf, sizeof(pathBuf),
                              recording ? ImGuiInputTextFlags_ReadOnly : 0))
             outputFile = pathBuf;
+        ImGui::PopStyleColor();
+
+        // Duration cap
+        ImGui::PushStyleColor(ImGuiCol_Text, kDIM);
+        ImGui::TextUnformatted("Max Duration");
+        ImGui::PopStyleColor();
+        ImGui::SameLine(130.0f);
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        {
+            float maxDurF = static_cast<float>(_maxDuration);
+            if (ImGui::InputFloat("##maxdur", &maxDurF, 0.0f, 0.0f, "%.1f s",
+                                  recording ? ImGuiInputTextFlags_ReadOnly : 0)) {
+                _maxDuration = static_cast<double>(std::max(0.0f, maxDurF));
+                                  }
+        }
+        ImGui::PushStyleColor(ImGuiCol_Text, kDIM);
+        ImGui::TextUnformatted(""); // indent spacer
+        ImGui::PopStyleColor();
+        ImGui::SameLine(130.0f);
+        ImGui::PushStyleColor(ImGuiCol_Text, kDIM);
+        ImGui::TextUnformatted(_maxDuration > 0.0 ? "0 = unlimited" : "unlimited");
         ImGui::PopStyleColor();
     }
 
@@ -280,6 +321,9 @@ void RecordingView::render(void* renderData) {
         glBindTexture(GL_TEXTURE_2D, prevTex);
         throw;
     }
+
+    if (_maxDuration > 0.0 && simulationTime >= _maxDuration)
+        stopRecording();
 }
 
 void RecordingView::startRecording() {
@@ -446,3 +490,4 @@ void RecordingView::releaseEncoder() {
     videoStream        = nullptr;
     encoderInitialized = false;
 }
+#endif //HAS_FFMPEG

@@ -67,6 +67,23 @@ void SceneView2D::render(void *renderData) {
 
     ImGui::Separator();
 
+    if (ImGui::Button("Load Image", ImVec2(totalWidth, 0))) {
+        IGFD::FileDialogConfig config;
+        config.path = ".";
+        ImGuiFileDialog::Instance()->OpenDialog("LoadImage", "Choose location", ".png", config);
+    }
+    if (ImGuiFileDialog::Instance()->Display("LoadImage")) {
+        if (ImGuiFileDialog::Instance()->IsOk()) {
+            std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+            _scene->loadImage(rData->grid, filePathName, _threshold);
+        }
+
+        ImGuiFileDialog::Instance()->Close();
+    }
+    ImGui::SliderInt("Value", &_threshold, -255, 255);
+
+    ImGui::Separator();
+
     float listSize = ImGui::GetContentRegionAvail().y - 25;
     if (ImGui::BeginListBox("##listbox", ImVec2(-FLT_MIN, listSize))) {
         for (int i = 0; i < _scene_list.size(); i++) {

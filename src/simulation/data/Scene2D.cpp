@@ -3,6 +3,9 @@
 #include "simulation/Properties.h"
 #include "simulation/data/IGrid.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+
 Scene2D::Scene2D() {
 }
 
@@ -79,6 +82,41 @@ void Scene2D::clearScene() {
 
     _boundary = nullptr;
     _rho = nullptr;
+}
+
+void Scene2D::loadImage(IGrid2D *grid, const std::string &path, const int threshold) {
+    SET_PROPERTY_B(SIMULATION_RESET, true);
+    SET_PROPERTY_B(SIMULATION_INITIALIZED, false);
+
+    int width, height, channels;
+    unsigned char* pixels = stbi_load(
+        path.c_str(),
+        &width,
+        &height,
+        &channels,
+        1);
+    if (pixels) {
+        SET_PROPERTY_I(WIDTH_2D, width);
+        SET_PROPERTY_I(HEIGHT_2D, height);
+        if (_boundary) delete _boundary;
+        if (_rho) delete _rho;
+        _boundary = new ScalField2D(width, height);
+        _rho = new ScalField2D(width, height);
+
+        for (int x = 0; x < width; ++x)
+        for (int y = 0; y < height; ++y) {
+            const int i = x + y * width;
+            if (threshold > 0)
+                (*_rho)[i] = pixels[i] < threshold ? 1.0f : 0.f;
+            else
+                (*_rho)[i] = pixels[i] < std::abs(threshold) ? 0.f : 1.f;
+
+            if (x == 0 || x == width - 1) (*_boundary)[i] = 1.0f;
+            if (y == 0 || y == height - 1) (*_boundary)[i] = 1.0f;
+        }
+
+        stbi_image_free(pixels);
+    }
 }
 
 bool Scene2D::loadedScene() const {

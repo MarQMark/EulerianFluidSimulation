@@ -5,6 +5,7 @@
 #include <ranges>
 
 #include "imgui.h"
+#include "glm/gtc/type_ptr.hpp"
 #include "nlohmann/json.hpp"
 #include "util/GuiHelper.h"
 
@@ -157,3 +158,13 @@ void Properties::Property<Properties::SimulatorType>::draw(){}
 
 template<>
 void Properties::Property<std::vector<Properties::SolverType>*>::draw() {}
+
+template<>
+void Properties::Property<color_p>::draw(){
+    ImGui::Text("%s:", name.c_str());
+    std::string id = "##" + name;
+
+    glm::vec3 v = value.value;
+    if (ImGui::ColorEdit3(id.c_str(), glm::value_ptr(v)))
+        value.value = v;
+}

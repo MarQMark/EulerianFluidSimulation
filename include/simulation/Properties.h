@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "glm/vec3.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include "nlohmann/detail/meta/std_fs.hpp"
 #include "util/Logger.h"
@@ -44,6 +45,10 @@
 
 static constexpr unsigned int COUNTER_START = __COUNTER__ + 1;
 #define PROP_TOKEN(token) static constexpr unsigned int token = __COUNTER__ - COUNTER_START;
+
+struct color_p {
+    glm::vec3 value;
+};
 
 class Properties {
 public:
@@ -93,6 +98,10 @@ public:
     PROP_TOKEN(DRAW_MODE)
     PROP_TOKEN(DRAW_VEL_ARROWS)
     PROP_TOKEN(RE_CALC_DIV)
+
+    PROP_TOKEN(COLOR_BG)
+    PROP_TOKEN(COLOR_FLUID)
+    PROP_TOKEN(COLOR_BOUNDARY)
 
     PROP_TOKEN(PAUSED)
 
@@ -161,6 +170,10 @@ private:
         ADD_2D(rendering, DRAW_MODE, "Draw Mode", "Which field is rendered in main window", DrawMode::FLUID)
         ADD_2D(rendering, DRAW_VEL_ARROWS, "Draw vel arrows", "Draw velocity arrows", false)
         ADD_2D(rendering, RE_CALC_DIV, "Re-Calc Div", "Recalculate Divergence after Projection", false)
+
+        ADD_2D(rendering, COLOR_BG, "Background Color", "", color_p{glm::vec3(0, 0, 0)});
+        ADD_2D(rendering, COLOR_FLUID, "Fluid Color", "", color_p{glm::vec3(0, 0, 0.8f)})
+        ADD_2D(rendering, COLOR_BOUNDARY, "Boundary Color", "", color_p{glm::vec3(.3)})
 
         ADD_3D(rendering, VP_SCALE, "Viewport Scale", "Render framebuffer scale amount", 1.f);
         ADD_3D(rendering, VP_LOCK, "Viewport Lock", "Lock viewport base size", false);

@@ -17,6 +17,8 @@ public:
     void resetScene(IGrid2D* grid) const;
     void clearScene();
 
+    void loadImage(IGrid2D* grid, const std::string& path, int threshold);
+
     bool loadedScene() const;
 
 private:

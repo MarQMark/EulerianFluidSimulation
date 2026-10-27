@@ -140,19 +140,29 @@ add_subdirectory("external/json")
 add_subdirectory("external/ImGuizmo")
 target_link_libraries(imguizmo PUBLIC imgui)
 
-find_package(PkgConfig REQUIRED)
+find_package(PkgConfig QUIET)
 
-pkg_check_modules(AVFORMAT REQUIRED IMPORTED_TARGET libavformat)
-pkg_check_modules(AVCODEC REQUIRED IMPORTED_TARGET libavcodec)
-pkg_check_modules(AVUTIL REQUIRED IMPORTED_TARGET libavutil)
-pkg_check_modules(SWSCALE REQUIRED IMPORTED_TARGET libswscale)
+if(PkgConfig_FOUND)
+    pkg_check_modules(AVFORMAT QUIET IMPORTED_TARGET libavformat)
+    pkg_check_modules(AVCODEC QUIET IMPORTED_TARGET libavcodec)
+    pkg_check_modules(AVUTIL QUIET IMPORTED_TARGET libavutil)
+    pkg_check_modules(SWSCALE QUIET IMPORTED_TARGET libswscale)
+endif()
 
-target_link_libraries(EulerianFluidSimulation PRIVATE
-        PkgConfig::AVFORMAT
-        PkgConfig::AVCODEC
-        PkgConfig::AVUTIL
-        PkgConfig::SWSCALE
-)
+if(PkgConfig_FOUND AND AVFORMAT_FOUND AND AVCODEC_FOUND AND AVUTIL_FOUND AND SWSCALE_FOUND)
+    target_link_libraries(EulerianFluidSimulation PRIVATE
+            PkgConfig::AVFORMAT
+            PkgConfig::AVCODEC
+            PkgConfig::AVUTIL
+            PkgConfig::SWSCALE
+    )
+
+    target_compile_definitions(EulerianFluidSimulation PRIVATE
+            HAS_FFMPEG
+    )
+else()
+    message(WARNING "FFmpeg libraries not found. Video recording will be disabled.")
+endif()
 
 if (UNIX)
     find_package(OpenGL REQUIRED)

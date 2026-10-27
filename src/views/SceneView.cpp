@@ -90,7 +90,7 @@ void SceneView::render(void* renderData) {
                     }
 
                     _editor->removeSceneNode(sceneNodes[i]);
-                    _editor->initBoundaries(rData->grid->boundary());
+                    _editor->initBoundaries(rData->grid->boundary(), rData->grid->rho());
                 }
             }
             ImGui::PopID();
@@ -124,7 +124,7 @@ void SceneView::render(void* renderData) {
     if (ImGuiFileDialog::Instance()->Display("LoadModel")) {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             _editor->addBoundary(ImGuiFileDialog::Instance()->GetFilePathName());
-            _editor->initBoundaries(rData->grid->boundary());
+            _editor->initBoundaries(rData->grid->boundary(), rData->grid->rho());
         }
 
         ImGuiFileDialog::Instance()->Close();

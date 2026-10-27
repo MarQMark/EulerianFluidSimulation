@@ -1,3 +1,4 @@
+#ifdef HAS_FFMPEG
 #ifndef EULERIANFLUIDSIMULATION_RECORDINGVIEW_H
 #define EULERIANFLUIDSIMULATION_RECORDINGVIEW_H
 
@@ -57,6 +58,7 @@ private:
     double     lastFinishedDuration  = 0.0;  // duration of last completed take
     std::int64_t lastFinishedFrames  = 0;    // output frames of last take
     double     lastFinishedSimTime   = 0.0;
+    double     _maxDuration = 0;
 
     // Estimated encoded size = outputFrameCount / 60 * bitrate / 8  (bytes)
     static constexpr double kBitrate = 8'000'000.0;
@@ -78,3 +80,4 @@ private:
 
 
 #endif //EULERIANFLUIDSIMULATION_RECORDINGVIEW_H
+#endif //HAS_FFMPEG

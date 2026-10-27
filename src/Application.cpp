@@ -12,7 +12,6 @@
 #include "views/FPSView.h"
 #include "views/ProfilerView.h"
 #include "views/PropertiesView.h"
-#include "views/RecordingView.h"
 #include "views/SolverStepsView.h"
 #include "views/StatsView.h"
 
@@ -22,6 +21,9 @@
 #include "simulation/simulator/CudaSimulator3D.h"
 #endif
 
+#ifdef HAS_FFMPEG
+#include "views/RecordingView.h"
+#endif //HAS_FFMPEG
 
 Application::Application() {
     _window = new Window(1920, 1080, "Eulerian Fluid Simulation");
@@ -33,7 +35,9 @@ Application::Application() {
     _views->addView("Profiler", new ProfilerView());
     _views->addView("SolverSteps", new SolverStepsView());
 	_views->addView("Stats", new StatsView());
+#ifdef HAS_FFMPEG
 	_views->addView("Recording", new RecordingView());
+#endif //HAS_FFMPEG
 
 	rebuild();
 
@@ -215,8 +219,6 @@ void Application::reset() {
 			const int HEIGHT = PROPERTY_I(HEIGHT_2D);
 
 			_simulator = new OpenGLSimulator2D(WIDTH, HEIGHT);
-			if (WIDTH * HEIGHT > PROPERTY_I(WARN_N_CELLS))
-				LOG_WARN("CPU Simulation with high amount of cells")
 			break;
 		}
 		case Properties::OPENGL_3D:
@@ -265,6 +267,8 @@ void Application::reset() {
 			const int HEIGHT = PROPERTY_I(HEIGHT_2D);
 
 			_simulator = new CPUSimulator2D(WIDTH, HEIGHT);
+			if (WIDTH * HEIGHT > PROPERTY_I(WARN_N_CELLS))
+				LOG_WARN("CPU Simulation with high amount of cells")
 			break;
 		}
 	}

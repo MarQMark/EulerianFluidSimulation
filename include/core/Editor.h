@@ -48,7 +48,7 @@ public:
     // --- Window Resizes ---
     void updateRenderingSize(int width, int height) const;
 
-    void initBoundaries(ScalField3D& boundary) const;
+    void initBoundaries(ScalField3D &boundary, ScalField3D &rho) const;
 
 
 private:

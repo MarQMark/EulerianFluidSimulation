@@ -30,7 +30,7 @@ struct RenderingSettings {
     glm::vec3 minColor = glm::vec3(0.07,0,0.45);
     glm::vec3 maxColor = glm::vec3(1.f,0,0);
     float min = 0;
-    float max = 1.f;
+    float max = 160.f;
 };
 
 

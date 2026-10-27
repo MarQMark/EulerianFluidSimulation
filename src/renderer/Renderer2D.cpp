@@ -77,6 +77,10 @@ void Renderer2D::render(void* renderData) {
         data[i * 4 + 3] = 1.f;
     }*/
 
+    const glm::vec3 colBG = PROPERTY(COLOR_BG, color_p).value;
+    const glm::vec3 colF = PROPERTY(COLOR_FLUID, color_p).value;
+    const glm::vec3 colB = PROPERTY(COLOR_BOUNDARY, color_p).value;
+
     float max = 0;
     switch (PROPERTY(DRAW_MODE, Properties::DrawMode)) {
         case Properties::VELOCITY:
@@ -99,9 +103,16 @@ void Renderer2D::render(void* renderData) {
             break;
         case Properties::FLUID:
             for (int i = 0; i < _width * _height; i++) {
-                data[i * 4 + 0] = 0;
-                data[i * 4 + 1] = 0;
-                data[i * 4 + 2] = grid->rho()[i] > PROPERTY_F(LIQUID_THRESHOLD) ? .8f : 0.f;
+                if (grid->rho()[i] > PROPERTY_F(LIQUID_THRESHOLD)) {
+                    data[i * 4 + 0] = colF.x;
+                    data[i * 4 + 1] = colF.y;
+                    data[i * 4 + 2] = colF.z;
+                }
+                else {
+                    data[i * 4 + 0] = colBG.x;
+                    data[i * 4 + 1] = colBG.y;
+                    data[i * 4 + 2] = colBG.z;
+                }
                 data[i * 4 + 3] = 1.f;
             }
             break;
@@ -110,10 +121,10 @@ void Renderer2D::render(void* renderData) {
 
     for (int i = 0; i < _width * _height; i++) {
         if (grid->boundary()[i] == 1) {
-            data[i * 4 + 0] = .3f;
-            data[i * 4 + 1] = .3f;
-            data[i * 4 + 2] = .3f;
-            data[i * 4 + 3] = .3f;
+            data[i * 4 + 0] = colB.x;
+            data[i * 4 + 1] = colB.y;
+            data[i * 4 + 2] = colB.z;
+            data[i * 4 + 3] = 1.f;
         }
     }
 
