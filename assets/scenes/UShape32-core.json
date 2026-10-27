@@ -80,7 +80,7 @@
         {
             "boundary": true,
             "name": "UShape",
-            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/cmake-build-release/assets/models/UShape.obj",
+            "path": "assets/models/UShape.obj",
             "position": [
                 0.0,
                 0.0,

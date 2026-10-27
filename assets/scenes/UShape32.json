@@ -80,7 +80,7 @@
         {
             "boundary": true,
             "name": "U",
-            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/cmake-build-release/assets/models/U.obj",
+            "path": "assets/models/U.obj",
             "position": [
                 0.0,
                 -1.0,
@@ -104,7 +104,7 @@
         {
             "boundary": false,
             "name": "UInfill",
-            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/cmake-build-release/assets/models/UInfill.obj",
+            "path": "assets/models/UInfill.obj",
             "position": [
                 0.0,
                 -1.0,

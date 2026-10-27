@@ -31,7 +31,7 @@
         {
             "boundary": true,
             "name": "Bucket",
-            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/cmake-build-release/assets/models/Bucket.obj",
+            "path": "assets/models/Bucket.obj",
             "position": [
                 -0.75,
                 0.0,
@@ -132,7 +132,7 @@
         {
             "boundary": true,
             "name": "BucketCrosssection",
-            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/cmake-build-release/assets/models/BucketCrosssection.obj",
+            "path": "assets/models/BucketCrosssection.obj",
             "position": [
                 -0.75,
                 0.0,

@@ -31,7 +31,7 @@
         {
             "boundary": true,
             "name": "BetterUShape",
-            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/assets/models/BetterUShape.obj",
+            "path": "assets/models/BetterUShape.obj",
             "position": [
                 0.0,
                 0.0,

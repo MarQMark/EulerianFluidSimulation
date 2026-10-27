@@ -31,7 +31,7 @@
         {
             "boundary": true,
             "name": "Bucket",
-            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/assets/models/Bucket.obj",
+            "path": "assets/models/Bucket.obj",
             "position": [
                 -1.5030121803283691,
                 -0.07000000029802322,

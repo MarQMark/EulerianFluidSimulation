@@ -31,7 +31,7 @@
         {
             "boundary": true,
             "name": "tube",
-            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/assets/models/tube.obj",
+            "path": "assets/models/tube.obj",
             "position": [
                 0.9890000224113464,
                 -0.07400000095367432,
@@ -55,7 +55,7 @@
         {
             "boundary": true,
             "name": "tube_plug",
-            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/assets/models/tube_plug.obj",
+            "path": "assets/models/tube_plug.obj",
             "position": [
                 0.9890000224113464,
                 -0.07400000095367432,
@@ -79,7 +79,7 @@
         {
             "boundary": false,
             "name": "Fluid Spawn",
-            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/cmake-build-debug/assets/models/tube_infill.obj",
+            "path": "assets/models/tube_infill.obj",
             "position": [
                 0.9890000224113464,
                 -0.07400000095367432,
