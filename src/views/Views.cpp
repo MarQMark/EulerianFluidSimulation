@@ -133,54 +133,39 @@ void Views::deleteView(const std::string &name) {
 
 void Views::render_menubar() {
     if (ImGui::BeginMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Open")) {}
-            if (ImGui::MenuItem("Save")) {}
 
-            ImGui::Separator();
-
-            if (ImGui::MenuItem("Exit")) {
-                exit(0);
-            }
-            ImGui::EndMenu();
-        }
-
-        ImGui::Separator();
         if (ImGui::BeginMenu("Simulation")) {
-            if (ImGui::BeginMenu("Change type")) {
-                if (ImGui::MenuItem("CPU 2D")) {
-                    SET_PROPERTY(SIMULATION_TYPE, Properties::CPU_2D, Properties::SimulatorType);
-                    SET_PROPERTY_B(SIMULATION_REBUILD, true);
-                }
-                if (ImGui::MenuItem("CPU 3D")) {
-                    SET_PROPERTY(SIMULATION_TYPE, Properties::CPU_3D, Properties::SimulatorType);
-                    SET_PROPERTY_B(SIMULATION_REBUILD, true);
-                }
+            if (ImGui::MenuItem("CPU 2D")) {
+                SET_PROPERTY(SIMULATION_TYPE, Properties::CPU_2D, Properties::SimulatorType);
+                SET_PROPERTY_B(SIMULATION_REBUILD, true);
+            }
+            if (ImGui::MenuItem("CPU 3D")) {
+                SET_PROPERTY(SIMULATION_TYPE, Properties::CPU_3D, Properties::SimulatorType);
+                SET_PROPERTY_B(SIMULATION_REBUILD, true);
+            }
 
-                if (ImGui::MenuItem("OpenGL 2D")) {
-                    SET_PROPERTY(SIMULATION_TYPE, Properties::OPENGL_2D, Properties::SimulatorType);
-                    SET_PROPERTY_B(SIMULATION_REBUILD, true);
-                }
-                if (ImGui::MenuItem("OpenGL 3D")) {
-                    SET_PROPERTY(SIMULATION_TYPE, Properties::OPENGL_3D, Properties::SimulatorType);
-                    SET_PROPERTY_B(SIMULATION_REBUILD, true);
-                }
+            if (ImGui::MenuItem("OpenGL 2D")) {
+                SET_PROPERTY(SIMULATION_TYPE, Properties::OPENGL_2D, Properties::SimulatorType);
+                SET_PROPERTY_B(SIMULATION_REBUILD, true);
+            }
+            if (ImGui::MenuItem("OpenGL 3D")) {
+                SET_PROPERTY(SIMULATION_TYPE, Properties::OPENGL_3D, Properties::SimulatorType);
+                SET_PROPERTY_B(SIMULATION_REBUILD, true);
+            }
 #ifdef HAS_CUDA
-                const bool cudaEnabled = PROPERTY_B(CUDA_ENABLED);
-                if (!cudaEnabled) ImGui::BeginDisabled();
-                if (ImGui::MenuItem("Cuda 2D")) {
-                    SET_PROPERTY(SIMULATION_TYPE, Properties::CUDA_2D, Properties::SimulatorType);
-                    SET_PROPERTY_B(SIMULATION_REBUILD, true);
-                }
-                if (ImGui::MenuItem("Cuda 3D")) {
-                    SET_PROPERTY(SIMULATION_TYPE, Properties::CUDA_3D, Properties::SimulatorType);
-                    SET_PROPERTY_B(SIMULATION_REBUILD, true);
-                }
-                if (!cudaEnabled) ImGui::EndDisabled();
+            const bool cudaEnabled = PROPERTY_B(CUDA_ENABLED);
+            if (!cudaEnabled) ImGui::BeginDisabled();
+            if (ImGui::MenuItem("Cuda 2D")) {
+                SET_PROPERTY(SIMULATION_TYPE, Properties::CUDA_2D, Properties::SimulatorType);
+                SET_PROPERTY_B(SIMULATION_REBUILD, true);
+            }
+            if (ImGui::MenuItem("Cuda 3D")) {
+                SET_PROPERTY(SIMULATION_TYPE, Properties::CUDA_3D, Properties::SimulatorType);
+                SET_PROPERTY_B(SIMULATION_REBUILD, true);
+            }
+            if (!cudaEnabled) ImGui::EndDisabled();
 #endif
 
-                ImGui::EndMenu();
-            }
             ImGui::EndMenu();
         }
 

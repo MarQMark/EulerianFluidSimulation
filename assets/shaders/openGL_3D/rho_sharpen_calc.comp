@@ -26,6 +26,9 @@ uint idx(uint x, uint y, uint z) { return z * uWidth * uHeight + y * uWidth + x;
 
 uniform float uDt;
 
+float square(float a){ return a*a; }
+float cube(float a){ return a*a*a; }
+
 void main() {
     uint x = int(gl_GlobalInvocationID.x) + 1;
     uint y = int(gl_GlobalInvocationID.y) + 1;
@@ -55,39 +58,39 @@ void main() {
 
     const float max_inc = sqrt(
         max(
-            pow(max(dpx,0.f),2.f),
-            pow(min(dmx,0.f),2.f)) +
+            square(max(dpx,0.f)),
+            square(min(dmx,0.f))) +
         max(
-            pow(max(dpy,0.f),2.f),
-            pow(min(dmy,0.f),2.f)) +
+            square(max(dpy,0.f)),
+            square(min(dmy,0.f))) +
         max(
-            pow(max(dpz,0.f),2.f),
-            pow(min(dmz,0.f),2.f)));
+            square(max(dpz,0.f)),
+            square(min(dmz,0.f))));
 
     const float max_dec = sqrt(
         max(
-            pow(min(dpx,0.f),2.f),
-            pow(max(dmx,0.f),2.f)) +
+            square(min(dpx,0.f)),
+            square(max(dmx,0.f))) +
         max(
-            pow(min(dpy,0.f),2.f),
-            pow(max(dmy,0.f),2.f)) +
+            square(min(dpy,0.f)),
+            square(max(dmy,0.f))) +
         max(
-            pow(min(dpz,0.f),2.f),
-            pow(max(dmz,0.f),2.f)));
+            square(min(dpz,0.f)),
+            square(max(dmz,0.f))));
 
     const float maxDiff = max(max(
            max(abs(rC-rL), abs(rC-rR)),
            max(abs(rC-rD), abs(rC-rU))),
            max(abs(rC-rB), abs(rC-rF)));
 
-    const float w = pow(rC - 0.5f, 3.f) * (1.f - min(1.f, maxDiff / 0.2f));
+    const float w = cube(rC - 0.5f) * (1.f - min(1.f, maxDiff / 0.2f));
 
     float dr = (w >= 0.f) ? w * max_inc : w * max_dec;
 
     if (rC + dr < 0.f || rC < 1e-5f)
-    dr = -rC;
+        dr = -rC;
     else if (rC > 0.5f)
-    dr = 0.f;
+        dr = 0.f;
 
     delRho[i] = dr;
 }
