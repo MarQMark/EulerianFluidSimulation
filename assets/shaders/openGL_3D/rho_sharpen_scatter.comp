@@ -39,10 +39,10 @@ float sampleRho(vec3 pos) {
 
     vec3 t = fract(p);
 
-    float c00 = mix(rho[idx(i0.x, i0.y, i0.z)], rho[idx(i1.x, i0.y, i0.z)], t.x);
-    float c10 = mix(rho[idx(i0.x, i1.y, i0.z)], rho[idx(i1.x, i1.y, i0.z)], t.x);
-    float c01 = mix(rho[idx(i0.x, i0.y, i1.z)], rho[idx(i1.x, i0.y, i1.z)], t.x);
-    float c11 = mix(rho[idx(i0.x, i1.y, i1.z)], rho[idx(i1.x, i1.y, i1.z)], t.x);
+    float c00 = mix(uintBitsToFloat(rho[idx(i0.x, i0.y, i0.z)]), uintBitsToFloat(rho[idx(i1.x, i0.y, i0.z)]), t.x);
+    float c10 = mix(uintBitsToFloat(rho[idx(i0.x, i1.y, i0.z)]), uintBitsToFloat(rho[idx(i1.x, i1.y, i0.z)]), t.x);
+    float c01 = mix(uintBitsToFloat(rho[idx(i0.x, i0.y, i1.z)]), uintBitsToFloat(rho[idx(i1.x, i0.y, i1.z)]), t.x);
+    float c11 = mix(uintBitsToFloat(rho[idx(i0.x, i1.y, i1.z)]), uintBitsToFloat(rho[idx(i1.x, i1.y, i1.z)]), t.x);
 
     float c0 = mix(c00, c10, t.y);
     float c1 = mix(c01, c11, t.y);
@@ -53,7 +53,7 @@ float sampleRho(vec3 pos) {
 vec3 traceAlongField(vec3 pos) {
     const float stepSize = uRhoD / float(uSubsteps);
 
-    for (int s = 0; s < uSubsteps; s++) {
+    for (uint s = 0; s < uSubsteps; s++) {
     if (sampleRho(pos) >= 0.5f)
         break;
 
@@ -62,9 +62,9 @@ vec3 traceAlongField(vec3 pos) {
     const uint iz = max(1u, min(uint(pos.z), uDepth  - 2u));
 
     vec3 grad = vec3(
-        rho[idx(ix+1, iy,   iz  )] - rho[idx(ix-1, iy,   iz  )],
-        rho[idx(ix,   iy+1, iz  )] - rho[idx(ix,   iy-1, iz  )],
-        rho[idx(ix,   iy,   iz+1)] - rho[idx(ix,   iy,   iz-1)]
+        uintBitsToFloat(rho[idx(ix+1, iy,   iz  )]) - uintBitsToFloat(rho[idx(ix-1, iy,   iz  )]),
+        uintBitsToFloat(rho[idx(ix,   iy+1, iz  )]) - uintBitsToFloat(rho[idx(ix,   iy-1, iz  )]),
+        uintBitsToFloat(rho[idx(ix,   iy,   iz+1)]) - uintBitsToFloat(rho[idx(ix,   iy,   iz-1)])
     );
     const float len = sqrt(grad.x*grad.x + grad.y*grad.y + grad.z*grad.z);
     if (len < 1e-6f)
