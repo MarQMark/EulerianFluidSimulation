@@ -1,0 +1,113 @@
+{
+    "nodes": [
+        {
+            "color": [
+                0.20000000298023224,
+                0.6000000238418579,
+                1.0
+            ],
+            "name": "Simulation Domain",
+            "position": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "resolution": [
+                64,
+                98,
+                64
+            ],
+            "scale": [
+                1.0,
+                1.53125,
+                1.0
+            ],
+            "tags": [
+                "simulation_Domain"
+            ],
+            "type": "SimulationDomainNode",
+            "visible": true
+        },
+        {
+            "boundary": true,
+            "name": "suzanne",
+            "path": "/home/frieren/CLionProjects/EulerianFluidSimulation/cmake-build-release/assets/models/suzanne.obj",
+            "position": [
+                0.0,
+                -0.375,
+                0.0
+            ],
+            "rotation": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            "scale": [
+                0.375,
+                0.375,
+                0.375
+            ],
+            "tags": [],
+            "type": "ModelNode",
+            "visible": true
+        },
+        {
+            "color": [
+                1.0,
+                0.0,
+                0.0
+            ],
+            "name": "Fluid Spawn",
+            "position": [
+                16.0,
+                64.0,
+                16.0
+            ],
+            "scale": [
+                32.0,
+                32.0,
+                32.0
+            ],
+            "tags": [],
+            "type": "BoundingBoxFluidSpawnNode",
+            "visible": true
+        }
+    ],
+    "properties": {
+        "Brush Size": 50.0,
+        "Cell Size": 0.015625,
+        "Check Interval": 100,
+        "D": 3.0,
+        "DT": 0.016699999570846558,
+        "Disable Add Force": false,
+        "Disable Density Advection": false,
+        "Disable Density Sharpen": false,
+        "Disable Projection": false,
+        "Disable Up/Download": false,
+        "Disable Velocity Advection": false,
+        "Disable Velocity Decay": false,
+        "Disable Velocity Extrapolation": false,
+        "Draw vel arrows": false,
+        "Eta": 100.0,
+        "Gravity": 10.0,
+        "Gravity Enabled": true,
+        "Gravity Force": 640.0,
+        "Height": 72,
+        "Lambda+": 10.0,
+        "Lambda-": 50.0,
+        "Liquid Threshold": 0.5,
+        "Max ForceField cells": 1000,
+        "Max Steps": 2000,
+        "Paused": true,
+        "Re-Calc Div": false,
+        "Threshold": 9.999999747378752e-06,
+        "Vel Decay": 0.800000011920929,
+        "Vel Extrapolate Iter": 3,
+        "Viewport Height": 720,
+        "Viewport Lock": false,
+        "Viewport Scale": 2.0,
+        "Viewport Width": 640,
+        "Width": 72
+    }
+}

@@ -58,9 +58,11 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 find_package(CUDAToolkit QUIET)
 if(CUDAToolkit_FOUND)
     message(STATUS "Cuda available")
+    message(STATUS "NVCC Path: " ${CMAKE_CUDA_COMPILER})
+    set(CMAKE_CUDA_COMPILER ${CMAKE_CUDA_COMPILER})
+    set(CMAKE_CUDA_ARCHITECTURES 75)
     enable_language(CUDA)
 
-#    set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc")
     message(STATUS "nvcc version: ${CMAKE_CUDA_COMPILER_VERSION}")
     if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 13.0)
         set(CMAKE_CUDA_ARCHITECTURES 61 75 80)
@@ -132,8 +134,6 @@ target_include_directories(EulerianFluidSimulation
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/ImGuizmo/src
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/implot
 )
-
-add_compile_definitions(USE_GPU)
 
 add_subdirectory("external/tinyobjloader")
 add_subdirectory("external/json")
