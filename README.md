@@ -120,7 +120,6 @@ After a successful build, run the executable from the build directory:
 The build process copies the required assets into the build directory.
 
 ## <p1>Controls</p1>
-### 2D & 3D:
 ### General (2D and 3D)
 
 | Shortcut | Action |
